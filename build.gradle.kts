@@ -3,10 +3,9 @@ import com.github.spotbugs.snom.Effort
 import com.github.spotbugs.snom.SpotBugsExtension
 import com.github.spotbugs.snom.SpotBugsTask
 import net.ltgt.gradle.errorprone.errorprone
+import org.gradle.api.Project
 import org.gradle.api.publish.PublishingExtension
-import org.gradle.api.Task
 import org.gradle.api.publish.maven.MavenPublication
-
 
 plugins {
     alias(libs.plugins.errorprone) apply false
@@ -18,12 +17,55 @@ group = "org.aincraft"
 // Canonical date-based release version; -PreleaseVersion= overrides for paper.yml publish.
 version = providers.gradleProperty("releaseVersion").orElse("26.8.11.1").get()
 
-
-
-
-
-
-
+private fun Project.configureMavenPublication(componentName: String, pomDescription: String) {
+    val moduleName = name.removePrefix("modularjobs-")
+    configure<PublishingExtension> {
+        publications {
+            create<MavenPublication>("maven") {
+                from(components[componentName])
+                artifactId = "modularjobs-$moduleName"
+                pom {
+                    name.set("ModularJobs ${moduleName.replaceFirstChar(Char::uppercase)}")
+                    description.set(pomDescription)
+                    url.set("https://github.com/aincraft-org/modularjobs")
+                    licenses {
+                        license {
+                            name.set("MIT License")
+                            url.set("https://opensource.org/licenses/MIT")
+                            distribution.set("repo")
+                        }
+                    }
+                    developers {
+                        developer {
+                            id.set("aincraft")
+                            name.set("ModularJobs contributors")
+                            url.set("https://github.com/aincraft-org")
+                        }
+                    }
+                    scm {
+                        connection.set("scm:git:git://github.com/aincraft-org/modularjobs.git")
+                        developerConnection.set("scm:git:ssh://git@github.com/aincraft-org/modularjobs.git")
+                        url.set("https://github.com/aincraft-org/modularjobs")
+                    }
+                }
+            }
+        }
+        repositories {
+            maven {
+                name = "localBuildRepo"
+                url = rootProject.layout.buildDirectory.dir("maven-repo").get().asFile.toURI()
+            }
+            maven {
+                name = "GitHubPackages"
+                url = uri("https://maven.pkg.github.com/aincraft-org/modularjobs")
+                credentials {
+                    username = System.getenv("GITHUB_ACTOR") ?: ""
+                    password = System.getenv("GITHUB_TOKEN") ?: ""
+                }
+            }
+        }
+    }
+}
 
 subprojects {
     group = rootProject.group
@@ -46,63 +88,32 @@ subprojects {
         options.release.set(javaVersion)
     }
 
-    if (moduleName == "api") {
+    if (moduleName == "api" || moduleName == "paper") {
         apply(plugin = "maven-publish")
-        configure<JavaPluginExtension> {
-            withSourcesJar()
-            withJavadocJar()
-        }
-        tasks.withType<Javadoc>().configureEach {
-            isFailOnError = false
-        }
-        configure<PublishingExtension> {
-            publications {
-                create<MavenPublication>("maven") {
-                    from(components["java"])
-                    artifactId = "modularjobs-$moduleName"
-                    pom {
-                        name.set("ModularJobs ${moduleName.replaceFirstChar(Char::uppercase)}")
-                        description.set("Public Java contracts for the ModularJobs Paper plugin.")
-                        url.set("https://github.com/aincraft-org/modularjobs")
-                        licenses {
-                            license {
-                                name.set("MIT License")
-                                url.set("https://opensource.org/licenses/MIT")
-                                distribution.set("repo")
-                            }
-                        }
-                        developers {
-                            developer {
-                                id.set("aincraft")
-                                name.set("ModularJobs contributors")
-                                url.set("https://github.com/aincraft-org")
-                            }
-                        }
-                        scm {
-                            connection.set("scm:git:git://github.com/aincraft-org/modularjobs.git")
-                            developerConnection.set("scm:git:ssh://git@github.com/aincraft-org/modularjobs.git")
-                            url.set("https://github.com/aincraft-org/modularjobs")
-                        }
-                    }
+        when (moduleName) {
+            "api" -> {
+                configure<JavaPluginExtension> {
+                    withSourcesJar()
+                    withJavadocJar()
+                }
+                tasks.withType<Javadoc>().configureEach {
+                    isFailOnError = false
+                }
+                configureMavenPublication(
+                    componentName = "java",
+                    pomDescription = "Public Java contracts for the ModularJobs Paper plugin.",
+                )
+            }
+            "paper" -> {
+                pluginManager.withPlugin("com.gradleup.shadow") {
+                    configureMavenPublication(
+                        componentName = "shadow",
+                        pomDescription = "Bundled Paper plugin distribution for ModularJobs servers.",
+                    )
                 }
             }
-            repositories {
-                maven {
-                    name = "localBuildRepo"
-                    url = rootProject.layout.buildDirectory.dir("maven-repo").get().asFile.toURI()
-                }
-                maven {
-                    name = "GitHubPackages"
-                    url = uri("https://maven.pkg.github.com/aincraft-org/modularjobs")
-                    credentials {
-                        username = System.getenv("GITHUB_ACTOR") ?: ""
-                        password = System.getenv("GITHUB_TOKEN") ?: ""
-                    }
-                }
-            }
+            else -> error("Unsupported publication module: $moduleName")
         }
-
-
     }
 
     val qualityConfig = rootProject.layout.projectDirectory.dir("config")
