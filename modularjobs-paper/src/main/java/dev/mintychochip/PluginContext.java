@@ -39,7 +39,6 @@ import dev.mintychochip.editor.EditorService;
 import dev.mintychochip.editor.EditorSessionStore;
 import dev.mintychochip.editor.RestSessionClient;
 import dev.mintychochip.editor.json.GsonProvider;
-import dev.mintychochip.event.EventBus;
 import dev.mintychochip.gui.JobBrowseGui;
 import dev.mintychochip.gui.JobInfoGui;
 import dev.mintychochip.gui.StatsGui;
@@ -48,6 +47,7 @@ import dev.mintychochip.gui.craftux.CraftuxSurfaces;
 import dev.mintychochip.gui.craftux.CraftuxUiHost;
 import dev.mintychochip.listener.AutoJoinListener;
 import dev.mintychochip.listener.LevelUpCommandListener;
+import dev.mintychochip.paper.event.LifecycleEventBus;
 import dev.mintychochip.payable.PayableWiring;
 import dev.mintychochip.payment.PaymentSettings;
 import dev.mintychochip.payment.PaymentWiring;
@@ -98,6 +98,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import org.aincraft.event.EventBuses;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.event.Listener;
@@ -108,6 +109,7 @@ import org.jetbrains.annotations.Nullable;
 public final class PluginContext {
 
   public final Bridge bridge;
+  private final LifecycleEventBus eventBus;
 
   /** Primary payable ConnectionSource (also first entry in {@link #resources}). */
   public final ConnectionSource connectionSource;
@@ -122,6 +124,7 @@ public final class PluginContext {
 
   private PluginContext(
       Bridge bridge,
+      LifecycleEventBus eventBus,
       ConnectionSource connectionSource,
       PluginResources resources,
       UpgradeTreeLoader upgradeTreeLoader,
@@ -129,6 +132,7 @@ public final class PluginContext {
       Set<JobsCommand> commands,
       @Nullable PlaceholderExpansionHandle placeholderExpansion) {
     this.bridge = bridge;
+    this.eventBus = eventBus;
     this.connectionSource = connectionSource;
     this.resources = resources;
     this.upgradeTreeLoader = upgradeTreeLoader;
@@ -142,6 +146,7 @@ public final class PluginContext {
    * disable.
    */
   public void shutdown() throws SQLException {
+    eventBus.close();
     resources.shutdown();
   }
 
@@ -397,7 +402,7 @@ public final class PluginContext {
         new UpgradePermissionRestoreListener(
             upgradeService, effectApplier, permissionManager, skillTreeRegistry));
 
-    EventBus eventBus = new EventBus();
+    LifecycleEventBus eventBus = new LifecycleEventBus(EventBuses.create());
     Bridge bridge =
         new BridgeImpl(
             registryContainer,
@@ -419,6 +424,7 @@ public final class PluginContext {
 
     return new PluginContext(
         bridge,
+        eventBus,
         connectionSource,
         resources,
         upgradeTreeLoader,

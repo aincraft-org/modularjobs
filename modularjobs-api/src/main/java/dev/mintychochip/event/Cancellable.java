@@ -1,7 +1,7 @@
 package dev.mintychochip.event;
 
 /** Pure cancel contract for domain events (no Bukkit dependency). */
-public interface Cancellable {
+public interface Cancellable extends org.aincraft.api.event.Cancellable {
 
   /** Returns whether cancelled. */
   boolean isCancelled();

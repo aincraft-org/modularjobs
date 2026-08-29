@@ -7,7 +7,7 @@ import java.util.Objects;
 import java.util.UUID;
 
 /** Fired before experience is applied; listeners may cancel or mutate the amount. */
-public final class JobExperienceGainEvent implements Cancellable {
+public final class JobExperienceGainEvent implements Cancellable, org.aincraft.api.event.Event {
 
   private final UUID playerId;
   private final Job job;

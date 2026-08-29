@@ -5,7 +5,7 @@ import java.util.Objects;
 import java.util.UUID;
 
 /** Fired when a jobs payment is delivered. */
-public final class JobsPaymentEvent implements Cancellable {
+public final class JobsPaymentEvent implements Cancellable, org.aincraft.api.event.Event {
 
   private final UUID playerId;
   private final Payable base;
