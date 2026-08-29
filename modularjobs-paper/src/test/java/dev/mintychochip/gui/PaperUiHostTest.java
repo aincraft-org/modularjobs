@@ -14,16 +14,17 @@ import org.bukkit.Material;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.inventory.InventoryType.SlotType;
-import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.Inventory;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mockbukkit.mockbukkit.ServerMock;
 import org.mockbukkit.mockbukkit.entity.PlayerMock;
-
 class PaperUiHostTest {
   private static ServerMock server;
 
@@ -161,6 +162,53 @@ class PaperUiHostTest {
     assertEquals(refreshed, after.getItem(5));
     assertEquals(Component.text("After"), player.getOpenInventory().title());
     host.onInventoryClick(click(player.getOpenInventory(), 5));
+    assertEquals(1, calls.get());
+  }
+
+  @Test
+  void unrelatedCloseCannotRemoveOwnerSession() {
+    PaperUiHost host = new PaperUiHost();
+    PlayerMock owner = server.addPlayer("host-close-owner-" + UUID.randomUUID());
+    PlayerMock unrelated = server.addPlayer("host-close-unrelated-" + UUID.randomUUID());
+    AtomicInteger calls = new AtomicInteger();
+    host.open(
+        owner,
+        new PaperUiHost.ScreenView(
+            "close-isolation",
+            1,
+            Component.text("Close isolation"),
+            Map.of(),
+            Map.of(),
+            ignored -> calls.incrementAndGet()));
+
+    unrelated.openInventory(owner.getOpenInventory().getTopInventory());
+    host.onInventoryClose(new InventoryCloseEvent(unrelated.getOpenInventory()));
+    assertEquals(0, calls.get());
+
+    host.onInventoryClose(new InventoryCloseEvent(owner.getOpenInventory()));
+    assertEquals(1, calls.get());
+    host.close(owner);
+    assertEquals(1, calls.get());
+  }
+
+  @Test
+  void playerQuitRemovesSessionAndInvokesCallbackOnce() {
+    PaperUiHost host = new PaperUiHost();
+    PlayerMock player = server.addPlayer("host-quit-" + UUID.randomUUID());
+    AtomicInteger calls = new AtomicInteger();
+    host.open(
+        player,
+        new PaperUiHost.ScreenView(
+            "quit",
+            1,
+            Component.text("Quit"),
+            Map.of(),
+            Map.of(),
+            ignored -> calls.incrementAndGet()));
+
+    host.onPlayerQuit(new PlayerQuitEvent(player, Component.text("quit")));
+    assertEquals(1, calls.get());
+    host.close(player);
     assertEquals(1, calls.get());
   }
 

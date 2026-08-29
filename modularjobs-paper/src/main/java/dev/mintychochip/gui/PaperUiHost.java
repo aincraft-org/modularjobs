@@ -112,7 +112,10 @@ public final class PaperUiHost implements Listener {
       return;
     }
     Session session = sessions.get(holder.viewerId());
-    if (session == null || session.holder != holder || session.inventory != event.getInventory()) {
+    if (session == null
+        || session.holder != holder
+        || session.inventory != event.getInventory()
+        || !session.player.getUniqueId().equals(event.getPlayer().getUniqueId())) {
       return;
     }
     sessions.remove(holder.viewerId(), session);
