@@ -40,7 +40,6 @@ final class ExperienceBarControllerImpl implements ExperienceBarController, List
   ExperienceBarControllerImpl(Plugin plugin, PaperSurfaces surfaces) {
     this.plugin = plugin;
     this.surfaces = surfaces;
-    plugin.getServer().getPluginManager().registerEvents(this, plugin);
   }
 
   @Override

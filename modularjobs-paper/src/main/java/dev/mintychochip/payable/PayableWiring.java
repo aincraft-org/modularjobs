@@ -2,7 +2,6 @@ package dev.mintychochip.payable;
 
 import dev.mintychochip.container.Currency;
 import dev.mintychochip.container.EconomyProvider;
-import dev.mintychochip.container.ExperiencePayableHandler.ExperienceBarController;
 import dev.mintychochip.container.ExperiencePayableHandler.ExperienceBarFormatter;
 import dev.mintychochip.container.PayableAmount;
 import dev.mintychochip.container.PayableHandler;
@@ -13,12 +12,14 @@ import dev.mintychochip.service.JobService;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.NumberFormat;
+import java.util.List;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.Tag;
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import org.bukkit.NamespacedKey;
+import org.bukkit.event.Listener;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jspecify.annotations.Nullable;
@@ -30,9 +31,12 @@ public final class PayableWiring {
   private static final String EXPERIENCE_TYPE = "modularjobs:experience";
 
   public final @NotNull EconomyProvider economyProvider;
+  public final List<Listener> listeners;
 
-  private PayableWiring(@NotNull EconomyProvider economyProvider) {
+  private PayableWiring(
+      @NotNull EconomyProvider economyProvider, List<Listener> listeners) {
     this.economyProvider = economyProvider;
+    this.listeners = List.copyOf(listeners);
   }
 
   /**
@@ -48,7 +52,7 @@ public final class PayableWiring {
       @Nullable ExperienceBarColorPreference experienceBarColorPreference) {
     ExperienceBarColorProvider colorProvider =
         new ExperienceBarColorProvider(experienceBarColorPreference);
-    ExperienceBarController controller = new ExperienceBarControllerImpl(plugin, surfaces);
+    ExperienceBarControllerImpl controller = new ExperienceBarControllerImpl(plugin, surfaces);
     ExperienceBarFormatter formatter = new ExperienceBarFormatterImpl(colorProvider);
     PayableHandler experienceHandler =
         new BufferedExperienceHandlerImpl(controller, formatter, jobService);
@@ -59,7 +63,8 @@ public final class PayableWiring {
     payableTypeRegistry.register(economyType(economyHandler));
     payableTypeRegistry.register(experienceType(experienceHandler));
 
-    return new PayableWiring(economyProvider);
+    List<Listener> listeners = List.of(controller);
+    return new PayableWiring(economyProvider, listeners);
   }
 
   /** Delegates economy payables to the selected provider, including the blackhole fallback. */

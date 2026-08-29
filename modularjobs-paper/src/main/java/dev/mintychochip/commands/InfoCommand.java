@@ -30,9 +30,9 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 /**
- * /jobs info — chat listing or craftux inventory GUI (preference-driven).
+ * /jobs info — chat listing or native inventory GUI (preference-driven).
  *
- * <p>GUI mode uses {@link JobInfoGui}; Paper Dialog is not used on this path.
+ * <p>GUI mode uses the native {@link JobInfoGui} inventory view.
  */
 public class InfoCommand implements JobsCommand {
 

@@ -109,7 +109,7 @@ public class StatsCommand implements JobsCommand {
             });
   }
 
-  /** Displays stats in a GUI dialog. Falls back to chat if sender is not a player. */
+  /** Displays stats in the native inventory GUI, falling back to chat if sender is not a player. */
   private void displayStats(CommandSender viewer, OfflinePlayer target) {
     if (viewer instanceof Player player) {
       displayStatsDialog(player, target);
@@ -118,7 +118,7 @@ public class StatsCommand implements JobsCommand {
     }
   }
 
-  /** Displays stats in a craftux inventory GUI. */
+  /** Displays stats in the native inventory GUI. */
   private void displayStatsDialog(Player viewer, OfflinePlayer target) {
     final List<JobProgression> progressions = jobService.getProgressions(target.getUniqueId());
     statsGui.open(viewer, target, progressions, 1);

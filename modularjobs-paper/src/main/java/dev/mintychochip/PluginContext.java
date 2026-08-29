@@ -115,15 +115,23 @@ public final class PluginContext {
   /** All DB sources + write-back flush hooks owned by this composition. */
   public final PluginResources resources;
 
+  /** Shared native inventory host owned by this composition. */
+  public final PaperUiHost paperUiHost;
+
+  /** Shared native scoreboard and boss-bar surfaces owned by this composition. */
+  public final PaperSurfaces paperSurfaces;
+
   public final UpgradeTreeLoader upgradeTreeLoader;
   public final Set<Listener> listeners;
   public final Set<JobsCommand> commands;
   @Nullable public final PlaceholderExpansionHandle placeholderExpansion;
 
-  private PluginContext(
+  PluginContext(
       Bridge bridge,
       ConnectionSource connectionSource,
       PluginResources resources,
+      PaperUiHost paperUiHost,
+      PaperSurfaces paperSurfaces,
       UpgradeTreeLoader upgradeTreeLoader,
       Set<Listener> listeners,
       Set<JobsCommand> commands,
@@ -131,17 +139,22 @@ public final class PluginContext {
     this.bridge = bridge;
     this.connectionSource = connectionSource;
     this.resources = resources;
+    this.paperUiHost = paperUiHost;
+    this.paperSurfaces = paperSurfaces;
     this.upgradeTreeLoader = upgradeTreeLoader;
     this.listeners = listeners;
     this.commands = commands;
     this.placeholderExpansion = placeholderExpansion;
   }
 
+
   /**
    * Flush write-backs and shut down every tracked ConnectionSource. Same path bootstrap uses on
    * disable.
    */
   public void shutdown() throws SQLException {
+    paperUiHost.closeAll();
+    paperSurfaces.closeAll();
     resources.shutdown();
   }
 
@@ -358,6 +371,7 @@ public final class PluginContext {
 
     List<Listener> listenerList = new ArrayList<>();
     listenerList.add(paperUiHost);
+    listenerList.addAll(payables.listeners);
     listenerList.addAll(payment.listeners);
     listenerList.add(new ConsumableBoostController(itemBoostDataService, timedBoostDataService));
     // Config-driven level-up commands run after payment listeners have played feedback.
@@ -395,6 +409,8 @@ public final class PluginContext {
         bridge,
         connectionSource,
         resources,
+        paperUiHost,
+        paperSurfaces,
         upgradeTreeLoader,
         new LinkedHashSet<>(listenerList),
         commands,
