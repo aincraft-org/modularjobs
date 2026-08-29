@@ -46,7 +46,6 @@ import dev.mintychochip.gui.StatsGui;
 import dev.mintychochip.gui.UpgradeTreeGui;
 import dev.mintychochip.gui.PaperSurfaces;
 import dev.mintychochip.gui.PaperUiHost;
-import dev.mintychochip.gui.craftux.CraftuxUiHost;
 import dev.mintychochip.listener.AutoJoinListener;
 import dev.mintychochip.listener.LevelUpCommandListener;
 import dev.mintychochip.payable.PayableWiring;
@@ -203,8 +202,6 @@ public final class PluginContext {
             keyResolver,
             joinGate);
 
-    // Craftux host remains in use by the editor screens; native screens use PaperUiHost.
-    final CraftuxUiHost craftuxUi = CraftuxUiHost.create(plugin);
     final PaperUiHost paperUiHost = new PaperUiHost();
     final PaperSurfaces paperSurfaces = new PaperSurfaces();
 
@@ -275,30 +272,17 @@ public final class PluginContext {
 
     final UpgradeTreeGui upgradeTreeGui = new UpgradeTreeGui(paperUiHost, upgradeService);
     TreeEditorExporter treeEditorExporter = new TreeEditorExporter();
-    TreeEditorNodeGui treeEditorNodeGui = new TreeEditorNodeGui(plugin, craftuxUi.inventory());
+    TreeEditorNodeGui treeEditorNodeGui = new TreeEditorNodeGui(plugin, paperUiHost);
     TreeEditorSettingsGui treeEditorSettingsGui =
-        new TreeEditorSettingsGui(plugin, craftuxUi.inventory());
+        new TreeEditorSettingsGui(plugin, paperUiHost);
     TreeEditorGui treeEditorGui =
         new TreeEditorGui(
             plugin,
-            craftuxUi.inventory(),
+            paperUiHost,
             treeEditorExporter,
             upgradeTreeLoader,
             treeEditorNodeGui,
             treeEditorSettingsGui);
-
-    craftuxUi.actions().register(CraftuxUiHost.ACTION_EDITOR_CANVAS, treeEditorGui::onCanvasClick);
-    craftuxUi.actions().register(CraftuxUiHost.ACTION_EDITOR_NODE, treeEditorGui::onNodeClick);
-    craftuxUi
-        .actions()
-        .register(CraftuxUiHost.ACTION_EDITOR_CONTROL, treeEditorGui::onControlClick);
-    craftuxUi
-        .actions()
-        .register(CraftuxUiHost.ACTION_EDITOR_NODE_PROP, treeEditorNodeGui::onAction);
-    craftuxUi
-        .actions()
-        .register(CraftuxUiHost.ACTION_EDITOR_SETTINGS, treeEditorSettingsGui::onAction);
-    craftuxUi.inventory().onSessionClosed(treeEditorGui::onSessionClosed);
 
     Registry<BoostSource> boostSourceRegistry = new SimpleRegistryImpl<>();
     BoostSourceLoader boostSourceLoader =

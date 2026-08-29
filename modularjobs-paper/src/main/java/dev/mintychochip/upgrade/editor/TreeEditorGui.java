@@ -1,21 +1,13 @@
 package dev.mintychochip.upgrade.editor;
 
-import dev.craftux.api.inventory.ClickKind;
-import dev.craftux.api.inventory.InteractionPolicy;
-import dev.craftux.api.inventory.InventoryClick;
-import dev.craftux.api.inventory.InventoryView;
-import dev.craftux.api.inventory.ItemSpec;
-import dev.craftux.api.inventory.Slot;
-import dev.craftux.api.inventory.SlotPixelIntent;
-import dev.craftux.common.inventory.InventoryRuntime;
-import dev.mintychochip.gui.craftux.CraftuxItems;
-import dev.mintychochip.gui.craftux.CraftuxUiHost;
+import dev.mintychochip.gui.PaperItemFactory;
+import dev.mintychochip.gui.PaperUiHost;
+import dev.mintychochip.gui.PaperUiHost.ScreenView;
 import dev.mintychochip.upgrade.Position;
 import dev.mintychochip.upgrade.UpgradeTree;
 import dev.mintychochip.upgrade.config.UpgradeTreeLoader;
 import dev.mintychochip.util.Messages;
 import java.util.ArrayList;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -23,19 +15,20 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
+import org.bukkit.event.inventory.ClickType;
+import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Upgrade tree visual editor using craftux inventory sessions.
+ * Upgrade tree visual editor using the native Paper inventory host.
  *
- * <p>Toolbar controls live in the bottom inventory row (craftux top-window only). Sub-editors
- * (node/settings) are separate craftux views opened by host actions.
+ * <p>Toolbar controls live in the bottom inventory row. Sub-editors (node/settings) are separate
+ * native views opened by host actions.
  */
 public final class TreeEditorGui {
 
@@ -46,22 +39,22 @@ public final class TreeEditorGui {
   private static final int TOOLBAR_START = 45;
   private static final String MENU_ID = "tree_editor";
 
-  private final InventoryRuntime inventory;
+  private final PaperUiHost uiHost;
   private final TreeEditorExporter exporter;
   private final UpgradeTreeLoader treeLoader;
   private final TreeEditorNodeGui nodeEditorGui;
   private final TreeEditorSettingsGui settingsGui;
-
   private final Map<UUID, EditorSession> sessions = new HashMap<>();
   private final Map<UUID, ItemStack[]> savedInventories = new HashMap<>();
   private final Set<UUID> transitioningToSubGui = new HashSet<>();
+  private final Set<UUID> transitioningToMainGui = new HashSet<>();
   private final Map<UUID, Map<Integer, String>> slotNodes = new HashMap<>();
   private final Map<UUID, Map<Integer, String>> slotControls = new HashMap<>();
 
   /** Tree editor gui. */
   public TreeEditorGui(
       Plugin plugin,
-      InventoryRuntime inventory,
+      PaperUiHost uiHost,
       TreeEditorExporter exporter,
       UpgradeTreeLoader treeLoader,
       TreeEditorNodeGui nodeEditorGui,
@@ -70,7 +63,7 @@ public final class TreeEditorGui {
     if (plugin == null) {
       throw new IllegalArgumentException("plugin must not be null");
     }
-    this.inventory = inventory;
+    this.uiHost = uiHost;
     this.exporter = exporter;
     this.treeLoader = treeLoader;
     this.nodeEditorGui = nodeEditorGui;
@@ -90,12 +83,15 @@ public final class TreeEditorGui {
   }
 
   private void openEditor(@NotNull Player player, @NotNull EditorTree tree) {
+    // Host.open closes any existing view first. Let its callback restore the previous editor
+    // before replacing the session and saved inventory.
+    uiHost.close(player);
     UUID playerId = player.getUniqueId();
     EditorSession session = new EditorSession(playerId, tree);
     sessions.put(playerId, session);
     savedInventories.put(playerId, player.getInventory().getContents().clone());
     player.getInventory().clear();
-    inventory.open(playerId, buildView(player, session));
+    uiHost.open(player, buildView(player, session));
   }
 
   /** Refresh. */
@@ -105,7 +101,7 @@ public final class TreeEditorGui {
     if (session == null) {
       return;
     }
-    inventory.refresh(playerId, buildView(player, session));
+    uiHost.refresh(player, buildView(player, session));
   }
 
   /** Returns the session. */
@@ -120,31 +116,54 @@ public final class TreeEditorGui {
     if (session == null) {
       return;
     }
-    inventory.open(playerId, buildView(player, session));
+    uiHost.open(player, buildView(player, session));
+  }
+
+  /** Marks the next main-view close as a transition into a sub-editor. */
+  public void transitionToSubGui(Player player) {
+    transitioningToSubGui.add(player.getUniqueId());
+  }
+  /** Marks the sub-editor close as a return to the main editor. */
+  public void transitionToMainGui(Player player) {
+    transitioningToMainGui.add(player.getUniqueId());
+  }
+
+  /** Handles a sub-editor close that is not a transition back to the main editor. */
+  public void onSubEditorClosed(Player player) {
+    if (transitioningToMainGui.remove(player.getUniqueId())) {
+      return;
+    }
+    onSessionClosed(player);
   }
 
   /** On canvas click. */
-  public void onCanvasClick(UUID audience, InventoryClick click) {
-    Player player = Bukkit.getPlayer(audience);
-    EditorSession session = sessions.get(audience);
-    if (player == null || session == null) {
+  public void onCanvasClick(Player player, InventoryClickEvent event) {
+    if (!isSupportedClick(event.getClick())) {
       return;
     }
-    handleEmptySlotClick(player, session, click.slot());
+    UUID audience = player.getUniqueId();
+    EditorSession session = sessions.get(audience);
+    if (session == null) {
+      return;
+    }
+    handleEmptySlotClick(player, session, event.getRawSlot());
   }
 
   /** On node click. */
-  public void onNodeClick(UUID audience, InventoryClick click) {
-    Player player = Bukkit.getPlayer(audience);
+  public void onNodeClick(Player player, InventoryClickEvent event) {
+    UUID audience = player.getUniqueId();
+    if (!isSupportedClick(event.getClick())) {
+      return;
+    }
     EditorSession session = sessions.get(audience);
-    if (player == null || session == null) {
+    if (session == null) {
       return;
     }
     Map<Integer, String> nodes = slotNodes.get(audience);
     if (nodes == null) {
       return;
     }
-    String nodeId = nodes.get(click.slot());
+    String nodeId = nodes.get(event.getRawSlot());
     if (nodeId == null) {
       return;
     }
@@ -152,29 +171,34 @@ public final class TreeEditorGui {
     if (nodeOpt.isEmpty()) {
       return;
     }
-    handleNodeClick(player, session, nodeOpt.get(), click);
+    handleNodeClick(player, session, nodeOpt.get(), event);
   }
 
   /** On control click. */
-  public void onControlClick(UUID audience, InventoryClick click) {
-    Player player = Bukkit.getPlayer(audience);
+  public void onControlClick(Player player, InventoryClickEvent event) {
+    UUID audience = player.getUniqueId();
+    if (!isSupportedClick(event.getClick())) {
+      return;
+    }
     EditorSession session = sessions.get(audience);
-    if (player == null || session == null) {
+    if (session == null) {
       return;
     }
     Map<Integer, String> controls = slotControls.get(audience);
     if (controls == null) {
       return;
     }
-    String action = controls.get(click.slot());
+    String action = controls.get(event.getRawSlot());
     if (action != null) {
       handleControlAction(player, session, action);
     }
   }
 
-  InventoryView buildView(Player player, EditorSession session) {
+
+  ScreenView buildView(Player player, EditorSession session) {
     final UUID audience = player.getUniqueId();
-    Map<Integer, Slot> slots = new HashMap<>();
+    Map<Integer, ItemStack> items = new HashMap<>();
+    Map<Integer, PaperUiHost.SlotAction> actions = new HashMap<>();
     Map<Integer, String> nodes = new HashMap<>();
     final Map<Integer, String> controls = new HashMap<>();
 
@@ -182,15 +206,12 @@ public final class TreeEditorGui {
     int scrollX = session.scrollOffsetX();
     int scrollY = session.scrollOffsetY();
 
-    ItemSpec empty = CraftuxItems.pane(Material.BLACK_STAINED_GLASS_PANE);
+    for (int i = 0; i < GUI_SIZE; i++) {
+      items.put(i, PaperItemFactory.pane(Material.GRAY_STAINED_GLASS_PANE));
+    }
     for (int i = 0; i < CANVAS_SLOTS; i++) {
-      slots.put(
-          i,
-          Slot.button(
-              "canvas_" + i,
-              empty,
-              CraftuxUiHost.ACTION_EDITOR_CANVAS,
-              SlotPixelIntent.UNVALIDATED));
+      items.put(i, PaperItemFactory.pane(Material.BLACK_STAINED_GLASS_PANE));
+      actions.put(i, this::onCanvasClick);
     }
 
     // Path points
@@ -201,13 +222,8 @@ public final class TreeEditorGui {
         continue;
       }
       int slot = sy * GUI_COLS + sx;
-      slots.put(
-          slot,
-          Slot.button(
-              "canvas_" + slot,
-              CraftuxItems.pane(Material.GRAY_STAINED_GLASS_PANE),
-              CraftuxUiHost.ACTION_EDITOR_CANVAS,
-              SlotPixelIntent.UNVALIDATED));
+      items.put(slot, PaperItemFactory.pane(Material.GRAY_STAINED_GLASS_PANE));
+      actions.put(slot, this::onCanvasClick);
     }
 
     // Nodes
@@ -228,96 +244,70 @@ public final class TreeEditorGui {
       List<String> lore = new ArrayList<>();
       lore.add("ID: " + node.id());
       lore.add("Left: select | Right: edit | Shift: link | Q: delete");
-      slots.put(
-          slot,
-          Slot.button(
-              "node." + sanitize(node.id()),
-              CraftuxItems.of(mat, label, lore),
-              CraftuxUiHost.ACTION_EDITOR_NODE,
-              SlotPixelIntent.UNVALIDATED));
+      items.put(slot, PaperItemFactory.of(mat, label, lore));
       nodes.put(slot, node.id());
+      actions.put(slot, this::onNodeClick);
     }
 
     // Toolbar row
-    placeToolbar(slots, controls, session);
+    putControl(items, actions, controls, TOOLBAR_START, Material.ARROW, "scroll_up", "Scroll Up");
+    putControl(
+        items, actions, controls, TOOLBAR_START + 1, Material.ARROW, "scroll_down", "Scroll Down");
+    putControl(
+        items, actions, controls, TOOLBAR_START + 2, Material.EMERALD, "add_node", "Add Node");
+    putControl(items, actions, controls, TOOLBAR_START + 3, Material.IRON_AXE, "undo", "Undo");
+    putControl(items, actions, controls, TOOLBAR_START + 4, Material.GOLDEN_AXE, "redo", "Redo");
+    putControl(
+        items, actions, controls, TOOLBAR_START + 5, Material.WRITABLE_BOOK, "save", "Save Tree");
+    Material pathMat = session.isPathEditMode() ? Material.LEAD : Material.STRING;
+    String pathLabel = session.isPathEditMode() ? "PATH MODE (Active)" : "Edit Paths";
+    putControl(items, actions, controls, TOOLBAR_START + 6, pathMat, "path_edit", pathLabel);
+    putControl(
+        items,
+        actions,
+        controls,
+        TOOLBAR_START + 7,
+        Material.REDSTONE_TORCH,
+        "settings",
+        "Tree Settings");
 
     slotNodes.put(audience, Map.copyOf(nodes));
     slotControls.put(audience, Map.copyOf(controls));
 
-    String title = "Tree Editor: " + session.tree().displayName();
-    if (title.length() > 128) {
-      title = title.substring(0, 128);
-    }
-    InventoryView.Builder builder =
-        InventoryView.builder(MENU_ID, GUI_ROWS)
-            .title(title)
-            .interactionPolicy(
-                new InteractionPolicy(
-                    EnumSet.of(
-                        ClickKind.LEFT,
-                        ClickKind.RIGHT,
-                        ClickKind.SHIFT_LEFT,
-                        ClickKind.SHIFT_RIGHT,
-                        ClickKind.DROP),
-                    true,
-                    true));
-    for (int i = 0; i < GUI_SIZE; i++) {
-      Slot s = slots.get(i);
-      if (s != null) {
-        builder.slot(i, s);
-      } else {
-        builder.decorative(i, CraftuxItems.pane(Material.GRAY_STAINED_GLASS_PANE));
-      }
-    }
-    return builder.build();
-  }
-
-  private void placeToolbar(
-      Map<Integer, Slot> slots, Map<Integer, String> controls, EditorSession session) {
-    putControl(slots, controls, TOOLBAR_START, Material.ARROW, "scroll_up", "Scroll Up");
-    putControl(slots, controls, TOOLBAR_START + 1, Material.ARROW, "scroll_down", "Scroll Down");
-    putControl(slots, controls, TOOLBAR_START + 2, Material.EMERALD, "add_node", "Add Node");
-    putControl(slots, controls, TOOLBAR_START + 3, Material.IRON_AXE, "undo", "Undo");
-    putControl(slots, controls, TOOLBAR_START + 4, Material.GOLDEN_AXE, "redo", "Redo");
-    putControl(slots, controls, TOOLBAR_START + 5, Material.WRITABLE_BOOK, "save", "Save Tree");
-    Material pathMat = session.isPathEditMode() ? Material.LEAD : Material.STRING;
-    String pathLabel = session.isPathEditMode() ? "PATH MODE (Active)" : "Edit Paths";
-    putControl(slots, controls, TOOLBAR_START + 6, pathMat, "path_edit", pathLabel);
-    putControl(
-        slots, controls, TOOLBAR_START + 7, Material.REDSTONE_TORCH, "settings", "Tree Settings");
-    slots.put(
-        TOOLBAR_START + 8, Slot.decorative(CraftuxItems.pane(Material.GRAY_STAINED_GLASS_PANE)));
+    return new ScreenView(
+        MENU_ID,
+        GUI_ROWS,
+        net.kyori.adventure.text.Component.text(trim("Tree Editor: " + session.tree().displayName())),
+        items,
+        actions,
+        this::onSessionClosed);
   }
 
   private void putControl(
-      Map<Integer, Slot> slots,
+      Map<Integer, ItemStack> items,
+      Map<Integer, PaperUiHost.SlotAction> actions,
       Map<Integer, String> controls,
       int index,
       Material material,
       String action,
       String label) {
-    slots.put(
-        index,
-        Slot.navigation(
-            "ctrl." + action,
-            CraftuxItems.of(material, label),
-            CraftuxUiHost.ACTION_EDITOR_CONTROL,
-            SlotPixelIntent.UNVALIDATED));
+    items.put(index, PaperItemFactory.of(material, label, List.of()));
     controls.put(index, action);
+    actions.put(index, this::onControlClick);
   }
 
   private void handleNodeClick(
-      Player player, EditorSession session, EditorNode node, InventoryClick click) {
+      Player player, EditorSession session, EditorNode node, InventoryClickEvent event) {
     EditorTree tree = session.tree();
-    var kind = click.policyKind();
+    ClickType kind = event.getClick();
 
-    if (kind == ClickKind.RIGHT) {
-      transitioningToSubGui.add(player.getUniqueId());
+    if (kind == ClickType.RIGHT) {
+      transitionToSubGui(player);
       nodeEditorGui.open(player, session, node);
       return;
     }
 
-    if (kind == ClickKind.DROP) {
+    if (kind == ClickType.DROP) {
       if (node.id().equals(tree.rootNodeId())) {
         Messages.send(player, "<error>Cannot delete root node!");
         player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 0.5f, 1.0f);
@@ -334,7 +324,7 @@ public final class TreeEditorGui {
       return;
     }
 
-    if (kind == ClickKind.SHIFT_LEFT || kind == ClickKind.SHIFT_RIGHT) {
+    if (kind == ClickType.SHIFT_LEFT || kind == ClickType.SHIFT_RIGHT) {
       String selectedId = session.selectedNodeId();
       if (selectedId == null || selectedId.equals(node.id())) {
         Messages.send(player, "<error>Select a different node first!");
@@ -420,7 +410,7 @@ public final class TreeEditorGui {
         }
       }
       case "settings" -> {
-        transitioningToSubGui.add(player.getUniqueId());
+        transitionToSubGui(player);
         settingsGui.open(player, session);
       }
       case "path_edit" -> {
@@ -497,29 +487,35 @@ public final class TreeEditorGui {
     }
   }
 
-  /** Called when craftux closes the inventory (player Esc / host close). */
-  public void onSessionClosed(UUID audience) {
+  /** Called when the native host closes the main editor view. */
+  public void onSessionClosed(Player player) {
+    UUID audience = player.getUniqueId();
+    slotNodes.remove(audience);
+    slotControls.remove(audience);
     if (transitioningToSubGui.remove(audience)) {
       return;
     }
     EditorSession session = sessions.remove(audience);
-    slotNodes.remove(audience);
-    slotControls.remove(audience);
-    if (session == null) {
+    ItemStack[] saved = savedInventories.remove(audience);
+    if (session == null || saved == null) {
       return;
     }
-    Player player = Bukkit.getPlayer(audience);
-    ItemStack[] saved = savedInventories.remove(audience);
-    if (player != null && saved != null) {
-      player.getInventory().clear();
-      player.getInventory().setContents(saved);
-      player.updateInventory();
-      Messages.send(
-          player, "<accent>Closed tree editor. Use <secondary>/jobs treeeditor<accent> to reopen.");
-    }
+    player.getInventory().clear();
+    player.getInventory().setContents(saved);
+    player.updateInventory();
+    Messages.send(
+        player, "<accent>Closed tree editor. Use <secondary>/jobs treeeditor<accent> to reopen.");
   }
 
-  private static String sanitize(String id) {
-    return id.replace(':', '.').replace(' ', '_').toLowerCase(java.util.Locale.ROOT);
+  private static String trim(String title) {
+    return title.length() > 128 ? title.substring(0, 128) : title;
   }
+  private static boolean isSupportedClick(ClickType click) {
+    return click == ClickType.LEFT
+        || click == ClickType.RIGHT
+        || click == ClickType.SHIFT_LEFT
+        || click == ClickType.SHIFT_RIGHT
+        || click == ClickType.DROP;
+  }
+
 }
