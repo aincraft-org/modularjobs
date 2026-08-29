@@ -6,18 +6,25 @@ icon: Radio
 
 ## EventBus
 
-`Bridge.bridge().eventBus()` is a **synchronous, type-agnostic** bus:
-`subscribe(Consumer<Object>)` + `publish(T)`. No priority, no async dispatch,
-no unsubscribe. Subscribers receive every published event and filter by type.
+`Bridge.bridge().eventBus()` is a synchronous, typed utility bus. Listeners
+register for an event class and receive events in priority order. Subscriptions
+can be removed explicitly; the plugin also releases all bridge-owned
+subscriptions when it disables.
 
 ```java
 var bus = Bridge.bridge().eventBus();
-bus.subscribe(event -> {
-  if (event instanceof JobLevelEvent level) {
-    // level.playerId(), level.job(), level.newLevel()
-  }
-});
+var subscription =
+    bus.subscribe(JobLevelEvent.class, event -> {
+      // event.playerId(), event.job(), event.newLevel()
+    });
+
+bus.post(new JobLevelEvent(/* constructor arguments */));
+subscription.unsubscribe();
 ```
+
+Use `postAsync(event)` only for events whose listeners are safe to run away
+from the Bukkit thread. Bukkit wrapper events are still fired synchronously
+at the Paper boundary.
 
 ## Lifecycle events
 

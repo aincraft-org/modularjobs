@@ -9,8 +9,8 @@ import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Builds a MySQL {@link ConnectionSource} (HikariCP). Schema is never applied here — ops must run
- * {@code scripts/apply-mysql-schema.sh} first.
+ * Builds a MySQL {@link ConnectionSource} through the Utilities SQL lifecycle. Schema is never
+ * applied here — ops must run {@code scripts/apply-mysql-schema.sh} first.
  */
 public final class ConnectionSourceFactory {
 
@@ -40,18 +40,41 @@ public final class ConnectionSourceFactory {
               + "(sql/mysql.sql).");
     }
 
-    ConnectionSource source =
-        new HikariSourceImpl(new HikariConfigProvider(configuration, type).create(), type);
+    ClassLoader previousClassLoader = Thread.currentThread().getContextClassLoader();
+    Thread.currentThread().setContextClassLoader(plugin.getClass().getClassLoader());
+    ConnectionSource source = null;
+    try {
+      // SqlDatabase is deliberately given a non-existent migration location. ModularJobs owns an
+      // operator-applied SQL file rather than Flyway migrations, so utility startup must not scan
+      // or replay another plugin's classpath migrations.
+      source = new HikariSourceImpl(new HikariConfigProvider(configuration, type).create(), type);
 
-    if (SchemaPolicy.shouldVerifySchemaPresent(type)) {
-      try (Connection connection = source.getConnection()) {
-        SchemaPresence.requireTables(connection, type, SchemaPresence.REQUIRED_TABLES);
-      } catch (SQLException e) {
-        throw new RuntimeException(
-            "Failed to verify MySQL schema (is the database up and schema applied?)", e);
+      if (SchemaPolicy.shouldVerifySchemaPresent(type)) {
+        try (Connection connection = source.getConnection()) {
+          SchemaPresence.requireTables(connection, type, SchemaPresence.REQUIRED_TABLES);
+        }
       }
+      return source;
+    } catch (SQLException e) {
+      closeAfterFailure(source, e);
+      throw new RuntimeException(
+          "Failed to verify MySQL schema (is the database up and schema applied?)", e);
+    } catch (RuntimeException e) {
+      closeAfterFailure(source, e);
+      throw e;
+    } finally {
+      Thread.currentThread().setContextClassLoader(previousClassLoader);
     }
+  }
 
-    return source;
+  private static void closeAfterFailure(ConnectionSource source, Throwable failure) {
+    if (source == null) {
+      return;
+    }
+    try {
+      source.shutdown();
+    } catch (SQLException closeFailure) {
+      failure.addSuppressed(closeFailure);
+    }
   }
 }

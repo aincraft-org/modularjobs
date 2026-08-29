@@ -5,7 +5,7 @@ import java.util.Objects;
 import java.util.UUID;
 
 /** Event fired when a player leaves a job. */
-public final class JobLeaveEvent {
+public final class JobLeaveEvent implements org.aincraft.api.event.Event {
 
   private final UUID playerId;
   private final Job job;

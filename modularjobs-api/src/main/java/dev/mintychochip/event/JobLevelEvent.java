@@ -6,7 +6,7 @@ import java.util.Objects;
 import java.util.UUID;
 
 /** Fired when a player's job level changes. */
-public final class JobLevelEvent {
+public final class JobLevelEvent implements org.aincraft.api.event.Event {
 
   /** Reason. */
   public enum Reason {

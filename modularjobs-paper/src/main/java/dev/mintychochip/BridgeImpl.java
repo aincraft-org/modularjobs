@@ -4,7 +4,6 @@ import dev.mintychochip.container.EconomyProvider;
 import dev.mintychochip.container.boost.TimedBoostDataService;
 import dev.mintychochip.container.boost.factories.BoostFactory;
 import dev.mintychochip.container.boost.factories.ConditionFactory;
-import dev.mintychochip.event.EventBus;
 import dev.mintychochip.registry.RegistryContainer;
 import dev.mintychochip.service.BuffService;
 import dev.mintychochip.service.JobService;
@@ -13,6 +12,7 @@ import dev.mintychochip.service.ProfessionService;
 import dev.mintychochip.service.RecipeService;
 import dev.mintychochip.service.StationService;
 import java.util.Optional;
+import org.aincraft.api.event.EventBus;
 import org.jetbrains.annotations.Nullable;
 
 /** Immutable bridge assembled by the composition root for public plugin integrations. */

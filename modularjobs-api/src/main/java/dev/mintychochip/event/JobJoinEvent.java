@@ -5,7 +5,7 @@ import java.util.Objects;
 import java.util.UUID;
 
 /** Event fired when a player joins or rejoins a job. */
-public final class JobJoinEvent {
+public final class JobJoinEvent implements org.aincraft.api.event.Event {
 
   private final UUID playerId;
   private final Job job;
