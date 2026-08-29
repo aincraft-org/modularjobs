@@ -1,14 +1,6 @@
 package dev.mintychochip.gui;
 
-import dev.craftux.api.inventory.InventoryClick;
-import dev.craftux.api.inventory.InventoryView;
-import dev.craftux.api.inventory.ItemSpec;
-import dev.craftux.api.inventory.Slot;
-import dev.craftux.api.inventory.SlotPixelIntent;
-import dev.craftux.common.inventory.InventoryRuntime;
 import dev.mintychochip.Job;
-import dev.mintychochip.gui.craftux.CraftuxItems;
-import dev.mintychochip.gui.craftux.CraftuxUiHost;
 import dev.mintychochip.upgrade.NodeEffect;
 import dev.mintychochip.upgrade.PlayerUpgradeData;
 import dev.mintychochip.upgrade.Position;
@@ -34,16 +26,16 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
-import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
+import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.inventory.ItemStack;
 
 /**
- * Job upgrade tree GUI via craftux {@link InventoryRuntime}.
+ * Job upgrade tree GUI rendered through the native Paper inventory host.
  *
- * <p>Presentation is rebuilt into an {@link InventoryView} on each open/refresh. Click side-effects
- * are host actions registered under {@link CraftuxUiHost}.
+ * <p>Presentation is rebuilt into a {@link PaperUiHost.ScreenView} on each open/refresh.
  */
 public final class UpgradeTreeGui {
 
@@ -56,7 +48,7 @@ public final class UpgradeTreeGui {
   private static final PlainTextComponentSerializer PLAIN =
       PlainTextComponentSerializer.plainText();
 
-  private final InventoryRuntime inventory;
+  private final PaperUiHost host;
   private final UpgradeService upgradeService;
   private final Map<UUID, GuiSession> openGuis = new HashMap<>();
 
@@ -82,9 +74,9 @@ public final class UpgradeTreeGui {
     }
   }
 
-  /** Builds the tree presenter over the shared craftux runtime. */
-  public UpgradeTreeGui(InventoryRuntime inventory, UpgradeService upgradeService) {
-    this.inventory = inventory;
+  /** Builds the tree presenter over the shared native Paper inventory host. */
+  public UpgradeTreeGui(PaperUiHost host, UpgradeService upgradeService) {
+    this.host = host;
     this.upgradeService = upgradeService;
   }
 
@@ -101,8 +93,8 @@ public final class UpgradeTreeGui {
 
     UUID playerUuid = player.getUniqueId();
     GuiSession session = new GuiSession(job, tree, skillTree);
+    host.open(player, buildView(player, session));
     openGuis.put(playerUuid, session);
-    inventory.open(playerUuid, buildView(player, session));
   }
 
   /** Re-renders the caller's open tree view in place (Bukkit thread). */
@@ -112,79 +104,75 @@ public final class UpgradeTreeGui {
     if (session == null) {
       return;
     }
-    inventory.refresh(playerId, buildView(player, session));
+    host.refresh(player, buildView(player, session));
   }
 
   /**
-   * Host action handler for {@link CraftuxUiHost#ACTION_UPGRADE_NODE}: unlocks/ purchases the
-   * clicked node, staging permanent "major" choices for confirm. Runs on the Bukkit thread via the
-   * craftux runtime.
+   * Host action handler for an upgrade node click. Unlocks/purchases the clicked node, staging
+   * permanent "major" choices for confirm.
    */
-  public void onNodeClick(UUID audience, InventoryClick click) {
-    Player player = Bukkit.getPlayer(audience);
-    GuiSession session = openGuis.get(audience);
-    if (player == null || session == null) {
+  public void onNodeClick(Player player, InventoryClickEvent event) {
+    UUID playerId = player.getUniqueId();
+    GuiSession session = openGuis.get(playerId);
+    if (session == null) {
       return;
     }
-    String nodeKey = session.slotNodes.get(click.slot());
+    String nodeKey = session.slotNodes.get(event.getRawSlot());
     if (nodeKey == null) {
       return;
     }
-    String playerId = audience.toString();
+    String playerIdString = playerId.toString();
     String jobKey = session.job.key().value();
     if (session.isV2()) {
-      handleV2NodeClick(player, session, nodeKey, playerId, jobKey);
+      handleV2NodeClick(player, session, nodeKey, playerIdString, jobKey);
     } else {
-      handleLegacyUnlock(player, nodeKey, playerId, jobKey);
+      handleLegacyUnlock(player, nodeKey, playerIdString, jobKey);
     }
   }
 
-  /** Host action handler for {@link CraftuxUiHost#ACTION_UPGRADE_SCROLL_UP}. */
-  public void onScrollUp(UUID audience, InventoryClick click) {
-    Player player = Bukkit.getPlayer(audience);
-    GuiSession session = openGuis.get(audience);
-    if (player == null || session == null) {
+  /** Host action handler for scrolling up. */
+  public void onScrollUp(Player player, InventoryClickEvent event) {
+    GuiSession session = openGuis.get(player.getUniqueId());
+    if (session == null) {
       return;
     }
     handleScroll(player, session, "up");
   }
 
-  /** Host action handler for {@link CraftuxUiHost#ACTION_UPGRADE_SCROLL_DOWN}. */
-  public void onScrollDown(UUID audience, InventoryClick click) {
-    Player player = Bukkit.getPlayer(audience);
-    GuiSession session = openGuis.get(audience);
-    if (player == null || session == null) {
+  /** Host action handler for scrolling down. */
+  public void onScrollDown(Player player, InventoryClickEvent event) {
+    GuiSession session = openGuis.get(player.getUniqueId());
+    if (session == null) {
       return;
     }
     handleScroll(player, session, "down");
   }
 
-  /** Host action handler for {@link CraftuxUiHost#ACTION_UPGRADE_CONFIRM}. */
-  public void onConfirm(UUID audience, InventoryClick click) {
-    Player player = Bukkit.getPlayer(audience);
-    GuiSession session = openGuis.get(audience);
-    if (player == null || session == null || session.pendingMajorKey == null) {
+  /** Host action handler for confirming a pending major choice. */
+  public void onConfirm(Player player, InventoryClickEvent event) {
+    GuiSession session = openGuis.get(player.getUniqueId());
+    if (session == null || session.pendingMajorKey == null) {
       return;
     }
     purchaseMajor(player, session, session.pendingMajorKey);
   }
 
-  InventoryView buildView(Player player, GuiSession session) {
+  PaperUiHost.ScreenView buildView(Player player, GuiSession session) {
     String playerId = player.getUniqueId().toString();
     String jobKey = session.job.key().value();
     PlayerUpgradeData data = loadData(playerId, jobKey, session);
     SkillTreeState state = loadState(playerId, jobKey, session);
 
-    Map<Integer, Slot> slots = new HashMap<>();
+    Map<Integer, ItemStack> items = new HashMap<>();
+    Map<Integer, PaperUiHost.SlotAction> actions = new HashMap<>();
     Map<Integer, String> slotNodes = new HashMap<>();
 
-    ItemSpec bg = CraftuxItems.pane(Material.BLACK_STAINED_GLASS_PANE);
     for (int i = 0; i < CONTROL_ROW_START; i++) {
-      slots.put(i, Slot.decorative(bg));
+      items.put(i, PaperItemFactory.pane(Material.BLACK_STAINED_GLASS_PANE));
     }
 
     if (!session.isV2()) {
-      renderConnections(slots, session, data.unlockedNodes());
+      renderConnections(items, session, data.unlockedNodes());
       for (UpgradeNode node : session.tree.allNodes()) {
         int slot = calculateSlotWithScroll(node.position(), session.scrollOffset);
         if (slot < 0 || slot >= CONTROL_ROW_START) {
@@ -196,13 +184,8 @@ public final class UpgradeTreeGui {
                 data.unlockedNodes(),
                 session.tree.getAvailableNodes(data.unlockedNodes(), data));
         String key = getShortKey(node);
-        slots.put(
-            slot,
-            Slot.button(
-                "node." + sanitize(key),
-                nodeItem(node, status, data, session.tree),
-                CraftuxUiHost.ACTION_UPGRADE_NODE,
-                SlotPixelIntent.UNVALIDATED));
+        items.put(slot, nodeItem(node, status, data, session.tree));
+        actions.put(slot, (clicked, event) -> onNodeClick(clicked, event));
         slotNodes.put(slot, key);
       }
     } else {
@@ -213,40 +196,37 @@ public final class UpgradeTreeGui {
         }
         NodeStatus status = v2Status(session.skillTree, state, node);
         String key = node.key().value();
-        slots.put(
-            slot,
-            Slot.button(
-                "node." + sanitize(key),
-                v2NodeItem(node, status, state, session.skillTree),
-                CraftuxUiHost.ACTION_UPGRADE_NODE,
-                SlotPixelIntent.UNVALIDATED));
+        items.put(slot, v2NodeItem(node, status, state, session.skillTree));
+        actions.put(slot, (clicked, event) -> onNodeClick(clicked, event));
         slotNodes.put(slot, key);
       }
     }
 
-    placeControls(slots, session, data, state);
-
     session.slotNodes = Map.copyOf(slotNodes);
+    placeControls(items, actions, session, data, state);
 
     String title = PLAIN.serialize(session.job.displayName()) + " Upgrades";
     if (title.length() > 128) {
       title = title.substring(0, 128);
     }
-
-    InventoryView.Builder builder = InventoryView.builder(MENU_ID, 6).title(title);
-    for (int i = 0; i < GUI_SIZE; i++) {
-      Slot slot = slots.get(i);
-      if (slot != null) {
-        builder.slot(i, slot);
-      } else {
-        builder.decorative(i, CraftuxItems.pane(Material.GRAY_STAINED_GLASS_PANE));
-      }
-    }
-    return builder.build();
+    return new PaperUiHost.ScreenView(
+        MENU_ID,
+        6,
+        Component.text(title),
+        items,
+        actions,
+        closedPlayer -> {
+          session.pendingMajorKey = null;
+          openGuis.remove(closedPlayer.getUniqueId(), session);
+        });
   }
 
   private void placeControls(
-      Map<Integer, Slot> slots, GuiSession session, PlayerUpgradeData data, SkillTreeState state) {
+      Map<Integer, ItemStack> items,
+      Map<Integer, PaperUiHost.SlotAction> actions,
+      GuiSession session,
+      PlayerUpgradeData data,
+      SkillTreeState state) {
     int maxY =
         session.isV2()
             ? session.skillTree.nodes().stream()
@@ -265,45 +245,29 @@ public final class UpgradeTreeGui {
     boolean canScrollUp = session.scrollOffset > 0;
     boolean canScrollDown = session.scrollOffset < maxScroll;
 
-    ItemSpec controlBg = CraftuxItems.pane(Material.GRAY_STAINED_GLASS_PANE);
     for (int i = CONTROL_ROW_START; i < GUI_SIZE; i++) {
-      slots.put(i, Slot.decorative(controlBg));
+      items.put(i, PaperItemFactory.pane(Material.GRAY_STAINED_GLASS_PANE));
     }
 
     Material upMat =
         canScrollUp ? Material.CYAN_STAINED_GLASS_PANE : Material.GRAY_STAINED_GLASS_PANE;
     String upLabel = canScrollUp ? "Scroll Up" : "Scroll Up (At Top)";
+    items.put(CONTROL_ROW_START, PaperItemFactory.of(upMat, upLabel, List.of()));
     if (canScrollUp) {
-      slots.put(
-          CONTROL_ROW_START,
-          Slot.navigation(
-              "scroll_up",
-              CraftuxItems.of(upMat, upLabel),
-              CraftuxUiHost.ACTION_UPGRADE_SCROLL_UP,
-              SlotPixelIntent.UNVALIDATED));
-    } else {
-      slots.put(CONTROL_ROW_START, Slot.decorative(CraftuxItems.of(upMat, upLabel)));
+      actions.put(CONTROL_ROW_START, (player, event) -> onScrollUp(player, event));
     }
 
     Material downMat =
         canScrollDown ? Material.CYAN_STAINED_GLASS_PANE : Material.GRAY_STAINED_GLASS_PANE;
     String downLabel = canScrollDown ? "Scroll Down" : "Scroll Down (At Bottom)";
+    items.put(CONTROL_ROW_START + 8, PaperItemFactory.of(downMat, downLabel, List.of()));
     if (canScrollDown) {
-      slots.put(
-          CONTROL_ROW_START + 8,
-          Slot.navigation(
-              "scroll_down",
-              CraftuxItems.of(downMat, downLabel),
-              CraftuxUiHost.ACTION_UPGRADE_SCROLL_DOWN,
-              SlotPixelIntent.UNVALIDATED));
-    } else {
-      slots.put(CONTROL_ROW_START + 8, Slot.decorative(CraftuxItems.of(downMat, downLabel)));
+      actions.put(CONTROL_ROW_START + 8, (player, event) -> onScrollDown(player, event));
     }
 
-    slots.put(
+    items.put(
         CONTROL_ROW_START + 4,
-        Slot.decorative(
-            session.isV2() ? v2InfoItem(session.skillTree, state) : infoItem(session.tree, data)));
+        session.isV2() ? v2InfoItem(session.skillTree, state) : infoItem(session.tree, data));
 
     if (session.pendingMajorKey != null) {
       String pendingName =
@@ -314,18 +278,13 @@ public final class UpgradeTreeGui {
               .orElse(session.pendingMajorKey);
       List<String> lore =
           List.of(pendingName, "Permanent choice - cannot be refunded", "Click to confirm");
-      slots.put(
-          CONFIRM_SLOT,
-          Slot.button(
-              "confirm_major",
-              CraftuxItems.of(Material.GOLD_INGOT, "Confirm Major?", lore),
-              CraftuxUiHost.ACTION_UPGRADE_CONFIRM,
-              SlotPixelIntent.UNVALIDATED));
+      items.put(CONFIRM_SLOT, PaperItemFactory.of(Material.GOLD_INGOT, "Confirm Major?", lore));
+      actions.put(CONFIRM_SLOT, (player, event) -> onConfirm(player, event));
     }
   }
 
   private void renderConnections(
-      Map<Integer, Slot> slots, GuiSession session, Set<String> unlocked) {
+      Map<Integer, ItemStack> items, GuiSession session, Set<String> unlocked) {
     Set<GridPoint> allPathPoints = new HashSet<>();
     for (Position p : session.tree.paths()) {
       allPathPoints.add(new GridPoint(p.x(), p.y()));
@@ -389,7 +348,7 @@ public final class UpgradeTreeGui {
           isLit ? Material.CYAN_STAINED_GLASS_PANE : Material.GRAY_STAINED_GLASS_PANE;
       int slot = screenY * GUI_COLS + pathPoint.column;
       if (slot >= 0 && slot < CONTROL_ROW_START) {
-        slots.put(slot, Slot.decorative(CraftuxItems.pane(material)));
+        items.put(slot, PaperItemFactory.pane(material));
       }
     }
   }
@@ -443,7 +402,7 @@ public final class UpgradeTreeGui {
     return y * GUI_COLS + x;
   }
 
-  private ItemSpec nodeItem(
+  private ItemStack nodeItem(
       UpgradeNode node, NodeStatus status, PlayerUpgradeData data, UpgradeTree tree) {
     List<String> lore = new ArrayList<>();
     if (node.description() != null && !node.description().isEmpty()) {
@@ -500,13 +459,13 @@ public final class UpgradeTreeGui {
           case LOCKED -> NamedTextColor.GRAY;
           case EXCLUDED -> NamedTextColor.RED;
         };
-    return CraftuxItems.of(
+    return PaperItemFactory.of(
         material,
         plain(Component.text(node.name(), nameColor).decoration(TextDecoration.ITALIC, false)),
         lore);
   }
 
-  private ItemSpec v2NodeItem(
+  private ItemStack v2NodeItem(
       SkillNode node, NodeStatus status, SkillTreeState state, SkillTree tree) {
     String key = node.key().value();
     int owned = state.levelOf(key);
@@ -568,13 +527,13 @@ public final class UpgradeTreeGui {
           case LOCKED -> NamedTextColor.GRAY;
           case EXCLUDED -> NamedTextColor.RED;
         };
-    return CraftuxItems.of(
+    return PaperItemFactory.of(
         material,
         plain(Component.text(node.name(), nameColor).decoration(TextDecoration.ITALIC, false)),
         lore);
   }
 
-  private ItemSpec infoItem(UpgradeTree tree, PlayerUpgradeData data) {
+  private ItemStack infoItem(UpgradeTree tree, PlayerUpgradeData data) {
     List<String> lore =
         List.of(
             "Available SP: " + data.availableSkillPoints(),
@@ -582,10 +541,10 @@ public final class UpgradeTreeGui {
             "Unlocked: " + data.unlockedNodes().size() + "/" + tree.allNodes().size(),
             "",
             "SP per level: " + tree.skillPointsPerLevel());
-    return CraftuxItems.of(Material.BOOK, "Skill Tree Info", lore);
+    return PaperItemFactory.of(Material.BOOK, "Skill Tree Info", lore);
   }
 
-  private ItemSpec v2InfoItem(SkillTree tree, SkillTreeState state) {
+  private ItemStack v2InfoItem(SkillTree tree, SkillTreeState state) {
     long unlockedCount = state.nodeLevels().values().stream().filter(l -> l > 0).count();
     List<String> lore =
         List.of(
@@ -595,7 +554,7 @@ public final class UpgradeTreeGui {
             "",
             "Job Level: " + state.jobLevel(),
             "SP per level: " + tree.skillPointsPerLevel());
-    return CraftuxItems.of(Material.BOOK, "Skill Tree Info", lore);
+    return PaperItemFactory.of(Material.BOOK, "Skill Tree Info", lore);
   }
 
   private String formatV2Effect(NodeEffect effect) {

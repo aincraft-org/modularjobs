@@ -203,7 +203,7 @@ public final class PluginContext {
             keyResolver,
             joinGate);
 
-    // Craftux host remains in use by upgrade and editor screens; native screens use PaperUiHost.
+    // Craftux host remains in use by the editor screens; native screens use PaperUiHost.
     final CraftuxUiHost craftuxUi = CraftuxUiHost.create(plugin);
     final PaperUiHost paperUiHost = new PaperUiHost();
     final PaperSurfaces paperSurfaces = new PaperSurfaces();
@@ -273,7 +273,7 @@ public final class PluginContext {
             domain.jobService,
             effectApplier);
 
-    final UpgradeTreeGui upgradeTreeGui = new UpgradeTreeGui(craftuxUi.inventory(), upgradeService);
+    final UpgradeTreeGui upgradeTreeGui = new UpgradeTreeGui(paperUiHost, upgradeService);
     TreeEditorExporter treeEditorExporter = new TreeEditorExporter();
     TreeEditorNodeGui treeEditorNodeGui = new TreeEditorNodeGui(plugin, craftuxUi.inventory());
     TreeEditorSettingsGui treeEditorSettingsGui =
@@ -287,14 +287,6 @@ public final class PluginContext {
             treeEditorNodeGui,
             treeEditorSettingsGui);
 
-    craftuxUi.actions().register(CraftuxUiHost.ACTION_UPGRADE_NODE, upgradeTreeGui::onNodeClick);
-    craftuxUi
-        .actions()
-        .register(CraftuxUiHost.ACTION_UPGRADE_SCROLL_UP, upgradeTreeGui::onScrollUp);
-    craftuxUi
-        .actions()
-        .register(CraftuxUiHost.ACTION_UPGRADE_SCROLL_DOWN, upgradeTreeGui::onScrollDown);
-    craftuxUi.actions().register(CraftuxUiHost.ACTION_UPGRADE_CONFIRM, upgradeTreeGui::onConfirm);
     craftuxUi.actions().register(CraftuxUiHost.ACTION_EDITOR_CANVAS, treeEditorGui::onCanvasClick);
     craftuxUi.actions().register(CraftuxUiHost.ACTION_EDITOR_NODE, treeEditorGui::onNodeClick);
     craftuxUi
@@ -390,7 +382,7 @@ public final class PluginContext {
     listenerList.add(new AutoJoinListener(domain.jobService, progressionLimits));
     // Native PaperUiHost owns info/stats navigation and close callbacks.
     listenerList.add(new UpgradeLevelUpListener(upgradeService, skillTreeRegistry));
-    // UpgradeTreeGui clicks are host craftux actions (no Bukkit Listener)
+    // UpgradeTreeGui clicks are dispatched by the native PaperUiHost.
     listenerList.add(
         new UpgradePermissionRestoreListener(
             upgradeService, effectApplier, permissionManager, skillTreeRegistry));
