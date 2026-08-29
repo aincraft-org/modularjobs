@@ -1,17 +1,18 @@
-# Unified MapGUI Skill Tree Implementation Plan
+# Unified MapGUI Skill Tree Implementation Plan (Archived)
+> **Historical note:** This plan is retained for provenance only and is superseded by the native Paper UI implementation. Its MapGUI dependency, bridge, and descriptor steps are not current work and must not be reintroduced.
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **Archive status:** The task checkboxes below are historical record only and MUST NOT be executed; the native Paper UI implementation supersedes this plan.
 
-**Goal:** Replace the split Craftux skill-tree/player editor surfaces with one optional MapGUI graph/detail/editor opened from `/jobs upgrade`, while preserving the v2 skill-tree service and PostgreSQL state contracts.
+**Goal:** Replace the split skill-tree/player editor surfaces with one native Paper inventory graph/detail/editor opened from `/jobs upgrade`, while preserving the v2 skill-tree service and PostgreSQL state contracts.
 
-**Architecture:** Keep `SkillTree`, `SkillTreeState`, `UpgradeService`, and `SkillTreeConfigParser` as the domain authority. Add a Paper-only mutable v2 JSON document plus validated atomic save path. Put MapGUI imports behind the same reflective runtime bridge used by `../modular-territories`; ordinary players see purchase/detail controls, and `jobs.command.admin.treeeditor` viewers see draft editing controls. Keep Craftux as a viewer/purchase fallback when MapGUI is absent, and retain `/jobs treeeditor` only as a compatibility route to the same opener.
+**Architecture:** Keep `SkillTree`, `SkillTreeState`, `UpgradeService`, and `SkillTreeConfigParser` as the domain authority. Add a Paper-only mutable v2 JSON document plus validated atomic save path. Build the graph, detail, and editing controls with native Paper inventory components; ordinary players see purchase/detail controls, and `jobs.command.admin.treeeditor` viewers see draft editing controls. Keep `/jobs treeeditor` only as a compatibility route to the same opener.
 
-**Tech Stack:** Java 25 Paper 26.2; MapGUI API 1.0.0 (`io.github.flog99:mapgui-api`); Gson; JUnit 5; MockBukkit; Craftux fallback; PostgreSQL-backed `UpgradeService` state.
+**Tech Stack:** Java 25 Paper 26.2; native Paper inventory, scoreboard, and boss-bar APIs; Gson; JUnit 5; MockBukkit; PostgreSQL-backed `UpgradeService` state.
 
 ## Global Constraints
 
 - MapGUI is `compileOnly`, never shaded into the ModularJobs jar.
-- Runtime MapGUI access is optional and must fail closed to Craftux without taking down ModularJobs.
+- Native Paper UI access is always available and must not take down ModularJobs.
 - v2 `SkillTree` JSON is the only authoring format after a successful save.
 - Legacy/Wynncraft input remains loadable; legacy migration must not invent unsupported fields.
 - Player `node_levels` state is never rewritten by editor saves.
@@ -624,7 +625,7 @@ git commit -m "feat: add permission-gated MapGUI skill editor"
 - Modify: `paper/src/main/resources/plugin.yml`
 - Modify: `paper/src/main/java/net/aincraft/gui/UpgradeTreeGui.java` only for the documented no-MapGUI message
 - Delete after references are removed: `paper/src/main/java/net/aincraft/upgrade/editor/TreeEditorGui.java`, `TreeEditorNodeGui.java`, `TreeEditorSettingsGui.java`, `EditorTree.java`, `EditorNode.java`, `EditorSession.java`, `EditorEffect.java`, `TreeEditorExporter.java`
-- Modify: `paper/src/main/java/net/aincraft/gui/craftux/CraftuxUiHost.java` to remove unused editor action constants and registrations
+- Modify: `paper/src/main/java/dev/mintychochip/gui/PaperUiHost.java` to remove obsolete editor action constants and registrations
 - Test: `paper/src/test/java/net/aincraft/commands/AdminCommandPermissionTest.java`
 
 **Interfaces:**
@@ -655,7 +656,7 @@ The opener resolves a v2 tree (including a converted legacy adapter), calls `Ski
 
 - [ ] **Step 4: Update both commands and composition root**
 
-`UpgradesCommand` calls `UpgradeScreenOpener.open`. `TreeEditorCommand` remains registered under its old literal only as a compatibility route and calls the same opener; it does not construct or reference any old editor class. Remove old editor object construction, Craftux editor action registrations, and the old editor close listener from `PluginContext`.
+`UpgradesCommand` calls `UpgradeScreenOpener.open`. `TreeEditorCommand` remains registered under its old literal only as a compatibility route and calls the same opener; it does not construct or reference any old editor class. Remove old editor object construction, obsolete action registrations, and the old editor close listener from `PluginContext`.
 
 Keep `jobs.command.admin.treeeditor` in `plugin.yml` with the description `Edit skill trees from the upgrade screen`.
 
@@ -670,7 +671,7 @@ Confirm no source references remain to deleted editor types, then run:
 Commit:
 
 ```bash
-git add paper/src/main/java/net/aincraft/commands paper/src/main/java/net/aincraft/PluginContext.java paper/src/main/java/net/aincraft/gui/UpgradeTreeGui.java paper/src/main/java/net/aincraft/gui/craftux/CraftuxUiHost.java paper/src/main/resources/plugin.yml
+git add paper/src/main/java/net/aincraft/commands paper/src/main/java/net/aincraft/PluginContext.java paper/src/main/java/net/aincraft/gui/UpgradeTreeGui.java paper/src/main/java/net/aincraft/gui/PaperUiHost.java paper/src/main/resources/plugin.yml
 # Include the explicit deleted editor paths in the same staged change.
 git commit -m "refactor: route upgrade commands through one screen"
 ```
@@ -728,7 +729,7 @@ Keep existing plugin downloads intact.
 
 - [ ] **Step 3: Update living spec and operator copy**
 
-Mark the skill-tree catalog as current for the unified MapGUI graph/editor, document the optional dependency and Craftux viewer fallback, and state that `/jobs treeeditor` is only a compatibility route. Remove any stale statement that the old Craftux editor is the canonical authoring surface.
+Mark the skill-tree catalog as current for the unified native Paper graph/editor, document the native inventory workflow, and state that `/jobs treeeditor` is only a compatibility route. Remove any stale statement that an external UI or old editor is the canonical authoring surface.
 
 - [ ] **Step 4: Run focused visual/build checks and commit**
 
@@ -804,8 +805,8 @@ Exercise as an operator with `jobs.command.admin.treeeditor`:
 Stop the server, remove the MapGUI jar, and run ModularJobs alone. Confirm:
 
 - plugin startup succeeds;
-- `/jobs upgrade miner` opens Craftux viewer/purchase UI;
-- an admin sees the MapGUI installation guidance;
+- `/jobs upgrade miner` opens the native Paper viewer/purchase UI;
+- an admin sees the native editor controls;
 - no `NoClassDefFoundError` appears in the log.
 
 - [ ] **Step 6: Commit only fixes discovered by verification**

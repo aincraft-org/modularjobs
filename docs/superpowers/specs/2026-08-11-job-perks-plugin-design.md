@@ -2,13 +2,13 @@
 
 > Status: approved architecture and content mapping
 > Date: 2026-08-11
-> Scope: separate `perks` Paper plugin, upgrade-provider API, job perk trees, and MapGUI integration
+> Scope: separate `perks` Paper plugin, upgrade-provider API, job perk trees, and native Paper UI integration
 
 ## 1. Goal
 
-Add a separate Gradle submodule that builds a separate Paper plugin. The plugin contributes job perk trees for the current ModularJobs job roster, implements archived Mayhem Multiverse mechanics where they have a current job analogue, adds balanced upgrades for unmatched jobs, and renders every contribution through ModularJobs' MapGUI upgrade graph.
+Add a separate Gradle submodule that builds a separate Paper plugin. The plugin contributes job perk trees for the current ModularJobs job roster, implements archived Mayhem Multiverse mechanics where they have a current job analogue, adds balanced upgrades for unmatched jobs, and renders every contribution through ModularJobs' native Paper upgrade graph.
 
-ModularJobs remains authoritative for player state, upgrade points, purchase requirements, persistence, effect synchronization, and MapGUI actions. The perks plugin provides immutable content definitions and capability implementations; it cannot mutate repositories or bypass purchase gates.
+ModularJobs remains authoritative for player state, upgrade points, purchase requirements, persistence, effect synchronization, and native Paper UI actions. The perks plugin provides immutable content definitions and capability implementations; it cannot mutate repositories or bypass purchase gates.
 
 ## 2. Fixed scope and source policy
 
@@ -73,14 +73,14 @@ Add `perks` to `settings.gradle.kts` as a separate Paper plugin submodule.
 
 `perks` uses `compileOnly(project(":api"))`, Paper API as `compileOnly`, and the repository's existing MockBukkit test convention. It does not depend on `:paper`, shade ModularJobs API/common classes, or access implementation packages. Its shadow jar contains only the provider implementation and private dependencies.
 
-Both plugins use `paper-plugin.yml`. The `perks` descriptor declares a required server dependency on `ModularJobs` with `load: BEFORE` and `join-classpath: true`, meaning ModularJobs loads before `perks` and supplies the one shared API class identity. The existing ModularJobs MapGUI descriptor remains required. `perks` never imports MapGUI.
+Both plugins use `paper-plugin.yml`. The `perks` descriptor declares a required server dependency on `ModularJobs` with `load: BEFORE` and `join-classpath: true`, meaning ModularJobs loads before `perks` and supplies the one shared API class identity. Native Paper UI remains owned by ModularJobs.
 
 Descriptor tests open both built jars and assert:
 
 - `perks` requires `ModularJobs`;
 - joined classpath is enabled;
-- neither `net/aincraft/**` API classes nor MapGUI classes occur in the perks jar;
-- ModularJobs still requires MapGUI;
+- neither `net/aincraft/**` API classes nor native UI implementation classes occur in the perks jar;
+- ModularJobs owns the native UI;
 - loading the two jars in Paper produces one `UpgradeExtensionService` class identity.
 
 ## 5. Registration architecture
@@ -166,7 +166,7 @@ Fresh-install correctness is independent of `UpgradeTreeLoader` copying bundled 
 
 `UpgradeSnapshotStore` owns an `AtomicReference<UpgradeSnapshot>` and a server-thread write lock. A snapshot contains generation, one tree per job, owner availability, handler bindings, disabled-node reasons, base and content fingerprints, and contribution metadata. Reads capture one immutable snapshot reference for their whole operation. Generation increments only after a fully validated install.
 
-`UpgradeServiceImpl`, level and login listeners, boost derivation, effect synchronization, commands, the existing Craftux GUI during migration, and the new MapGUI screen all resolve from this store. Installation invalidates tree lookup caches before publication. Version one installs before players join, so it needs no online-player effect resynchronization.
+`UpgradeServiceImpl`, level and login listeners, boost derivation, effect synchronization, commands, the native Paper inventory UI, and the sidebar/boss-bar surfaces all resolve from this store. Installation invalidates tree lookup caches before publication. Version one installs before players join, so it needs no online-player effect resynchronization.
 
 Public mutations become generation-aware:
 
@@ -266,7 +266,7 @@ Except for the preserved core Miner cluster, every provider tree uses this layou
 - every abbreviated table ID expands to `mayhem_perks.<job>.<id>`;
 - icons are explicit namespaced Material keys; graph validation rejects null, duplicate, or out-of-bounds positions.
 
-The graph viewport accepts integer coordinates `x=0..12`, `y=-4..4`. MapGUI projects these through one geometry function with 24-pixel horizontal and vertical spacing. The preserved Miner companion cluster occupies `x=0..8`, `y=8..12`; provider branches begin below it and cannot overlap.
+The graph viewport accepts integer coordinates `x=0..12`, `y=-4..4`. Native Paper inventory slots project these through one geometry function with bounded horizontal and vertical spacing. The preserved Miner companion cluster occupies `x=0..8`, `y=8..12`; provider branches begin below it and cannot overlap.
 
 Legend:
 
@@ -384,7 +384,7 @@ Ore Radar:
 
 Area farming, block chaining, tree processing, traps, arrows, spawners, and recipes fire or honor normal Bukkit/Paper events and protection checks. Each activation has configurable block/entity/radius/work limits. Operations abort rather than partially bypassing a cancelled event.
 
-Hook-dependent capabilities declare their requirements. If Towny, a region/protection adapter, or another required hook is absent, the affected node is disabled during contribution validation and MapGUI displays the reason. The plugin never silently exposes a nonfunctional perk. Optional hooks use dedicated adapters and no reflection in domain logic.
+Hook-dependent capabilities declare their requirements. If Towny, a region/protection adapter, or another required hook is absent, the affected node is disabled during contribution validation and native Paper UI displays the reason. The plugin never silently exposes a nonfunctional perk. Optional hooks use dedicated adapters and no reflection in domain logic.
 
 Defaults are conservative:
 
@@ -433,24 +433,33 @@ reconciliation:
 
 Per-capability material, entity, ore, biome, food, and recipe allowlists are explicit sibling keys in the same file and default to the exact entries referenced by the tree resource. Deny wins over allow; keys are lower-case namespaced registry keys; invalid keys are errors. No runtime config reload is supported in version one.
 
-Tree topology and stable IDs are code-owned JSON definitions. Operators tune bounded behavior but cannot rename nodes or provide capability payloads. A syntactically invalid file or out-of-range safety limit disables the entire perks plugin before installation. A valid disabled capability or absent optional hook keeps its node and handler in the snapshot but records `disabledReason`; MapGUI displays that reason and purchase returns `DISABLED_NODE`. Missing required ModularJobs/MapGUI dependencies reject plugin startup.
+A valid disabled capability or absent optional hook keeps its node and handler in the snapshot but records `disabledReason`; native Paper UI displays that reason and purchase returns `DISABLED_NODE`. Missing required ModularJobs dependencies reject plugin startup.
 
-## 11. Craftux replacement and MapGUI integration
+## 11. Native Paper UI integration
 
-MapGUI is not implemented on the current branch. The current route is:
+The current route is:
 
-`UpgradesCommand` → `UpgradeTreeGui` → `CraftuxUiHost`, with `PluginContext` constructing those objects. The implementation first completes the approved boundary in `docs/superpowers/specs/2026-08-11-mapgui-upgrade-tree-design.md`:
+`UpgradesCommand` → `UpgradeTreeGui` → `PaperUiHost`, with `PluginContext`
+constructing those objects. The native UI boundary:
 
-- retain `UpgradeTreeGui` as the command-facing opener name;
-- replace its Craftux session implementation with `UpgradeTreeScreen`, a MapGUI `Screen`;
-- construct the opener from `PluginContext` with `UpgradeService`, `UpgradeSnapshotStore`, and capability-description service;
-- remove upgrade-tree actions from `CraftuxUiHost` only after every caller uses the MapGUI opener;
-- keep Craftux for unrelated UIs;
-- declare MapGUI API 1.0.0 as `compileOnly` and required in ModularJobs `paper-plugin.yml`.
+- retains `UpgradeTreeGui` as the command-facing opener name;
+- implements the upgrade screen with native Paper inventory components;
+- constructs the opener from `PluginContext` with `UpgradeService`,
+  `UpgradeSnapshotStore`, and capability-description service;
+- routes all inventory actions through `PaperUiHost` and the composition root;
+- uses native scoreboards and boss bars for leaderboard and experience surfaces.
 
-The MapGUI graph uses `Draw` for prerequisite edges and node hit targets. `UpgradeTreeScreen` captures `UpgradeTreeView(tree, generation, disabledReasons)`. `SkillNodeDetailScreen` describes built-in and capability effects without executing them, and delegates purchase only to generation-aware `UpgradeService`. Major confirmation calls `purchaseMajor` exactly once. Disabled nodes are visible, include their reason, and cannot purchase. Stale results rebuild the screen from the latest view.
+The upgrade graph uses inventory items for prerequisite edges and node hit targets.
+`UpgradeTreeScreen` captures `UpgradeTreeView(tree, generation, disabledReasons)`.
+`SkillNodeDetailScreen` describes built-in and capability effects without executing
+them and delegates purchase only to generation-aware `UpgradeService`. Major
+confirmation calls `purchaseMajor` exactly once. Disabled nodes are visible,
+include their reason, and cannot purchase. Stale results rebuild the screen from
+the latest view.
 
-Provider nodes need no provider-owned screen and `perks` imports no MapGUI class. They appear because the screen reads the canonical snapshot. The existing Craftux v2 path remains only until the MapGUI smoke test passes, then is deleted in the same clean cutover.
+Provider nodes need no provider-owned screen. They appear because the screen reads
+the canonical snapshot, and the player UI remains available when optional hooks
+are absent.
 
 ## 12. Failure handling
 
@@ -461,7 +470,7 @@ Provider nodes need no provider-owned screen and `perks` imports no MapGUI class
 - Missing hook: affected nodes are disabled before display, with a reason.
 - Capability exception: isolate, log, record reconciliation failure, and continue unrelated effects.
 - Registration after the initial provider enable transaction: typed lifecycle rejection.
-- Stale MapGUI generation: no mutation; screen refresh.
+- Stale native UI generation: no mutation; screen refresh.
 - Database failure: existing `UpgradeService` transaction behavior remains authoritative; provider code never writes upgrade state.
 - Unsupported provider reload: reject and instruct the operator to restart both plugins.
 
@@ -486,7 +495,7 @@ Provider nodes need no provider-owned screen and `perks` imports no MapGUI class
 - renamed, deleted, or reused IDs reject installation without migration;
 - stale-generation purchases never write state.
 
-### 13.3 Graph and MapGUI tests
+### 13.3 Graph and native UI tests
 
 - all 19 current jobs resolve one positioned graph;
 - node and edge geometry is deterministic;
@@ -495,7 +504,7 @@ Provider nodes need no provider-owned screen and `perks` imports no MapGUI class
 - exclusive majors cannot be combined;
 - capability descriptions render without executing handlers;
 - purchases route through `UpgradeService` exactly once;
-- provider trees appear in the same MapGUI graph as compatible core miner nodes.
+- provider trees appear in the same native Paper graph as compatible core miner nodes.
 
 ### 13.4 Capability tests
 
@@ -512,7 +521,7 @@ Boundary tests include:
 
 ### 13.5 End-to-end smoke test
 
-Run Paper with PostgreSQL schema, ModularJobs, MapGUI, and the separate perks jar:
+Run Paper with PostgreSQL schema, ModularJobs, and the separate perks jar:
 
 1. confirm both plugins enable and one provider installation succeeds;
 2. open `/jobs upgrade miner` and verify core/provider nodes share one graph;
@@ -531,7 +540,7 @@ Run focused module tests, then `./gradlew :api:test :common:test :paper:test :pe
 Implementation updates these exact artifacts:
 
 - `README.md`: separate jar installation, dependency order, and build outputs;
-- `paper/src/main/resources/paper-plugin.yml`: required MapGUI metadata;
+- `paper/src/main/resources/paper-plugin.yml`: native Paper UI metadata;
 - `perks/src/main/resources/paper-plugin.yml`: required ModularJobs metadata;
 - `perks/src/main/resources/config.yml`: bounded safety defaults;
 - `web/src/content/docs/` perk catalog: archive/new labels, sources, and adaptation notes;
@@ -539,15 +548,15 @@ Implementation updates these exact artifacts:
 - `docs/database-schema.md`: reconciliation table and connect-only rollout;
 - `paper/src/main/resources/sql/postgres.sql`: reconciliation DDL;
 - `scripts/apply-postgres-schema.sh`: remains the only schema application path;
-- `CHANGELOG.md`: separate plugin, API, MapGUI, schema, and behavior changes;
+- `CHANGELOG.md`: separate plugin, API, native UI, schema, and behavior changes;
 - root release packaging: `paper/build/libs/paper-all.jar` and a separately named `perks/build/libs/modularjobs-perks-all.jar`.
 
-Packaging tests assert both jars exist, plugin descriptors are correct, the perks jar does not embed ModularJobs/MapGUI classes, and release archives contain both artifacts without merging them.
+Packaging tests assert both jars exist, plugin descriptors are correct, the perks jar does not embed ModularJobs or native UI implementation classes, and release archives contain both artifacts without merging them.
 
 ## 15. Non-goals
 
 - Recreating all 20 archived jobs.
-- Replacing ModularJobs persistence, purchase gates, upgrade points, or MapGUI.
+- Replacing ModularJobs persistence, purchase gates, upgrade points, or native Paper UI.
 - Provider-owned GUI screens.
 - Arbitrary third-party `NodeEffect` subclasses.
 - Runtime hot replacement or supported plugin reload in version one.

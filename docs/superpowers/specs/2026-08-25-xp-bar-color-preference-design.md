@@ -120,4 +120,4 @@ bar render. No ModularJobs command needed.
 | 2026-08-25 | Player-scoped XP bar color preference | Matches "different color preferences" and existing per-player pattern |
 | 2026-08-25 | `compileOnly` + soft-depend, green fallback | Preserves distribution-hardening stance: Preferences stays optional |
 | 2026-08-25 | Enumerated `BossBar.Color` codec | Native option-picker dialog; no custom codec needed |
-| 2026-08-25 | Pinned checkout + isolated `maven.repo.local` | Reproducible in clean CI; matches craftux/mint/databag pattern |
+| 2026-08-25 | Pinned checkout + isolated `maven.repo.local` | Reproducible in clean CI; matches remaining sibling dependency pattern |

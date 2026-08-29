@@ -49,7 +49,7 @@ process running DDL.
 |--------|------|----------------|
 | `api` | Public contracts for integrators | JDK + `conditions-api`; no Paper |
 | `common` | Shared DTOs + JSON codecs (editor, conditions) | JDK + Gson; may depend on `api` |
-| `paper` | Plugin impl + shadow jar | api, common, Paper, Craftux, databag, optional soft-depends |
+| `paper` | Plugin impl + shadow jar | api, common, Paper, databag, optional soft-depends |
 | `web/*` | Docs, React editor, Rust REST | Node / Rust / MySQL client |
 
 ### How to build here
@@ -84,7 +84,9 @@ Shipped platform surface still “active capability” for agents:
 
 The general Paper distribution hardening is landed: Mint is an optional
 reflective economy adapter with a blackhole default, the editor is opt-in, and
-Craftux remains the explicitly deferred UI dependency. The external Preferences
+the plugin's player-facing UI uses native Paper inventory screens for browse,
+info, statistics, upgrades, and tree editing. Leaderboard sidebars and
+experience boss bars also use native Paper surfaces. The external Preferences
 plugin is an optional soft-depend that powers the per-player XP boss bar color;
 without it the bar stays green and the local preferences service handles
 entries-per-page/gui-mode.

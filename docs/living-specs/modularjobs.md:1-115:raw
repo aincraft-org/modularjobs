@@ -38,7 +38,7 @@ running DDL.
 |--------|----------------|--------------|
 | `api` | Public contracts | Java standard library, Adventure |
 | `common` | Shared DTOs | `api`, Gson |
-| `paper` | Plugin impl + shadow jar | api, common, Paper, Craftux, optional soft-depends |
+| `paper` | Plugin impl + shadow jar | api, common, Paper, databag, optional soft-depends |
 | `web/*` | Docs, React editor, Rust REST | Node / Rust / MySQL client |
 
 ## Current
@@ -47,6 +47,8 @@ running DDL.
 - [x] MySQL connect-only schema and shared editor database
 - [x] Secure editor session code/token flow
 - [x] Optional economy and supported plugin integrations
+- [x] Native Paper inventory UI for browse, info, statistics, upgrades, and tree editing
+- [x] Native Paper leaderboard sidebars and experience boss bars
 
 ## Next
 

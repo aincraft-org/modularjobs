@@ -2,16 +2,16 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Ship a generally distributable Paper release that no longer requires Mint or Preferences to compile, starts safely without an economy plugin, removes owner/server-specific defaults, preserves generic starter content, and documents the remaining Craftux dependency honestly.
+**Goal:** Ship a generally distributable Paper release that no longer requires Mint or Preferences to compile, starts safely without an economy plugin, removes owner/server-specific defaults, preserves generic starter content, and documents the native Paper UI accurately.
 
-**Architecture:** Keep the current manual composition root and Paper-only runtime. Replace direct Mint API references with a reflective adapter that resolves the optional Bukkit service and constructs Mint ledger requests without Mint classes on the compile classpath. Select a blackhole provider by default when Mint is unavailable, with an explicit fail policy for operators who require currency. Use the existing local preferences service unconditionally. Leave Craftux-backed UI and its repository/build path unchanged as an explicit deferred boundary.
+**Architecture:** Keep the current manual composition root and Paper-only runtime. Replace direct Mint API references with a reflective adapter that resolves the optional Bukkit service and constructs Mint ledger requests without Mint classes on the compile classpath. Select a blackhole provider by default when Mint is unavailable, with an explicit fail policy for operators who require currency. Use the existing local preferences service unconditionally. Use native Paper inventory, sidebar, and boss-bar surfaces for player UI.
 
 **Tech Stack:** Java 21/25, Gradle Kotlin DSL, Paper 26.2, JUnit 5, MockBukkit, PostgreSQL-backed tests, Astro/Starlight, YAML/JSON/CSV resources, GitHub Actions.
 
 ## Global Constraints
 
 - Target Paper only; do not add Folia or Spigot compatibility in this pass.
-- Craftux remains mandatory and unchanged: keep `libs.craftux.paper`, relocation, local repository wiring, CI checkout/publication, and existing Craftux UI classes.
+- Native Paper UI is the only player-facing UI surface: keep the existing inventory screens, sidebars, and boss bars owned by the Paper module.
 - Mint and Preferences must have zero compile-time or required CI-resolution surface after the changes. No `dev.jlo.mint.*` or `dev.jlo.preferences.*` imports, coordinates, private checkout steps, or private repository credentials may remain in active build paths. Reflection class-name strings for Mint are allowed only inside the optional adapter.
 - Preserve namespaced ModularJobs keys and existing starter job/task/boost/upgrade schemas. Do not redesign the content model.
 - `economy.required: true` remains compatible and means fail-fast unless an explicit `economy.missing-provider` value overrides it.
@@ -46,7 +46,7 @@
 - Add `BlackholeEconomyProvider` implementing `EconomyProvider`: report currency support, return false for null/nonpositive amounts, return true for positive amounts without changing balances, and log one clear warning when the provider is selected. Do not include player IDs, session secrets, or other sensitive data in the warning.
 - Change `EconomyProviderFactory` to select a ready Mint adapter first, then `blackhole` by default or throw an actionable `IllegalStateException` for `fail`. Parse `economy.missing-provider` case-insensitively; map legacy `economy.required: true` to `fail` only when the new key is absent. Reject unknown policy values with a configuration error rather than silently choosing a policy.
 - Return a non-null provider for the default blackhole path so economy payables remain valid. Update `PayableWiring.economyHandlerFor` documentation and remove the old null-provider/Mint-only exception path; the handler delegates to the selected provider and preserves the boolean result contract already used by the payable pipeline.
-- Remove Mint version/library entries and the Mint repository from the Gradle configuration. Remove the Mint checkout, token requirement, link, publication, and artifact assertion from CI while retaining Craftux checkout/publication and verification. The resulting Paper compile path must not resolve any Mint coordinate.
+- Remove Mint version/library entries and the Mint repository from the Gradle configuration. Remove the Mint checkout, token requirement, link, publication, and artifact assertion from CI. The resulting Paper compile path must not resolve any Mint coordinate.
 - Replace factory tests that expect null/no-provider exceptions with tests for blackhole selection, explicit fail behavior, legacy required compatibility, invalid policy handling, positive/invalid blackhole amounts, and handler delegation. Keep the absence test runnable with no Mint classes on the test classpath.
 
 **Focused verification:**
@@ -75,7 +75,7 @@
 
 - Construct `new PreferencesServiceImpl(plugin)` directly in `PluginContext`; remove the external cleanup callback from the resource lifecycle.
 - Delete the external adapter and integration tests plus `PreferencesIntegrationTest.java`; retain `PreferencesServiceImplTest.java` as the local config/defaults and round-trip coverage.
-- Remove Preferences compile/test dependencies, version/library catalog entries, GitHub Packages repository, stale Preferences comments, and all CI checkout/publication/token-resolution steps. Keep Craftux’s local repository and artifact verification intact.
+- Remove Preferences compile/test dependencies, version/library catalog entries, GitHub Packages repository, stale Preferences comments, and all CI checkout/publication/token-resolution steps. Keep the remaining sibling dependency wiring and artifact verification intact.
 - Update bootstrap lifecycle assertions so they verify direct `new PreferencesServiceImpl(plugin)` wiring and no external registration requirement rather than searching for the removed integration.
 
 **Focused verification:**
@@ -150,7 +150,7 @@
 - Preserve generic starter job/task/boost/upgrade records and stable ModularJobs aliases; remove AzothMC roadmap language, server-specific comments, and `Jobs Reborn` references.
 - Add concise operator-facing starter-content wording so shipped YAML/JSON/CSV values are understood as editable examples, not a fixed progression contract.
 - Replace public API roadmap/product comments with capability-oriented descriptions while keeping interfaces, namespaced keys, and behavior unchanged.
-- Update README and living specs to describe optional Mint/blackhole economy behavior, local preferences, PostgreSQL-only persistence, opt-in editor, and the intentionally deferred Craftux dependency. Remove claims that Mint is mandatory or the integration cutover is pending.
+- Update README and living specs to describe optional Mint/blackhole economy behavior, local preferences, PostgreSQL-only persistence, opt-in editor, and the native Paper inventory, sidebar, and boss-bar UI. Remove claims that Mint is mandatory or the UI cutover is pending.
 - Keep current project identity and compatibility names unless they identify an external server or owner-hosted service; neutralize only the server-specific/owner-specific metadata in shipped runtime content.
 
 **Verification:** scan tracked source/resources/docs for `AzothMC`, `Jobs Reborn`, owner-hosted editor URLs, and obsolete Mint-required claims; inspect changed YAML/JSON/CSV syntax with the existing build.
@@ -193,7 +193,7 @@
 
 - Replace the Astro/Starlight starter README with ModularJobs-specific development and documentation instructions.
 - Remove the two example pages and replace the wiki landing page/navigation with concise real ModularJobs overview and operator/reference guidance. Do not retain astronaut/template copy or wrong package/command examples.
-- Rewrite `Body.astro` claims to match the current project: Paper jobs/tasks, PostgreSQL persistence, optional Mint economy with blackhole/fail policy, optional supported integrations, and the Craftux-backed UI dependency.
+- Rewrite `Body.astro` claims to match the current project: Paper jobs/tasks, PostgreSQL persistence, optional Mint economy with blackhole/fail policy, optional supported integrations, and native Paper inventory, sidebar, and boss-bar UI.
 - Correct the web navigation to point at real ModularJobs pages. Remove stale MySQL/SQLite/Vault/Treasury/Service-IO/MythicMobs claims from the landing page and docs; do not remove the separate deprecated Vue/Bytebin demo in this pass because it is not the production editor path.
 - Add an archival status note to each dated plan/spec listed above; leave historical technical content intact rather than presenting it as current setup guidance.
 
@@ -225,4 +225,4 @@ Then inspect the release artifact and tracked tree:
 jar tf paper/build/libs/paper-all.jar
 ```
 
-Confirm the artifact contains Craftux relocation/classes as the deferred dependency, contains no Mint or Preferences API classes, and that generated defaults show disabled editor, empty owner URLs, and blackhole economy policy. Search tracked files for private Mint/Preferences repositories, `dev.jlo.mint`, `dev.jlo.preferences`, personal absolute paths, starter-template copy, AzothMC/Jobs Reborn references, stale database claims, and owner-hosted endpoint defaults. Confirm no files outside the ModularJobs worktree were changed.
+Confirm the artifact contains the native Paper UI classes and no Mint or Preferences API classes, and that generated defaults show disabled editor, empty owner URLs, and blackhole economy policy. Search tracked files for private Mint/Preferences repositories, `dev.jlo.mint`, `dev.jlo.preferences`, personal absolute paths, starter-template copy, AzothMC/Jobs Reborn references, stale database claims, and owner-hosted endpoint defaults. Confirm no files outside the ModularJobs worktree were changed.

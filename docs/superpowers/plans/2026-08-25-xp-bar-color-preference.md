@@ -216,7 +216,7 @@ In `paper/src/main/java/dev/mintychochip/payable/PayableWiring.java`, change the
       Plugin plugin,
       JobService jobService,
       Registry<PayableType> payableTypeRegistry,
-      CraftuxSurfaces surfaces,
+      PaperSurfaces surfaces,
       @Nullable dev.mintychochip.preferences.api.Preference<net.kyori.adventure.bossbar.BossBar.Color>
           experienceBarColorPreference) {
     ExperienceBarColorProvider colorProvider =
@@ -523,7 +523,7 @@ git commit -m "feat: register XP bar color preference via Preferences plugin"
 
 - [ ] **Step 1: Wire the integration into PluginContext**
 
-In `paper/src/main/java/dev/mintychochip/PluginContext.java`, in `createInto`, before the `PayableWiring.create(...)` call (which currently sits after `CraftuxSurfaces.create()`), add:
+In `paper/src/main/java/dev/mintychochip/PluginContext.java`, in `createInto`, before the `PayableWiring.create(...)` call (which currently sits after `PaperSurfaces.create()`), add:
 
 ```java
     // Soft-depend: register the XP bar color preference with the external Preferences plugin
@@ -542,7 +542,7 @@ Then change the `PayableWiring.create(...)` call to pass the color preference:
             plugin,
             domain.jobService,
             payableTypeRegistry,
-            craftuxSurfaces,
+            paperSurfaces,
             preferencesWiring.experienceBarColor());
 ```
 
@@ -649,10 +649,10 @@ In `docs/living-specs/modularjobs.md`, update the "Current notes" paragraph (whi
 ```markdown
 The general Paper distribution hardening is landed: Mint is an optional
 reflective economy adapter with a blackhole default, the editor is opt-in, and
-Craftux remains the explicitly deferred UI dependency. The external Preferences
-plugin is an optional soft-depend that powers the per-player XP boss bar color;
-without it the bar stays green and the local preferences service handles
-entries-per-page/gui-mode.
+Native Paper inventory screens, leaderboard sidebars, and experience boss bars
+provide the player-facing UI. The external Preferences plugin is an optional
+soft-depend that powers the per-player XP boss bar color; without it the bar
+stays green and the local preferences service handles entries-per-page/gui-mode.
 ```
 
 - [ ] **Step 3: Update README**

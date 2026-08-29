@@ -1,6 +1,7 @@
-# Job Perks Final Integration and Release Plan
+# Job Perks Final Integration and Release Plan (Archived)
+> **Historical note:** This plan is retained for provenance only. Its former MapGUI/perks integration and release steps are superseded by the current native Paper UI cutover; do not execute these dependency or smoke instructions as current work.
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **Archive status:** The task checkboxes below are historical record only and MUST NOT be executed; the current native Paper UI implementation supersedes this plan.
 
 **Goal:** Complete only the final integration, documentation, and release work approved by `docs/superpowers/specs/2026-08-11-job-perks-plugin-design.md`: the externally applied PostgreSQL rollout fixture, two-plugin classloading/install proof, all 19 upgrade-graph/persistence E2E cases, a Paper lifecycle smoke scenario, synchronized documentation/catalog/configuration/API/database/changelog surfaces, and separate artifact packaging plus CI assertions.
 
@@ -27,7 +28,7 @@ The actual rollout script is `scripts/apply-postgres-schema.sh`; it already reso
 
 The current upgrade implementation is not the hypothetical `JobUpgradeNode`/`UserUpgradeRepository` naming from the rejected draft. Current evidence identifies `net.aincraft.upgrade.PlayerUpgradeRepository` as the relational implementation, with `loadPlayerData(String,String)`, `savePlayerData(PlayerUpgradeDataImpl)`, `loadState(String,String)`, `saveState(SkillTreeState)`, and `hydrate(SkillTree, SkillTreeState)`. Current service boundary is `net.aincraft.upgrade.UpgradeService`; current graph models are `UpgradeTree`, `UpgradeNode`, `SkillTree`, `SkillNode`, and `SkillTreeState`. All E2E tasks below consume these actual symbols. If the approved design names an adapter in a new final-integration package, the adapter may be tested, but existing symbols remain the source of truth.
 
-The root build already sets `javaVersion = if (moduleName == "paper") 25 else 21`, applies `options.release`, publishes `modularjobs-api` and `modularjobs-common`, and configures Paper Shadow. `paper/build.gradle.kts` already has `compileOnly("io.github.flog99:mapgui-api:1.0.0")`, `implementation(libs.postgresql)`, `shadowJar` relocation for Craftux, and a Java 25 Paper run server on Minecraft/Paper version `26.2`. The current CI file `.github/workflows/ci.yml` already provisions PostgreSQL on port `55432`, applies the schema, runs `./gradlew check`, builds `:paper:shadowJar`, and uploads `paper/build/libs/*-all.jar`. Task 6 extends these exact paths rather than inventing a second workflow.
+The root build already sets `javaVersion = if (moduleName == "paper") 25 else 21`, applies `options.release`, publishes `modularjobs-api` and `modularjobs-common`, and configures Paper Shadow. `paper/build.gradle.kts` provides native Paper UI managers and a Java 25 Paper run server on Minecraft/Paper version `26.2`. The current CI file `.github/workflows/ci.yml` already provisions PostgreSQL on port `55432`, applies the schema, runs `./gradlew check`, builds `:paper:shadowJar`, and uploads `paper/build/libs/*-all.jar`. Task 6 extends these exact paths rather than inventing a second workflow.
 
 The current release asset script `scripts/package-release-assets.sh` names outputs `modularjobs-paper-$VERSION.jar` and `modularjobs-postgres-$VERSION.sql`, and the existing test `scripts/test-package-release-assets.sh` expects those exact names plus `SHA256SUMS`. Separate API packaging must use the existing Maven publication artifact `modularjobs-api`, while the Paper release continues to use `modularjobs-paper-2.0.0.jar` for the immutable release flow. No task may rename existing release assets without updating their existing test and CI call sites in the same atomic change.
 
@@ -229,7 +230,7 @@ The installation test must use two distinct descriptor fixtures if the productio
 
 Expected initial result: `FAIL` naming unavailable artifact paths, inability to load the main class, duplicate API classes, a bundled MapGUI package, or duplicate plugin names. A successful load through one shared Gradle test classloader is not sufficient.
 
-- [ ] **Step 3: Implement minimal packaging-test wiring.** Make the test depend on built artifacts, not `sourceSets.main.output`. Use the current `paper` Shadow output and the current API jar. Keep `mapgui-api:1.0.0` compile-only. Preserve `relocate("dev.craftux", "net.aincraft.libs.craftux")`; do not introduce a broad relocation of public API. If the artifact currently embeds API/common through the Craftux dependency, use the existing production exclusion convention and assert the final package contents rather than blindly relocating `net.aincraft`.
+- [ ] **Step 3: Implement minimal packaging-test wiring.** Make the test depend on built artifacts, not `sourceSets.main.output`. Use the current `paper` Shadow output and the current API jar. Keep native Paper UI classes in the Paper artifact and do not introduce a broad relocation of public API. If the artifact embeds API/common classes, use the existing production convention and assert the final package contents rather than blindly relocating `net.aincraft`.
 
 - [ ] **Step 4: Run focused pass and inspect package entries.** Run:
 
@@ -494,7 +495,7 @@ git commit -m "test(upgrades): cover nineteen graph persistence e2e cases"
 - Temporary server/database directories are removed by a trap after both success and failure.
 - Database query observes one persisted upgrade state after the command path.
 
-- [ ] **Step 1: Write the failing smoke test/script.** The test waits for the actual Paper readiness line, plugin enable line, and command output. The current `UpgradesCommand` registers the `jobs upgrades <job>` path and opens the upgrade UI; the smoke driver must invoke that path, then send the registered Craftux action `modularjobs.upgrades.node` with payload `iron-tier`. The executable scenario is:
+- [ ] **Step 1: Write the failing smoke test/script.** The test waits for the actual Paper readiness line, plugin enable line, and command output. The current `UpgradesCommand` registers the `jobs upgrades <job>` path and opens the native Paper upgrade UI; the smoke driver must invoke that path, then click the `iron-tier` node. The executable scenario is:
 
 ```text
 wait_for_log "Done (.*)! For help, type \\\"help\\\""
@@ -503,7 +504,7 @@ send_command "jobs create miner"
 expect_output "Created job miner"
 send_command "jobs upgrades miner"
 expect_output "Opening upgrade tree"
-send_upgrade_action "iron-tier"
+click_upgrade_node "iron-tier"
 expect_output "Purchased upgrade iron-tier"
 psql "$DATABASE_URL" -Atc "select count(*) from player_upgrades where player_id='$PLAYER_ID' and job_key='miner'"
 expect_output "1"
@@ -707,7 +708,7 @@ git add docs/database-schema.md paper/src/main/resources/database.yml \
 
 - Root `build.gradle.kts` toolchain logic: `moduleName == "paper"` → Java 25, all other modules → Java 21; `options.release.set(javaVersion)`.
 - Root Maven publication artifact ID `modularjobs-$moduleName` for `api` and `common`.
-- `paper/build.gradle.kts` Shadow task, `paper/build/libs/*-all.jar`, Craftux relocation, compile-only MapGUI API, PostgreSQL runtime dependency.
+- `paper/build.gradle.kts` Shadow task, `paper/build/libs/*-all.jar`, native Paper inventory/sidebar/boss-bar UI, and PostgreSQL runtime dependency.
 - `.github/workflows/ci.yml` PostgreSQL service on host port 55432, JDK setup, schema step, `check`, Shadow build, and artifact upload.
 - Existing release script/test naming `modularjobs-paper-$VERSION.jar`, `modularjobs-postgres-$VERSION.sql`, `SHA256SUMS`.
 - Modify: `scripts/test-package-release-assets.sh` only to add an API artifact assertion beside its existing `modularjobs-paper-2.0.0.jar`/`modularjobs-postgres-2.0.0.sql` checks.
@@ -715,7 +716,7 @@ git add docs/database-schema.md paper/src/main/resources/database.yml \
 
 - `scripts/assert-job-perks-artifacts.sh api/build/libs/modularjobs-api-0.0.0-SNAPSHOT.jar paper/build/libs/paper-all.jar` exits 0 only when boundaries pass for a default local build.
 - API classfiles major version 65; Paper classfiles major version 69.
-- API artifact includes public API classes and excludes `net/aincraft/paper/` and `org/mapgui/`; Paper artifact includes plugin descriptor and no unrelocated MapGUI classes.
+- API artifact includes public API classes and excludes `net/aincraft/paper/` and `org/mapgui/`; Paper artifact includes plugin descriptor and native UI classes.
 - CI runs schema application, unit tests, exact 19-case E2E, Paper smoke, docs checks, API jar, Paper Shadow jar, artifact assertions, and existing release asset tests.
 
 - [ ] **Step 1: Write the failing package assertions.** Create `scripts/assert-job-perks-artifacts.sh` using `jar tf`, `javap`, and the repository’s existing shell style. Required behavior:
@@ -772,7 +773,7 @@ Expected initial result: `FAIL` if the API jar has not been built, if implementa
   run: ./scripts/test-package-release-assets.sh
 ```
 
-Replace the literal API version with the CI project version expression if `releaseVersion` is always supplied; the generated command must resolve to an exact file and must be tested locally. Preserve existing Craftux checkout/publication steps and the existing release job’s `paper-all` artifact dependency.
+Replace the literal API version with the CI project version expression if `releaseVersion` is always supplied; the generated command must resolve to an exact file and must be tested locally. Preserve existing sibling checkout/publication steps and the existing release job’s `paper-all` artifact dependency.
 
 - [ ] **Step 4: Run packaging and CI-equivalent pass.** Run these exact checks locally with the actual resolved version:
 

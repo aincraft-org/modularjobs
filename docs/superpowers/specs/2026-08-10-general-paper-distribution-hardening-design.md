@@ -9,8 +9,8 @@
 
 Make the ModularJobs Paper release more generally distributable by removing the
 Mint and Preferences build/runtime requirements and reducing organization-specific
-defaults. Keep the existing Paper target and Craftux-backed UI for now; Craftux
-remains the explicitly deferred private dependency.
+defaults. The Paper target uses native Paper inventory, scoreboard, and boss-bar
+UI; no external UI dependency is required.
 
 ## Scope
 
@@ -30,13 +30,10 @@ remains the explicitly deferred private dependency.
 - Make the editor opt-in and remove owner-hosted endpoint defaults.
 - Remove starter-template documentation and correct stale integration/database
   claims.
-- Keep Craftux and the existing Craftux UI wiring unchanged as an explicit
-  deferred dependency.
+- Use native Paper inventory, sidebar, and boss-bar surfaces for all player-facing UI.
 
 ### Deferred
 
-- Replacing Craftux with native Paper inventory/chat UI.
-- Removing the Craftux artifact from the Paper runtime jar.
 - Supporting non-Paper server platforms.
 - Reworking the full jobs/task content model into a separately downloadable pack.
 
@@ -106,7 +103,7 @@ Vercel URL is shipped as a runtime default.
   optional Mint model.
 - Mark historical plans as archival where they mention obsolete module paths or
   removed providers.
-- Document Craftux as the remaining deferred distribution dependency.
+- Document the native Paper UI as the current player-facing surface.
 
 ## Error handling
 
@@ -123,10 +120,9 @@ Vercel URL is shipped as a runtime default.
 - Unit-test blackhole amount handling and provider selection.
 - Unit-test reflective Mint absence without Mint classes on the test classpath.
 - Compile and run the Paper module without Mint or Preferences artifacts in the
-  dependency repositories; Craftux remains available through its existing
-  deferred path.
+  dependency repositories; native Paper UI remains available through the Paper
+  module.
 - Run API/common/Paper tests and static checks.
-- Inspect the shadow jar for generated defaults and the intentionally deferred
-  Craftux classes.
+- Inspect the shadow jar for generated defaults and native Paper UI classes.
 - Run web tests/build and scan tracked files for personal paths, starter text,
   owner-hosted URLs, AzothMC roadmap references, and stale database claims.

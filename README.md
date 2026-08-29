@@ -163,14 +163,14 @@ ModularJobs owns profession progression, task data, and payment. Server operator
 may use their own protection or interaction-gating plugins; cancelled events
 receive no payment.
 
-### Integrations and deferred dependency
+### Integrations and UI
 
 Mint, mcMMO, Bolt, LWC, Choco, and PlaceholderAPI are optional integrations.
-The Craftux-backed UI is the current mandatory UI dependency and remains an
-explicit deferred distribution task; the release is not yet a fully standalone
-Paper artifact. The external Preferences plugin is not required. When present, it provides a
-per-player XP boss bar color preference via /preferences; without it the bar
-stays default green.
+ModularJobs uses native Paper inventory screens for browse, info, statistics,
+upgrades, and tree editing, plus native scoreboard sidebars and experience boss
+bars. No external UI library is required. The external Preferences plugin is not
+required; when present, it provides a per-player XP boss bar color preference via
+/preferences, and without it the bar stays default green.
 
 
 ## Version

@@ -323,7 +323,7 @@ Use these exact tags (not SHAs):
         uses: gradle/actions/setup-gradle@v6
 ```
 
-Apply to `api-build`, `java`, `rest-api` (`checkout` only), and `session-editor` (`checkout` only). Sibling-repo checkouts (craftux, mint, databag, conditions, Preferences) also use `actions/checkout@v7`.
+Apply to `api-build`, `java`, `rest-api` (`checkout` only), and `session-editor` (`checkout` only). Remaining sibling-repo checkouts (Mint, databag, conditions, Preferences) also use `actions/checkout@v7`.
 
 - [ ] **Step 3: api-build and java jobs use JDK 25 only**
 
@@ -367,7 +367,7 @@ git commit -m "ci: pin Actions v7/v5/v6, JDK 25, and clean check"
 
 - [ ] **Step 1: Write nightly.yml**
 
-Create `.github/workflows/nightly.yml` with this content. Copy sibling checkout refs from current `ci.yml` (craftux `402bea8ce21847df632a10b00b563665db205de9`, mint `873fd3e359d3f3ac5b22fc84bc9aaae2a6adabdd`, Preferences `c78eac8c81104ba0890fc98d5f49090d90d0dee7`, databag `373f7d0991e121afbcccf32015105010cafab2be`, conditions `7d30d892b66b7ab440edd881105b1c4ad4ab4c0e`). If `ci.yml` pins moved, copy whatever `ci.yml` currently uses — do not invent new SHAs.
+Create `.github/workflows/nightly.yml` with this content. Copy the remaining sibling checkout refs from current `ci.yml` (Mint, Preferences, databag, conditions). If `ci.yml` pins moved, copy whatever `ci.yml` currently uses — do not invent new SHAs.
 
 ```yaml
 name: Nightly release
@@ -423,29 +423,6 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
 
-      - name: Checkout craftux dependency (pinned release)
-        uses: actions/checkout@v7
-        with:
-          repository: aincraft-org/craftux
-          ref: 402bea8ce21847df632a10b00b563665db205de9
-          path: craftux
-          fetch-depth: 1
-
-      - name: Link craftux local Maven repository
-        run: ln -s "$GITHUB_WORKSPACE/craftux" "$GITHUB_WORKSPACE/../craftux"
-
-      - name: Set up Rust for craftux views
-        uses: dtolnay/rust-toolchain@4360b52568e2003a75bf9bc1d59f33a8e3fc893c
-
-      - name: Publish craftux local Maven artifacts
-        working-directory: craftux
-        run: |
-          chmod +x gradlew
-          ./gradlew \
-            :api:publishMavenPublicationToLocalBuildRepository \
-            :common:publishMavenPublicationToLocalBuildRepository \
-            :paper:publishMavenPublicationToLocalBuildRepository \
-            --console=plain --no-daemon
 
       - name: Require Mint read-only deploy key
         env:
@@ -529,7 +506,6 @@ jobs:
 
       - name: Verify required local dependency artifacts
         run: |
-          test -f ../craftux/build/maven-repo/dev/craftux/craftux-paper/1.0.2/craftux-paper-1.0.2.pom
           test -n "$(find ../databag/build/maven-repo/dev/databag/databag/0.0.0-SNAPSHOT -name 'databag-*.pom' -print -quit)"
           test -n "$(find ../conditions/build/maven-repo/dev/conditions/api/0.0.0-SNAPSHOT -name 'api-*.pom' -print -quit)"
 

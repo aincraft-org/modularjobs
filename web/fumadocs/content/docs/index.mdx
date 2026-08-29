@@ -154,12 +154,13 @@ are later machinery. They are documented in the guides below.
 
 ## Distribution boundary
 
-<Callout type="warn" title="Deferred dependency">
-The Paper target is general-purpose, but the current UI is backed by
-**Craftux**, which remains an explicitly deferred dependency-removal task.
-Mint and the external Preferences plugin are not required to compile or start
-the base plugin. The editor is disabled until an operator supplies an external
-REST API and web URL.
+<Callout type="info" title="Native Paper UI">
+The Paper plugin uses native Paper inventory screens for browse, info,
+statistics, upgrades, and tree editing. Leaderboard sidebars and experience
+boss bars also use native Paper surfaces, so the plugin has no external UI
+dependency. Mint and the external Preferences plugin are not required to
+compile or start the base plugin. The editor is disabled until an operator
+supplies an external REST API and web URL.
 </Callout>
 
 The bundled YAML, JSON, and CSV files are **generic starter content**. Replace

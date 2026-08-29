@@ -1,6 +1,7 @@
-# ModularJobs Perks Plugin Implementation Plan
+# ModularJobs Perks Plugin Implementation Plan (Archived)
+> **Historical note:** This plan is retained as an archival record. Its former MapGUI/perks architecture and unchecked implementation phases are superseded by the current native Paper UI; do not execute it as current work.
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **Archive status:** The task checkboxes below are historical record only and MUST NOT be executed; the current native Paper UI implementation supersedes this plan.
 
 **Goal:** Build a separate `perks` Paper plugin that contributes 19 safe job-perk trees to ModularJobs and renders them through its service-authoritative MapGUI upgrade graph.
 
@@ -153,52 +154,51 @@ assertThrows(UnsupportedOperationException.class,
 
 ---
 
-## Phase B — Craftux-to-MapGUI clean cutover
+## Phase B — Native Paper UI clean cutover
 
-### Task 9: Add MapGUI graph layout and opener
+### Task 9: Add native Paper graph layout and opener
 
 **Files:**
-- Create: `paper/src/main/java/net/aincraft/gui/mapgui/{UpgradeTreeScreenOpener,UpgradeTreeGraphLayout,UpgradeTreeScreen}.java`
-- Modify: `paper/src/main/java/net/aincraft/gui/UpgradeTreeGui.java`
-- Test: `paper/src/test/java/net/aincraft/gui/mapgui/{UpgradeTreeGraphLayoutTest,UpgradeTreeScreenOpenerTest}.java`
+- Create: `modularjobs-paper/src/main/java/dev/mintychochip/gui/{UpgradeTreeScreenOpener,UpgradeTreeGraphLayout,UpgradeTreeScreen}.java`
+- Modify: `modularjobs-paper/src/main/java/dev/mintychochip/gui/UpgradeTreeGui.java`
+- Test: `modularjobs-paper/src/test/java/dev/mintychochip/gui/{UpgradeTreeGraphLayoutTest,UpgradeTreeScreenOpenerTest}.java`
 
 - [ ] Test 24-pixel projection, `x=0..12/y=-4..4`, Miner cluster, edge-before-node rendering, bounded pan, hit boundaries, null positions noninteractive, and captured view generation.
-- [ ] Run focused MapGUI tests; expect missing classes.
-- [ ] Implement `Draw` graph and `MapGui.get().open`; drawing remains read-only.
+- [ ] Run focused native UI tests; expect missing classes.
+- [ ] Implement the native Paper graph and opener; drawing remains read-only.
 - [ ] Rerun focused tests; expect PASS.
-- [ ] Commit: `feat: render upgrade graph with MapGUI`.
+- [ ] Commit: `feat: render upgrade graph with native Paper UI`.
 
 ### Task 10: Add detail and purchase screens
 
 **Files:**
-- Create: `paper/src/main/java/net/aincraft/gui/mapgui/{SkillNodeDetailScreen,MajorPurchaseConfirmationScreen}.java`
-- Modify: `paper/src/main/java/net/aincraft/gui/mapgui/UpgradeTreeScreen.java`
-- Test: `paper/src/test/java/net/aincraft/gui/mapgui/{SkillNodeDetailScreenTest,UpgradeTreePurchaseFlowTest}.java`
+- Create: `modularjobs-paper/src/main/java/dev/mintychochip/gui/{SkillNodeDetailScreen,MajorPurchaseConfirmationScreen}.java`
+- Modify: `modularjobs-paper/src/main/java/dev/mintychochip/gui/UpgradeTreeScreen.java`
+- Test: `modularjobs-paper/src/test/java/dev/mintychochip/gui/{SkillNodeDetailScreenTest,UpgradeTreePurchaseFlowTest}.java`
 
 - [ ] Test capability descriptions without activation, disabled reason/no service call, skill call once with generation, major confirm once, cancel zero, and stale refresh.
 - [ ] Run focused tests; expect failure.
-- [ ] Implement keyed `Scroll` details, existing feedback mapping, and generation-aware service delegation only.
+- [ ] Implement keyed detail views, existing feedback mapping, and generation-aware service delegation only.
 - [ ] Rerun focused tests; expect PASS.
-- [ ] Commit: `feat: add MapGUI upgrade node purchase flow`.
+- [ ] Commit: `feat: add native Paper upgrade node purchase flow`.
 
-### Task 11: Remove the Craftux upgrade route and require MapGUI
+### Task 11: Finalize the native Paper upgrade route
 
 **Files:**
-- Modify: `paper/src/main/java/net/aincraft/{PluginContext.java,commands/UpgradesCommand.java}`
-- Modify: `paper/src/main/java/net/aincraft/gui/CraftuxUiHost.java`
-- Delete obsolete upgrade-only Craftux actions after LSP reference checks
-- Create: `paper/src/main/resources/paper-plugin.yml`
-- Modify: `paper/build.gradle.kts`
-- Test: `paper/src/test/java/net/aincraft/gui/CraftuxGuiMigrationTest.java`
-- Test: `paper/src/test/java/net/aincraft/PaperPluginDescriptorTest.java`
+- Modify: `modularjobs-paper/src/main/java/dev/mintychochip/{PluginContext.java,commands/UpgradesCommand.java}`
+- Modify: `modularjobs-paper/src/main/java/dev/mintychochip/gui/PaperUiHost.java`
+- Delete obsolete upgrade-only actions after reference checks
+- Modify: `modularjobs-paper/build.gradle.kts`
+- Test: `modularjobs-paper/src/test/java/dev/mintychochip/gui/NativePaperGuiTest.java`
+- Test: `modularjobs-paper/src/test/java/dev/mintychochip/PaperPluginDescriptorTest.java`
 
-- [ ] Update tests to require the MapGUI opener, no upgrade actions in Craftux, required MapGUI `load: BEFORE`/`join-classpath`, and no shaded MapGUI classes.
-- [ ] Run focused tests; expect failure on current Craftux path.
-- [ ] Migrate all LSP callers, retain Craftux for unrelated UIs, add descriptor/runServer dependency, then delete only unreferenced upgrade actions.
-- [ ] Run focused tests plus `:paper:shadowJar`; expect PASS.
-- [ ] Commit: `feat: require MapGUI for job upgrades`.
+- [ ] Update tests to require the native Paper opener, required UI lifecycle wiring, and no external UI classes in the shadow jar.
+- [ ] Run focused tests; expect failure on the pre-cutover path.
+- [ ] Migrate all callers to the native opener, then delete only unreferenced upgrade actions.
+- [ ] Run focused tests plus `:modularjobs-paper:shadowJar`; expect PASS.
+- [ ] Commit: `feat: use native Paper UI for job upgrades`.
 
-**Phase B gate:** focused MapGUI tests pass; `/jobs upgrade` has one MapGUI route; unrelated Craftux UIs still compile; `paper-all.jar` excludes MapGUI classes.
+**Phase B gate:** focused native UI tests pass; `/jobs upgrade` has one native Paper route; `paper-all.jar` contains no external UI classes.
 
 ---
 

@@ -15,14 +15,6 @@ dependencies {
     implementation(libs.caffeine)
     implementation(libs.gson)
     implementation(libs.configurate.core)
-    // craftux multi-surface UI (replaces triumph-gui).
-    // craftux-paper's published JAR already embeds api+common classes; depend only
-    // on paper and exclude its POM transitive to avoid double-shading duplicates.
-    implementation(libs.craftux.paper) {
-        isTransitive = false
-    }
-    // Compile against api/common source jars via the paper artifact coordinates
-    // is enough for the IDE/compiler because paper embeds those types.
     compileOnly("io.github.flog99:mapgui-api:1.0.0")
     compileOnly(libs.placeholderapi)
     compileOnly(libs.jetbrains.annotations)
@@ -69,12 +61,6 @@ tasks.test {
 tasks {
     shadowJar {
         mergeServiceFiles()
-        // Drop craftux-paper demo plugin/config descriptors (keep ModularJobs ones)
-        exclude { details ->
-            val fromCraftux = details.file.absolutePath.contains("craftux-")
-            fromCraftux && (details.name == "plugin.yml" || details.name == "config.yml")
-        }
-        relocate("dev.craftux", "dev.mintychochip.libs.craftux")
     }
 
     build {

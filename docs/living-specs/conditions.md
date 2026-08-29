@@ -96,7 +96,7 @@ Design reference: [2026-08-19-player-conditions-api-design.md](../superpowers/sp
 | 2026-08-19 | Boost rules store condition as byte[] | Conditions API owns ser/de; boosts stay opaque |
 | 2026-08-19 | Drop Kryo | Serializer registry moves to conditions API |
 | 2026-08-19 | Standalone `aincraft-org/conditions`, CalVer `YY.M.D.REVISION` | Library is reusable; ModularJobs consumes published artifacts |
-| 2026-08-19 | Maven group + Java package `dev.conditions` | Matches Craftux `dev.craftux` style |
+| 2026-08-19 | Maven group + Java package `dev.conditions` | Matches the project's package naming style |
 | 2026-08-19 | Kryo `DataBag` primitives on item PDC `BYTE_ARRAY` | Light PDC-like store; conditions stay JSON bytes inside the bag |
 | 2026-08-19 | `DataBag` lives in `mintychochip/databag` (`dev.databag`) | Primitive bag is reusable; conditions/paper keep `PersistentBags` |
 | 2026-08-19 | DataBag v1 envelope + format ids on `byte[]` slots | Unversioned bags still read; new primitives skip; payload encodings migrate |

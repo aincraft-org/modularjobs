@@ -175,32 +175,6 @@ class BootstrapLifecycleTest {
         "native UI must close before database resources");
   }
 
-  @Test
-  void activeNativeCompositionHasNoRemovedUiRuntimeReferences() throws Exception {
-    for (String relative : new String[] {
-      "PluginContext.java",
-      "commands/TopCommand.java",
-      "commands/TextScoreboard.java",
-      "payable/PayableWiring.java",
-      "payable/ExperienceBarControllerImpl.java",
-      "commands/InfoCommand.java",
-      "commands/StatsCommand.java",
-      "gui/JobBrowseGui.java",
-      "gui/JobInfoGui.java",
-      "gui/StatsGui.java",
-      "gui/UpgradeTreeGui.java",
-      "upgrade/editor/TreeEditorGui.java",
-      "upgrade/editor/TreeEditorNodeGui.java",
-      "upgrade/editor/TreeEditorSettingsGui.java"
-    }) {
-      String text = Files.readString(locate(relative), StandardCharsets.UTF_8);
-      assertFalse(text.contains("dev.craftux"), relative + " must not import removed UI runtime");
-      assertFalse(text.contains("Craftux"), relative + " must not reference removed UI runtime");
-      assertFalse(text.contains("craftux"), relative + " must not reference removed UI runtime");
-      assertFalse(text.contains("ActionBus"), relative + " must not reference removed UI actions");
-      assertFalse(text.contains("InventoryRuntime"), relative + " must not reference removed UI runtime");
-    }
-  }
 
   @Test
   void pluginContextShutdownClosesNativeStateBeforeResourcesAndOnlyOnce() throws Exception {

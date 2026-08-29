@@ -60,9 +60,9 @@
 | JobsReborn command | ModularJobs status |
 |---|---|
 | browse | ✅ `BrowseCommand` |
-| info | ✅ `InfoCommand` (chat + craftux GUI) |
+| info | ✅ `InfoCommand` (chat + native Paper inventory) |
 | join / leave / leaveall | ✅ `JoinCommand` / `LeaveCommand` |
-| stats | ✅ `StatsCommand` (chat + GUI) |
+| stats | ✅ `StatsCommand` (chat + native Paper inventory) |
 | archive | ✅ `ArchiveCommand` |
 | top / gtop | 🟡 per-job `top` (chat + scoreboard); ❌ no global `gtop` |
 | exp/level add/take/set | ✅ `ExperienceCommand` / `LevelCommand` |
@@ -79,7 +79,7 @@
 | reload | 🟡 only boost-source reload; no full reload |
 | area / entitylist / glog | ❌ |
 | Signs (command + leaderboard) | ❌ no sign support |
-| GUI | ✅ craftux GUIs (browse, info, stats, upgrade tree) |
+| GUI | ✅ native Paper inventories (browse, info, stats, upgrade tree) |
 
 ## 4. Progression, leveling & limits
 

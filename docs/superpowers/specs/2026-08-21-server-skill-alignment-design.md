@@ -94,9 +94,9 @@ Change the GitHub Action majors and the Java gate:
 
 - Triggers: `schedule` cron `0 4 * * *` and `workflow_dispatch` only.
 - `permissions.contents: write` on this workflow only.
-- Reuse the Java job's sibling checkout + local Maven publish steps (craftux,
-  mint, databag, conditions, Preferences). Nightly cannot be the skill's
-  three-step toy workflow; those artifacts are not on Maven Central.
+- Reuse the Java job's sibling checkout + local Maven publish steps (Mint,
+  databag, conditions, Preferences). Nightly cannot be the skill's three-step
+  toy workflow; those artifacts are not on Maven Central.
 - Gate: `./gradlew clean check` then `./gradlew :paper:shadowJar`.
 - Publish rolling pre-release tag `nightly` from
   `paper/build/libs/*-all.jar` (delete tag/release first, then create).
@@ -194,5 +194,5 @@ cd web/fumadocs && npm test && npm run build
 | 2026-08-21 | Keep MySQL connect-only and `YY.M.D.REVISION` | AGENTS.md / living specs outrank skill templates |
 | 2026-08-21 | Two waves | Spotless + Google Checks rewrite most Java; must not block pin/CI landing |
 | 2026-08-21 | Keep `paper-api` 26.2.build.65-beta | Skill allows exact pin; MockBukkit line is already on this build |
-| 2026-08-21 | Nightly reuses CI sibling checkouts | craftux/mint/databag/conditions are not Central |
+| 2026-08-21 | Nightly reuses remaining sibling checkouts | mint/databag/conditions are not Central |
 | 2026-08-21 | Docs gate against `web/fumadocs` | Existing hub; no second content tree |

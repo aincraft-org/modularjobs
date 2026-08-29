@@ -14,11 +14,6 @@ dependencyResolutionManagement {
             name = "mockbukkitLocal"
             url = uri(rootDir.resolve("libs/mockbukkit-maven"))
         }
-        // craftux published jars from sibling checkout (./gradlew -p ../craftux publish)
-        maven {
-            name = "craftuxLocal"
-            url = uri(rootDir.resolve("../craftux/build/maven-repo"))
-        }
         // Mint durable ledger API from sibling checkout (./gradlew -p ../mint publish)
         maven {
             name = "mintLocal"

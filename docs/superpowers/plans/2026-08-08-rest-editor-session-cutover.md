@@ -146,7 +146,9 @@ Run:
 ./gradlew :paper:test --tests net.aincraft.editor.EditorSessionStoreTest
 ```
 
-Expected: PASS for all store behavior tests. If Paper compilation is still blocked by the unavailable Craftux dependency, run the test after that dependency is available and record the external blocker rather than changing dependency resolution.
+Expected: PASS for all store behavior tests. If Paper compilation is blocked by an unavailable
+repository dependency, run the test after that dependency is available and record the
+external blocker rather than changing dependency resolution.
 
 - [ ] **Step 5: Commit the configuration/store unit**
 
@@ -495,7 +497,9 @@ Expected: all REST session authorization, expiry, schema, and payload replacemen
 ./gradlew :api:test :common:test :paper:test :paper:build
 ```
 
-Expected: Java tests and the Paper shadow artifact pass when the configured Craftux Maven dependency is available. If dependency resolution remains blocked by the existing 401/DNS failures, preserve the focused test results and report that external blocker exactly.
+Expected: Java tests and the Paper shadow artifact pass with the module's configured
+dependencies. If dependency resolution remains blocked by existing 401/DNS failures,
+preserve the focused test results and report that external blocker exactly.
 
 - [ ] **Step 5: Exercise the session contract directly**
 

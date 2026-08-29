@@ -13,7 +13,7 @@ from the `paper` module; the `api` module is a pure integration surface.
 | --- | --- | --- |
 | `api` | Pure public contracts for integrators | JDK + `conditions-api`; **no Paper** |
 | `common` | Shared DTOs + JSON codecs (editor, conditions) | JDK + Gson; may depend on `api` |
-| `paper` | Paper plugin implementation (shadow jar) | api, common, Paper, Craftux, databag, optional soft-depends |
+| `paper` | Paper plugin implementation (shadow jar) | api, common, Paper, databag, optional soft-depends |
 | `web/*` | FumaDocs site, React editor, Rust REST | Node / Rust / MySQL client |
 
 <Callout type="warn" title="api purity">
@@ -55,8 +55,8 @@ ModularJobsBootstrap
 - **Serialization**: Gson JSON; Kryo codecs were removed from the conditions /
   boost path (conditions API owns ser/de).
 - **Commands**: Paper Brigadier, themed text via `dev.mintychochip.util.Messages`.
-- **UI**: Craftux-backed GUIs (browse, stats, job info, upgrade tree) — the
-  current mandatory UI dependency, explicitly deferred for removal.
+- **UI**: Native Paper inventory screens for browse, stats, job info, upgrades,
+  and tree editing, with native scoreboard sidebars and experience boss bars.
 
 ## Database
 

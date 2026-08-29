@@ -1,4 +1,4 @@
-# Unified MapGUI skill-tree editor
+# Unified native Paper skill-tree editor
 
 > Status: approved design
 > Date: 2026-08-10
@@ -6,8 +6,8 @@
 
 ## 1. Goal
 
-Replace the separate Craftux player skill-tree screen and admin tree-editor command
-with one MapGUI graph/detail session opened by `/jobs upgrade <job>`.
+Replace the separate player skill-tree screen and admin tree-editor command
+with one native Paper inventory graph/detail session opened by `/jobs upgrade <job>`.
 
 The screen is mode-aware, not role-separated:
 
@@ -17,17 +17,16 @@ The screen is mode-aware, not role-separated:
 - the old `/jobs treeeditor` entrypoint remains only as a compatibility route to the same unified screen; it opens no separate editor UI.
 
 The v2 `SkillTree` model, `UpgradeService`, and PostgreSQL player state remain the
-runtime authority. MapGUI is a presentation and interaction layer only.
+runtime authority. Native Paper inventory components are the presentation and
+interaction layer only.
 
 ## 2. Decisions
 
-- MapGUI is an optional runtime dependency, matching the integration in
-  `../modular-territories`.
-- MapGUI is compiled with `compileOnly("io.github.flog99:mapgui-api:1.0.0")`.
-- The server run task downloads `MapGUI-1.0.0.jar` for manual verification.
-- When MapGUI is absent, `/jobs upgrade` falls back to the existing Craftux
-  viewer/purchase surface. Admins receive an explicit message that MapGUI is
-  required for editing.
+- Native Paper UI is project-owned and always available.
+- The Paper module owns inventory, sidebar, and boss-bar rendering without an
+  external UI runtime.
+- `/jobs upgrade` opens the native viewer/purchase surface; editor controls are
+  shown to viewers with the required permission.
 - `jobs.command.admin.treeeditor` is retained as the edit capability and its
   permission description is updated. It gates editing from both upgrade
   entrypoints.
@@ -41,55 +40,43 @@ runtime authority. MapGUI is a presentation and interaction layer only.
 
 ## 3. Current system and replacement boundary
 
-Current ModularJobs has two UI paths:
+Current ModularJobs has two command entrypoints over one native UI path:
 
-- `UpgradesCommand` opens `UpgradeTreeGui`, a Craftux inventory surface that
-  already supports v2 purchase state and legacy fallback.
-- `TreeEditorCommand` opens `TreeEditorGui`, a separate Craftux editor backed by
-  the legacy mutable `EditorTree`/`EditorNode` model and Wynncraft export.
+- `UpgradesCommand` opens `UpgradeTreeGui`, a native Paper inventory surface that
+  supports v2 purchase state and legacy fallback.
+- `TreeEditorCommand` delegates to the same native Paper editor surface; it owns
+  no separate UI.
 
-The replacement keeps the domain and persistence paths but removes the split UI:
+The replacement keeps the domain and persistence paths and unifies the UI:
 
 - `UpgradesCommand` becomes the single entrypoint.
 - `TreeEditorCommand` becomes a compatibility entrypoint that delegates to the
   same unified screen; it owns no separate UI.
-- `UpgradeTreeGui` remains a no-MapGUI viewer/purchase fallback.
-- The full editor is implemented only in the unified MapGUI session.
+- `UpgradeTreeGui` remains the native viewer/purchase surface.
+- The full editor is implemented in the unified native Paper inventory session.
 - Existing legacy editor classes are not used to write v2 data.
 
-## 4. MapGUI components
+## 4. Native Paper components
 
-Use the optional-classpath boundary from `../modular-territories`:
+Use the project-owned Paper inventory host and native Bukkit surfaces:
 
-### 4.1 Dependency and runtime bridge
+### 4.1 Inventory host
 
-Add `io.github.flog99:mapgui-api:1.0.0` as `compileOnly` in `paper` and declare
-MapGUI as an optional `BEFORE` server dependency with `join-classpath: true` in
-Paper plugin metadata. Keep MapGUI out of the shadow jar.
-
-Add a no-MapGUI bridge with no MapGUI imports:
-
-- `SkillTreeMapScreenBridge.open(...)` reflectively loads the runtime entrypoint;
-- absent plugin, missing class, linkage mismatch, or uninitialized runtime returns
-  `false`;
-- unexpected screen failures are surfaced rather than silently swallowed.
-
-The MapGUI-only runtime entrypoint calls `MapGui.get().open(...)` and constructs the
-screen. This prevents JVM linkage failures when the optional plugin is not present.
+`PaperUiHost.open(...)` owns each player/editor session and handles inventory
+click routing and close cleanup without an optional runtime bridge.
 
 ### 4.2 Graph screen
 
-`SkillTreeMapScreen` extends `de.flog99.mapgui.Screen` and owns one session for a
-job/player/editor draft.
+`SkillTreeScreen` owns one session for a job/player/editor draft.
 
-- `Draw` paints prerequisite edges before node cells.
+- Native inventory items render prerequisite edges before node cells.
 - Nodes use their configured positions, with a bounded pan offset and center/reset
   behavior for graphs larger than the hand map.
 - Cursor tracking paints an explicit hover outline and caption.
 - Status colors distinguish locked, available, owned/active, maxed, and excluded.
-- Pan controls follow the sibling project pattern: edge arrow buttons and a compact
-  toolbar.
-- Clicking a node pushes `SkillNodeDetailScreen`.
+- Pan controls use inventory buttons and a compact toolbar.
+- Clicking a node opens `SkillNodeDetailScreen`.
+
 
 ### 4.3 Detail and editor screens
 
@@ -102,8 +89,8 @@ requirements, prerequisites, excludes, and active effects.
 - Admin-only controls are omitted entirely unless the viewer has the edit
   permission.
 
-Editor property screens use MapGUI `Field`, `Toggle`, `Button`, and pushed choice
-screens. They support the existing editor capability set:
+Editor property screens use native inventory items, buttons, and choice views.
+They support the existing editor capability set:
 
 - add/delete/move nodes;
 - add/remove prerequisite links;
@@ -186,20 +173,20 @@ next graph rebuild/open; their persisted node levels remain untouched.
 `/jobs upgrade <job>`:
 
 1. Resolve the job and its v2 tree (including the v2 adapter produced for a legacy tree).
-2. Try `SkillTreeMapScreenBridge.open(...)`.
-3. If it returns `false`, open the existing Craftux viewer/purchase screen.
-4. If the viewer has edit permission but MapGUI is absent, send the explicit
-   install message and keep the fallback viewer usable.
+2. Open the unified native Paper inventory screen.
+3. Show purchase controls to ordinary players and editor controls to viewers with
+   `jobs.command.admin.treeeditor`.
 
 Keep `TreeEditorCommand` registered only as a compatibility command that
-delegates to the same unified MapGUI/Craftux route as `/jobs upgrade`. It does not
+delegates to the same unified native Paper route as `/jobs upgrade`. It does not
 open a second UI. Retain `jobs.command.admin.treeeditor` in `plugin.yml` as the
 editor capability and update its description. No new command or permission is
 introduced.
 
 ## 9. Failure handling and safety
 
-- Missing MapGUI or API version mismatch fails closed to Craftux.
+- Native Paper UI failures preserve the command response and report an actionable
+  error without changing persisted state.
 - Invalid draft content stays open and reports the first actionable validation
   problem; no partial save is attempted.
 - Save failures preserve both draft and active registry.
@@ -207,7 +194,7 @@ introduced.
 - Purchase failures preserve the screen and show the typed service result.
 - Editor operations are permission-gated at screen-build and action time, so a
   permission change while open cannot leave an editing action available.
-- Existing domain-level job/upgrade services do not depend on MapGUI.
+- Existing domain-level job/upgrade services do not depend on the UI implementation.
 
 ## 10. Verification plan
 
@@ -218,21 +205,19 @@ Focused tests:
 - loader validation and atomic-save failure behavior;
 - graph geometry, status colors, and prerequisite edge projection;
 - admin-control omission/inclusion based on permission;
-- no-MapGUI bridge behavior;
+- native Paper inventory lifecycle and action behavior;
 - existing `UpgradeService` purchase and state persistence tests.
 
-Add an opt-in `visualTest` source set modeled on `../modular-territories` for
-MapGUI-backed compilation/render checks without adding MapGUI to the normal unit
-test runtime.
+Add focused visual checks for native Paper inventory rendering without adding an
+external UI runtime to the normal unit-test classpath.
 
-Manual end-to-end verification uses `:paper:runServer` with MapGUI 1.0.0:
+Manual end-to-end verification uses `:paper:runServer` with native Paper UI:
 
 - open `/jobs upgrade miner` as a normal player;
 - inspect and purchase a node/major;
 - open the same job with the edit permission;
 - add/move/link/edit/delete a node, undo/redo, save, and observe immediate reload;
-- restart and confirm v2 JSON reloads with player state intact;
-- remove MapGUI and confirm viewer/purchase fallback plus admin install guidance.
+- restart and confirm v2 JSON reloads with player state intact.
 
 Update the skill-tree living spec, permission/operator docs, README where command
 usage is documented, and changelog after implementation is verified.
@@ -240,7 +225,7 @@ usage is documented, and changelog after implementation is verified.
 ## 11. Non-goals
 
 - No replacement of `SkillTree`, `UpgradeService`, or PostgreSQL persistence.
-- No MapGUI shading or fork of the upstream project.
+- No external UI runtime dependency or shading.
 - No Azoth/gathering-gate changes.
 - No new player respec or currency behavior.
 - No second editor UI or parallel legacy/v2 authoring format.
