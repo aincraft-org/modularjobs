@@ -4,8 +4,10 @@ package dev.mintychochip.event;
 public interface Cancellable extends org.aincraft.api.event.Cancellable {
 
   /** Returns whether cancelled. */
+  @Override
   boolean isCancelled();
 
   /** Sets the cancelled. */
+  @Override
   void setCancelled(boolean cancelled);
 }
