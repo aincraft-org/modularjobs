@@ -45,6 +45,7 @@ import dev.mintychochip.gui.JobInfoGui;
 import dev.mintychochip.gui.StatsGui;
 import dev.mintychochip.gui.UpgradeTreeGui;
 import dev.mintychochip.gui.PaperSurfaces;
+import dev.mintychochip.gui.PaperUiHost;
 import dev.mintychochip.gui.craftux.CraftuxUiHost;
 import dev.mintychochip.listener.AutoJoinListener;
 import dev.mintychochip.listener.LevelUpCommandListener;
@@ -202,8 +203,9 @@ public final class PluginContext {
             keyResolver,
             joinGate);
 
-    // Craftux inventory host remains in use by screens; native surfaces own scoreboards and boss bars.
+    // Craftux host remains in use by upgrade and editor screens; native screens use PaperUiHost.
     final CraftuxUiHost craftuxUi = CraftuxUiHost.create(plugin);
+    final PaperUiHost paperUiHost = new PaperUiHost();
     final PaperSurfaces paperSurfaces = new PaperSurfaces();
 
     // Soft-depend: register the XP bar color preference with the external Preferences plugin
@@ -333,16 +335,11 @@ public final class PluginContext {
     final EditorConfig editorConfig = EditorConfig.fromPlugin(plugin);
 
     JobBrowseGui jobBrowseGui =
-        new JobBrowseGui(craftuxUi.inventory(), domain.jobService, upgradeService, joinGate);
-    craftuxUi.actions().register(CraftuxUiHost.ACTION_JOB_JOIN, jobBrowseGui::onJoin);
-    StatsGui statsGui = new StatsGui(craftuxUi.inventory());
-    craftuxUi.actions().register(CraftuxUiHost.ACTION_STATS_PREV, statsGui::onPrev);
-    craftuxUi.actions().register(CraftuxUiHost.ACTION_STATS_NEXT, statsGui::onNext);
+        new JobBrowseGui(paperUiHost, domain.jobService, upgradeService, joinGate);
+    StatsGui statsGui = new StatsGui(paperUiHost);
     final JobTopPageProvider topPageProvider = new JobTopPageProvider(domain.jobService);
 
-    JobInfoGui jobInfoGui = new JobInfoGui(craftuxUi.inventory(), preferencesService);
-    craftuxUi.actions().register(CraftuxUiHost.ACTION_INFO_PREV, jobInfoGui::onPrev);
-    craftuxUi.actions().register(CraftuxUiHost.ACTION_INFO_NEXT, jobInfoGui::onNext);
+    JobInfoGui jobInfoGui = new JobInfoGui(paperUiHost, preferencesService);
     InfoCommand infoCommand =
         new InfoCommand(domain.jobService, domain.jobResolver, preferencesService, jobInfoGui);
 
@@ -384,13 +381,14 @@ public final class PluginContext {
     commands.add(new ExperienceCommand(domain.jobService, domain.progressionService));
 
     List<Listener> listenerList = new ArrayList<>();
+    listenerList.add(paperUiHost);
     listenerList.addAll(payment.listeners);
     listenerList.add(new ConsumableBoostController(itemBoostDataService, timedBoostDataService));
     // Config-driven level-up commands run after payment listeners have played feedback.
     listenerList.add(new LevelUpCommandListener(levelUpCommandExecutor));
     // Auto-join configured jobs after perks are restored by upgrade listeners.
     listenerList.add(new AutoJoinListener(domain.jobService, progressionLimits));
-    // Info/stats navigation is craftux inventory actions (no Paper Dialog listener)
+    // Native PaperUiHost owns info/stats navigation and close callbacks.
     listenerList.add(new UpgradeLevelUpListener(upgradeService, skillTreeRegistry));
     // UpgradeTreeGui clicks are host craftux actions (no Bukkit Listener)
     listenerList.add(

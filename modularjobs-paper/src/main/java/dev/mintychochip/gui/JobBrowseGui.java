@@ -1,17 +1,9 @@
 package dev.mintychochip.gui;
 
-import dev.craftux.api.inventory.InventoryClick;
-import dev.craftux.api.inventory.InventoryView;
-import dev.craftux.api.inventory.ItemSpec;
-import dev.craftux.api.inventory.Slot;
-import dev.craftux.api.inventory.SlotPixelIntent;
-import dev.craftux.common.inventory.InventoryRuntime;
 import dev.mintychochip.Job;
 import dev.mintychochip.JobProgression;
 import dev.mintychochip.container.ActionType;
 import dev.mintychochip.container.Payable;
-import dev.mintychochip.gui.craftux.CraftuxItems;
-import dev.mintychochip.gui.craftux.CraftuxUiHost;
 import dev.mintychochip.service.JobService;
 import dev.mintychochip.service.JoinGate;
 import dev.mintychochip.upgrade.UpgradeService;
@@ -32,14 +24,11 @@ import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
+import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 
-/**
- * Job browse GUI backed by craftux {@link InventoryRuntime}.
- *
- * <p>Views are pure presentation; join side-effects live in the host action registered under {@link
- * CraftuxUiHost#ACTION_JOB_JOIN}.
- */
+/** Job browse GUI backed by the native Paper inventory host. */
 public final class JobBrowseGui {
 
   private static final int GUI_ROWS = 6;
@@ -47,47 +36,37 @@ public final class JobBrowseGui {
   private static final PlainTextComponentSerializer PLAIN =
       PlainTextComponentSerializer.plainText();
 
-  private final InventoryRuntime inventory;
+  private final PaperUiHost host;
   private final JobService jobService;
   private final UpgradeService upgradeService;
   private final JoinGate joinGate;
 
-  /** Per-audience session: slot index → job key for join dispatch. */
+  /** Per-audience session: slot index to job key for join dispatch. */
   private final Map<UUID, Map<Integer, String>> sessions = new HashMap<>();
 
-  /** Builds the job-browse presenter over the shared craftux runtime. */
+  /** Builds the job-browse presenter over the shared native host. */
   public JobBrowseGui(
-      InventoryRuntime inventory,
-      JobService jobService,
-      UpgradeService upgradeService,
-      JoinGate joinGate) {
-    this.inventory = inventory;
+      PaperUiHost host, JobService jobService, UpgradeService upgradeService, JoinGate joinGate) {
+    this.host = host;
     this.jobService = jobService;
     this.upgradeService = upgradeService;
     this.joinGate = joinGate;
   }
 
+
   /** Opens the browse menu for {@code player}. */
   public void open(Player player) {
-    UUID audience = player.getUniqueId();
-    InventoryView view = buildView(player);
-    inventory.open(audience, view);
+    host.refresh(player, buildView(player));
   }
 
-  /**
-   * Host action: join the job mapped to the clicked slot. Registered via {@link
-   * CraftuxUiHost#actions()}.
-   */
-  public void onJoin(UUID audience, InventoryClick click) {
-    Player player = Bukkit.getPlayer(audience);
-    if (player == null) {
-      return;
-    }
+  /** Host action: join the job mapped to the clicked slot. */
+  public void onJoin(Player player, InventoryClickEvent event) {
+    UUID audience = player.getUniqueId();
     Map<Integer, String> slotJobs = sessions.get(audience);
     if (slotJobs == null) {
       return;
     }
-    String jobKey = slotJobs.get(click.slot());
+    String jobKey = slotJobs.get(event.getRawSlot());
     if (jobKey == null) {
       return;
     }
@@ -132,7 +111,7 @@ public final class JobBrowseGui {
                 + name
                 + "</secondary> <primary>!</primary>");
         player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 0.8f, 1.2f);
-        inventory.close(audience);
+        host.close(player);
         JavaPlugin plugin = JavaPlugin.getProvidingPlugin(JobBrowseGui.class);
         Bukkit.getScheduler()
             .runTaskLater(
@@ -154,7 +133,7 @@ public final class JobBrowseGui {
     }
   }
 
-  InventoryView buildView(Player player) {
+  PaperUiHost.ScreenView buildView(Player player) {
     UUID audience = player.getUniqueId();
     Map<Integer, String> slotJobs = new HashMap<>();
 
@@ -165,9 +144,9 @@ public final class JobBrowseGui {
       playerJobMap.put(prog.job().key().asString(), prog);
     }
 
-    Map<Integer, Slot> content = new HashMap<>();
+    Map<Integer, ItemStack> items = new HashMap<>();
+    Map<Integer, PaperUiHost.SlotAction> actions = new HashMap<>();
     int slot = 10;
-    int jobIndex = 0;
     for (Job job : allJobs) {
       int row = slot / 9;
       int col = slot % 9;
@@ -188,34 +167,28 @@ public final class JobBrowseGui {
       }
 
       JobProgression progression = playerJobMap.get(job.key().asString());
-      content.put(
-          slot,
-          Slot.button(
-              "job_" + jobIndex,
-              jobItem(job, progression),
-              CraftuxUiHost.ACTION_JOB_JOIN,
-              SlotPixelIntent.UNVALIDATED));
+      items.put(slot, jobItem(job, progression));
+      actions.put(slot, this::onJoin);
       slotJobs.put(slot, job.key().asString());
       slot++;
-      jobIndex++;
     }
 
-    InventoryView.Builder builder = InventoryView.builder(MENU_ID, GUI_ROWS).title("Browse Jobs");
-    ItemSpec pane = CraftuxItems.pane(Material.GRAY_STAINED_GLASS_PANE);
+    ItemStack pane = PaperItemFactory.pane(Material.GRAY_STAINED_GLASS_PANE);
     for (int i = 0; i < GUI_ROWS * 9; i++) {
-      Slot placed = content.get(i);
-      if (placed != null) {
-        builder.slot(i, placed);
-      } else {
-        builder.decorative(i, pane);
-      }
+      items.putIfAbsent(i, pane);
     }
 
     sessions.put(audience, Map.copyOf(slotJobs));
-    return builder.build();
+    return new PaperUiHost.ScreenView(
+        MENU_ID,
+        GUI_ROWS,
+        Component.text("Browse Jobs"),
+        items,
+        actions,
+        ignored -> sessions.remove(audience));
   }
 
-  private ItemSpec jobItem(Job job, JobProgression progression) {
+  private ItemStack jobItem(Job job, JobProgression progression) {
     List<String> lore = new ArrayList<>();
     lore.add(
         plain(
@@ -291,9 +264,8 @@ public final class JobBrowseGui {
     Material material = isJoined ? Material.EMERALD : Material.BOOK;
     NamedTextColor nameColor = isJoined ? NamedTextColor.GREEN : NamedTextColor.GOLD;
     String name =
-        PLAIN.serialize(
-            job.displayName().color(nameColor).decoration(TextDecoration.ITALIC, false));
-    return CraftuxItems.of(material, name, lore);
+        PLAIN.serialize(job.displayName().color(nameColor).decoration(TextDecoration.ITALIC, false));
+    return PaperItemFactory.of(material, name, lore);
   }
 
   private int countActivePlayers(Job job) {

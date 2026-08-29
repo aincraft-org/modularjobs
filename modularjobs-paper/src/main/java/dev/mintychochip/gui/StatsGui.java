@@ -1,14 +1,6 @@
 package dev.mintychochip.gui;
 
-import dev.craftux.api.inventory.InventoryClick;
-import dev.craftux.api.inventory.InventoryView;
-import dev.craftux.api.inventory.ItemSpec;
-import dev.craftux.api.inventory.Slot;
-import dev.craftux.api.inventory.SlotPixelIntent;
-import dev.craftux.common.inventory.InventoryRuntime;
 import dev.mintychochip.JobProgression;
-import dev.mintychochip.gui.craftux.CraftuxItems;
-import dev.mintychochip.gui.craftux.CraftuxUiHost;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
@@ -16,13 +8,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
-import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
+import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.inventory.ItemStack;
 
-/** Job statistics inventory view via craftux (replaces Paper {@code Dialog} UI). */
+/** Job statistics inventory view backed by the native Paper inventory host. */
 public final class StatsGui {
 
   private static final int JOBS_PER_PAGE = 5;
@@ -31,14 +25,14 @@ public final class StatsGui {
   private static final PlainTextComponentSerializer PLAIN =
       PlainTextComponentSerializer.plainText();
 
-  private final InventoryRuntime inventory;
+  private final PaperUiHost host;
   private final Map<UUID, Session> sessions = new HashMap<>();
 
   private record Session(OfflinePlayer target, List<JobProgression> progressions, int page) {}
 
-  /** Creates a statistics view renderer backed by the shared inventory runtime. */
-  public StatsGui(InventoryRuntime inventory) {
-    this.inventory = inventory;
+  /** Creates a statistics view renderer backed by the native inventory host. */
+  public StatsGui(PaperUiHost host) {
+    this.host = host;
   }
 
   /** Calculates the number of pages required for the supplied progression list. */
@@ -46,34 +40,28 @@ public final class StatsGui {
     return Math.max(1, (int) Math.ceil((double) progressions.size() / JOBS_PER_PAGE));
   }
 
-  /**
-   * Stores the viewer's current target and page, then opens the corresponding view.
-   *
-   * <p>This method is expected on the Bukkit thread because it opens a player inventory.
-   */
+  /** Stores the viewer's target and page, then opens the corresponding view. */
   public void open(
       Player viewer, OfflinePlayer target, List<JobProgression> progressions, int page) {
     int totalPages = calculateTotalPages(progressions);
     int safePage = Math.max(1, Math.min(page, totalPages));
     sessions.put(viewer.getUniqueId(), new Session(target, List.copyOf(progressions), safePage));
-    inventory.open(viewer.getUniqueId(), buildView(viewer.getUniqueId()));
+    host.refresh(viewer, buildView(viewer.getUniqueId()));
   }
 
-  /** Host action handler for {@link CraftuxUiHost#ACTION_STATS_PREV}: open previous page. */
-  public void onPrev(UUID audience, InventoryClick click) {
-    Session session = sessions.get(audience);
-    Player player = Bukkit.getPlayer(audience);
-    if (session == null || player == null || session.page() <= 1) {
+  /** Opens the previous page for an owned statistics screen. */
+  public void onPrev(Player player, InventoryClickEvent event) {
+    Session session = sessions.get(player.getUniqueId());
+    if (session == null || session.page() <= 1) {
       return;
     }
     open(player, session.target(), session.progressions(), session.page() - 1);
   }
 
-  /** On next. */
-  public void onNext(UUID audience, InventoryClick click) {
-    Session session = sessions.get(audience);
-    Player player = Bukkit.getPlayer(audience);
-    if (session == null || player == null) {
+  /** Opens the next page for an owned statistics screen. */
+  public void onNext(Player player, InventoryClickEvent event) {
+    Session session = sessions.get(player.getUniqueId());
+    if (session == null) {
       return;
     }
     int total = calculateTotalPages(session.progressions());
@@ -83,13 +71,16 @@ public final class StatsGui {
     open(player, session.target(), session.progressions(), session.page() + 1);
   }
 
-  InventoryView buildView(UUID audience) {
+  PaperUiHost.ScreenView buildView(UUID audience) {
     Session session = sessions.get(audience);
     if (session == null) {
-      return InventoryView.builder(MENU_ID, GUI_ROWS)
-          .title("Job Statistics")
-          .decorative(0, CraftuxItems.pane(Material.GRAY_STAINED_GLASS_PANE))
-          .build();
+      return new PaperUiHost.ScreenView(
+          MENU_ID,
+          GUI_ROWS,
+          Component.text("Job Statistics"),
+          panes(),
+          Map.of(),
+          ignored -> {});
     }
 
     OfflinePlayer target = session.target();
@@ -103,19 +94,14 @@ public final class StatsGui {
       title = title.substring(0, 128);
     }
 
-    Map<Integer, Slot> content = new HashMap<>();
-    ItemSpec pane = CraftuxItems.pane(Material.GRAY_STAINED_GLASS_PANE);
-    for (int i = 0; i < GUI_ROWS * 9; i++) {
-      content.put(i, Slot.decorative(pane));
-    }
-
-    content.put(
+    Map<Integer, ItemStack> items = panes();
+    Map<Integer, PaperUiHost.SlotAction> actions = new HashMap<>();
+    items.put(
         4,
-        Slot.decorative(
-            CraftuxItems.of(
-                Material.BOOK,
-                "Job Statistics",
-                List.of("Player: " + targetName, "Jobs: " + progressions.size()))));
+        PaperItemFactory.of(
+            Material.BOOK,
+            "Job Statistics",
+            List.of("Player: " + targetName, "Jobs: " + progressions.size())));
 
     int start = (page - 1) * JOBS_PER_PAGE;
     int end = Math.min(start + JOBS_PER_PAGE, progressions.size());
@@ -123,40 +109,38 @@ public final class StatsGui {
     for (int i = start; i < end; i++) {
       JobProgression prog = progressions.get(i);
       int slot = slots[i - start];
-      content.put(slot, Slot.decorative(jobItem(prog)));
+      items.put(slot, jobItem(prog));
     }
 
     if (page > 1) {
-      content.put(
-          45,
-          Slot.navigation(
-              "stats_prev",
-              CraftuxItems.of(Material.ARROW, "Previous", List.of("Page " + (page - 1))),
-              CraftuxUiHost.ACTION_STATS_PREV,
-              SlotPixelIntent.UNVALIDATED));
+      items.put(45, PaperItemFactory.of(Material.ARROW, "Previous", List.of("Page " + (page - 1))));
+      actions.put(45, this::onPrev);
     }
-    content.put(
-        49,
-        Slot.decorative(
-            CraftuxItems.of(Material.PAPER, "Page " + page + "/" + totalPages, List.of())));
+    items.put(49, PaperItemFactory.of(Material.PAPER, "Page " + page + "/" + totalPages, List.of()));
     if (page < totalPages) {
-      content.put(
-          53,
-          Slot.navigation(
-              "stats_next",
-              CraftuxItems.of(Material.ARROW, "Next", List.of("Page " + (page + 1))),
-              CraftuxUiHost.ACTION_STATS_NEXT,
-              SlotPixelIntent.UNVALIDATED));
+      items.put(53, PaperItemFactory.of(Material.ARROW, "Next", List.of("Page " + (page + 1))));
+      actions.put(53, this::onNext);
     }
 
-    InventoryView.Builder builder = InventoryView.builder(MENU_ID, GUI_ROWS).title(title);
-    for (int i = 0; i < GUI_ROWS * 9; i++) {
-      builder.slot(i, content.get(i));
-    }
-    return builder.build();
+    return new PaperUiHost.ScreenView(
+        MENU_ID,
+        GUI_ROWS,
+        Component.text(title),
+        items,
+        actions,
+        ignored -> sessions.remove(audience));
   }
 
-  private ItemSpec jobItem(JobProgression prog) {
+  private static Map<Integer, ItemStack> panes() {
+    Map<Integer, ItemStack> items = new HashMap<>();
+    ItemStack pane = PaperItemFactory.pane(Material.GRAY_STAINED_GLASS_PANE);
+    for (int i = 0; i < GUI_ROWS * 9; i++) {
+      items.put(i, pane);
+    }
+    return items;
+  }
+
+  private ItemStack jobItem(JobProgression prog) {
     int level = prog.level();
     BigDecimal xp = prog.experience();
     List<String> lore = new ArrayList<>();
@@ -169,9 +153,9 @@ public final class StatsGui {
               .evaluate(new dev.mintychochip.LevelingCurve.Parameters(level + 1));
       lore.add("Next level: " + next.setScale(1, RoundingMode.HALF_UP).toPlainString());
     } catch (IllegalArgumentException | ArithmeticException ignored) {
-      // curve may not support level+1
+      // The curve may not support level+1.
     }
     String name = PLAIN.serialize(prog.job().displayName());
-    return CraftuxItems.of(Material.EMERALD, name, lore);
+    return PaperItemFactory.of(Material.EMERALD, name, lore);
   }
 }
