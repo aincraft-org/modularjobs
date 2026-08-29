@@ -7,7 +7,7 @@ import dev.mintychochip.container.ExperiencePayableHandler.ExperienceBarFormatte
 import dev.mintychochip.container.PayableAmount;
 import dev.mintychochip.container.PayableHandler;
 import dev.mintychochip.container.PayableType;
-import dev.mintychochip.gui.craftux.CraftuxSurfaces;
+import dev.mintychochip.gui.PaperSurfaces;
 import dev.mintychochip.registry.Registry;
 import dev.mintychochip.service.JobService;
 import java.math.BigDecimal;
@@ -44,7 +44,7 @@ public final class PayableWiring {
       Plugin plugin,
       JobService jobService,
       Registry<PayableType> payableTypeRegistry,
-      CraftuxSurfaces surfaces,
+      PaperSurfaces surfaces,
       @Nullable ExperienceBarColorPreference experienceBarColorPreference) {
     ExperienceBarColorProvider colorProvider =
         new ExperienceBarColorProvider(experienceBarColorPreference);

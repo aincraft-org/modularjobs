@@ -2,12 +2,11 @@ package dev.mintychochip.payable;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import dev.craftux.api.theme.StyleRole;
 import dev.mintychochip.JobProgressionView;
 import dev.mintychochip.container.ExperiencePayableHandler.ExperienceBarContext;
 import dev.mintychochip.container.ExperiencePayableHandler.ExperienceBarController;
 import dev.mintychochip.container.ExperiencePayableHandler.ExperienceBarFormatter;
-import dev.mintychochip.gui.craftux.CraftuxSurfaces;
+import dev.mintychochip.gui.PaperSurfaces;
 import dev.mintychochip.util.PlayerJobCompositeKey;
 import java.math.BigDecimal;
 import java.util.HashMap;
@@ -17,7 +16,6 @@ import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.bossbar.BossBar.Color;
 import net.kyori.adventure.bossbar.BossBar.Overlay;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -28,12 +26,7 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 
-/**
- * XP boss bars via craftux {@link CraftuxSurfaces#showBossBar}.
- *
- * <p>Still uses {@link ExperienceBarFormatter} to compute title/progress/color (API contract), then
- * mounts the result through craftux's boss-bar renderer.
- */
+/** XP boss bars rendered through the native Paper surface manager. */
 final class ExperienceBarControllerImpl implements ExperienceBarController, Listener {
 
   private final Cache<PlayerJobCompositeKey, BossBar> formatScratch = Caffeine.newBuilder().build();
@@ -42,9 +35,9 @@ final class ExperienceBarControllerImpl implements ExperienceBarController, List
   private final Map<PlayerJobCompositeKey, BigDecimal> bufferedAmounts = new HashMap<>();
 
   private final Plugin plugin;
-  private final CraftuxSurfaces surfaces;
+  private final PaperSurfaces surfaces;
 
-  ExperienceBarControllerImpl(Plugin plugin, CraftuxSurfaces surfaces) {
+  ExperienceBarControllerImpl(Plugin plugin, PaperSurfaces surfaces) {
     this.plugin = plugin;
     this.surfaces = surfaces;
     plugin.getServer().getPluginManager().registerEvents(this, plugin);
@@ -73,15 +66,9 @@ final class ExperienceBarControllerImpl implements ExperienceBarController, List
     formatter.format(scratch, mergedContext);
 
     String titlePlain = PlainTextComponentSerializer.plainText().serialize(scratch.name());
-    String mini = MiniMessage.miniMessage().serialize(scratch.name());
     String barKey = compositeKey.jobKey().asString();
     surfaces.showBossBar(
-        player.getUniqueId(),
-        barKey,
-        titlePlain,
-        mini,
-        scratch.progress(),
-        roleFor(scratch.color()));
+        player.getUniqueId(), barKey, titlePlain, scratch.progress(), scratch.color());
 
     BukkitTask previous = removalTasks.get(compositeKey);
     if (previous != null && !previous.isCancelled()) {
@@ -119,16 +106,5 @@ final class ExperienceBarControllerImpl implements ExperienceBarController, List
               }
               return false;
             });
-  }
-
-  private static StyleRole roleFor(BossBar.Color color) {
-    return switch (color) {
-      case GREEN -> StyleRole.PROGRESS;
-      case YELLOW -> StyleRole.WARNING;
-      case RED -> StyleRole.DANGER;
-      case BLUE, PURPLE -> StyleRole.ACCENT;
-      case PINK -> StyleRole.HEADING;
-      default -> StyleRole.BODY;
-    };
   }
 }

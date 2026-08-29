@@ -5,7 +5,7 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import dev.mintychochip.commands.top.ChatJobsTopPageConsumerImpl;
 import dev.mintychochip.commands.top.ScoreboardJobsTopPageConsumerImpl;
-import dev.mintychochip.gui.craftux.CraftuxSurfaces;
+import dev.mintychochip.gui.PaperSurfaces;
 import dev.mintychochip.service.JobService;
 import dev.mintychochip.util.KeyUtils;
 import dev.mintychochip.util.Messages;
@@ -31,7 +31,7 @@ public final class TopCommand implements JobsCommand {
   private final JobService jobService;
   private final JobTopPageProvider resultProvider;
   private final Plugin plugin;
-  private final CraftuxSurfaces surfaces;
+  private final PaperSurfaces surfaces;
 
   private static final int PAGE_SIZE = 10;
 
@@ -40,7 +40,7 @@ public final class TopCommand implements JobsCommand {
       JobService jobService,
       JobTopPageProvider resultProvider,
       Plugin plugin,
-      CraftuxSurfaces surfaces) {
+      PaperSurfaces surfaces) {
     this.jobService = jobService;
     this.resultProvider = resultProvider;
     this.plugin = plugin;

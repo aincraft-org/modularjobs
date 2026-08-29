@@ -44,7 +44,7 @@ import dev.mintychochip.gui.JobBrowseGui;
 import dev.mintychochip.gui.JobInfoGui;
 import dev.mintychochip.gui.StatsGui;
 import dev.mintychochip.gui.UpgradeTreeGui;
-import dev.mintychochip.gui.craftux.CraftuxSurfaces;
+import dev.mintychochip.gui.PaperSurfaces;
 import dev.mintychochip.gui.craftux.CraftuxUiHost;
 import dev.mintychochip.listener.AutoJoinListener;
 import dev.mintychochip.listener.LevelUpCommandListener;
@@ -202,9 +202,9 @@ public final class PluginContext {
             keyResolver,
             joinGate);
 
-    // Craftux inventory + text surfaces (scoreboard / boss bar) for all plugin UIs
+    // Craftux inventory host remains in use by screens; native surfaces own scoreboards and boss bars.
     final CraftuxUiHost craftuxUi = CraftuxUiHost.create(plugin);
-    final CraftuxSurfaces craftuxSurfaces = CraftuxSurfaces.create();
+    final PaperSurfaces paperSurfaces = new PaperSurfaces();
 
     // Soft-depend: register the XP bar color preference with the external Preferences plugin
     // when present; falls back to green when absent.
@@ -218,7 +218,7 @@ public final class PluginContext {
             plugin,
             domain.jobService,
             payableTypeRegistry,
-            craftuxSurfaces,
+            paperSurfaces,
             preferencesWiring.experienceBarColor());
 
     RegistryContainerImpl registryContainer = new RegistryContainerImpl();
@@ -349,8 +349,8 @@ public final class PluginContext {
     Set<JobsCommand> commands = new LinkedHashSet<>();
     commands.add(new JoinCommand(domain.jobService, domain.jobResolver, joinGate));
     commands.add(new ListCommand(domain.jobService));
+    commands.add(new TopCommand(domain.jobService, topPageProvider, plugin, paperSurfaces));
     commands.add(new BrowseCommand(jobBrowseGui));
-    commands.add(new TopCommand(domain.jobService, topPageProvider, plugin, craftuxSurfaces));
     commands.add(infoCommand);
     commands.add(new LeaveCommand(domain.jobService, domain.jobResolver));
     if (editorConfig.enabled()) {

@@ -1,6 +1,6 @@
 package dev.mintychochip.commands;
 
-import dev.mintychochip.gui.craftux.CraftuxSurfaces;
+import dev.mintychochip.gui.PaperSurfaces;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -9,41 +9,25 @@ import net.kyori.adventure.text.ComponentLike;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.entity.Player;
 
-/**
- * Ephemeral sidebar scoreboard backed by craftux {@link CraftuxSurfaces}.
- *
- * <p>Hosts accumulate lines then call {@link #setCurrent(Player)} to mount a craftux scoreboard
- * plan for that audience.
- */
+/** Ephemeral sidebar scoreboard backed by native Paper surfaces. */
 public final class TextScoreboard {
 
   private static final int MAX_LINES = 15;
   private static final PlainTextComponentSerializer PLAIN =
       PlainTextComponentSerializer.plainText();
 
-  private final CraftuxSurfaces surfaces;
+  private final PaperSurfaces surfaces;
   private final String title;
   private final String[] lines = new String[MAX_LINES];
 
-  private TextScoreboard(CraftuxSurfaces surfaces, String title) {
+  private TextScoreboard(PaperSurfaces surfaces, String title) {
     this.surfaces = surfaces;
     this.title = title;
   }
 
-  /** Create. */
-  public static TextScoreboard create(CraftuxSurfaces surfaces, Component displayName) {
+  /** Creates a text scoreboard for the supplied display name. */
+  public static TextScoreboard create(PaperSurfaces surfaces, Component displayName) {
     return new TextScoreboard(surfaces, PLAIN.serialize(displayName));
-  }
-
-  /**
-   * Legacy factory without craftux surfaces.
-   *
-   * @deprecated use {@link #create(CraftuxSurfaces, Component)}
-   */
-  @Deprecated
-  public static TextScoreboard create(Component displayName) {
-    throw new UnsupportedOperationException(
-        "TextScoreboard requires CraftuxSurfaces; use create(surfaces, title)");
   }
 
   /** Sets the line. */
