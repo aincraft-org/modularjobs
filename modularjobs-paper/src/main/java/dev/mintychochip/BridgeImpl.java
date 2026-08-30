@@ -11,6 +11,7 @@ import dev.mintychochip.service.NodeHarvestService;
 import dev.mintychochip.service.ProfessionService;
 import dev.mintychochip.service.RecipeService;
 import dev.mintychochip.service.StationService;
+import dev.mintychochip.upgrade.UpgradeService;
 import java.util.Optional;
 import org.aincraft.api.event.EventBus;
 import org.jetbrains.annotations.Nullable;
@@ -20,6 +21,7 @@ record BridgeImpl(
     RegistryContainer registryContainer,
     JobService jobService,
     ProfessionService professionService,
+    UpgradeService upgradeService,
     RecipeService recipeService,
     BuffService buffService,
     StationService stationService,

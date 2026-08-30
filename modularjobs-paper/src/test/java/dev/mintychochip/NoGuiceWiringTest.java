@@ -90,6 +90,30 @@ class NoGuiceWiringTest {
         text.contains("professionService"), "Bridge construction must receive professionService");
     assertTrue(text.contains("recipeService"));
     assertTrue(text.contains("buffService"));
+    assertTrue(
+        text.contains("UpgradeService upgradeService"),
+        "PluginContext must own one authoritative UpgradeService instance");
+    assertEquals(
+        text.indexOf("new UpgradeServiceImpl"),
+        text.lastIndexOf("new UpgradeServiceImpl"),
+        "PluginContext must construct exactly one UpgradeServiceImpl");
+
+    int professionWiring = text.indexOf("ProfessionWiring.create(plugin");
+    int effectApplier = text.indexOf("new UpgradeEffectApplier");
+    int upgradeService = text.indexOf("new UpgradeServiceImpl");
+    int bridge = text.indexOf("new BridgeImpl");
+    assertTrue(
+        professionWiring >= 0
+            && professionWiring < effectApplier
+            && effectApplier < upgradeService
+            && upgradeService < bridge,
+        "PluginContext must preserve ProfessionWiring -> UpgradeEffectApplier -> "
+            + "UpgradeService -> BridgeImpl construction order");
+    int professionArgument = text.indexOf("professions.professionService", bridge);
+    int upgradeArgument = text.indexOf("upgradeService,", professionArgument);
+    assertTrue(
+        bridge >= 0 && professionArgument >= bridge && upgradeArgument > professionArgument,
+        "BridgeImpl must receive the composed UpgradeService instance");
   }
 
   @Test

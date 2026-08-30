@@ -23,6 +23,21 @@ class BootstrapLifecycleTest {
     assertTrue(text.contains("unregisterAll"), "must unregister Bukkit services on disable");
     assertTrue(text.contains("unregister()"), "must unregister PlaceholderAPI expansion");
     assertTrue(text.contains("ctx.shutdown()"), "must flush/close via PluginContext.shutdown");
+    assertTrue(
+        text.contains("dev.mintychochip.upgrade.UpgradeService.class"),
+        "must register the public UpgradeService Bukkit service");
+    assertTrue(
+        text.contains("created.bridge.upgradeService()"),
+        "Bukkit UpgradeService provider must be the Bridge-owned instance");
+
+    int bridgeRegistration = text.indexOf("register(Bridge.class");
+    int upgradeRegistration = text.indexOf("UpgradeService.class");
+    int professionRegistration = text.indexOf("ProfessionService.class");
+    assertTrue(
+        bridgeRegistration >= 0
+            && bridgeRegistration < upgradeRegistration
+            && upgradeRegistration < professionRegistration,
+        "UpgradeService registration must follow Bridge and precede ProfessionService");
     assertFalse(
         text.contains("onSpinWait"),
         "bootstrap must not busy-spin; flush wait lives in write-back with sleep/timeout");

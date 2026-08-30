@@ -34,6 +34,13 @@ public final class ModularJobsBootstrap extends JavaPlugin {
     Bridge.register(created.bridge);
     Bukkit.getServicesManager().register(Bridge.class, created.bridge, this, ServicePriority.High);
 
+    Bukkit.getServicesManager()
+        .register(
+            dev.mintychochip.upgrade.UpgradeService.class,
+            created.bridge.upgradeService(),
+            this,
+            ServicePriority.Normal);
+
     // ProfessionService is the stable integration point for dependent plugins.
     Bukkit.getServicesManager()
         .register(
