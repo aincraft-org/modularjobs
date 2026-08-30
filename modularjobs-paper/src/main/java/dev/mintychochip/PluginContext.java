@@ -408,6 +408,7 @@ public final class PluginContext {
             registryContainer,
             domain.jobService,
             professions.professionService,
+            upgradeService,
             professions.recipeService,
             professions.buffService,
             professions.stationService,

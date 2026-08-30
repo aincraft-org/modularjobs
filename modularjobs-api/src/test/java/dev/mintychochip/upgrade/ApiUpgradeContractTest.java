@@ -93,4 +93,23 @@ class ApiUpgradeContractTest {
 
     assertFalse(service.resetTree("player", "job"));
   }
+
+  @Test
+  void readContractsExposeCurrentPublicMethods() throws NoSuchMethodException {
+    assertEquals(
+        java.util.Optional.class,
+        UpgradeService.class.getMethod("getSkillTree", String.class).getReturnType());
+    assertEquals(
+        SkillTreeState.class,
+        UpgradeService.class
+            .getMethod("getSkillTreeState", String.class, String.class)
+            .getReturnType());
+    assertEquals(
+        PlayerUpgradeData.class,
+        UpgradeService.class
+            .getMethod("getPlayerData", String.class, String.class)
+            .getReturnType());
+    assertEquals(Map.class, SkillTreeState.class.getMethod("nodeLevels").getReturnType());
+    assertEquals(Map.class, PlayerUpgradeData.class.getMethod("nodeLevels").getReturnType());
+  }
 }

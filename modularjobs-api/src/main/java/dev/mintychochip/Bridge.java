@@ -11,6 +11,7 @@ import dev.mintychochip.service.NodeHarvestService;
 import dev.mintychochip.service.ProfessionService;
 import dev.mintychochip.service.RecipeService;
 import dev.mintychochip.service.StationService;
+import dev.mintychochip.upgrade.UpgradeService;
 import java.util.Optional;
 import org.aincraft.api.event.EventBus;
 
@@ -56,6 +57,9 @@ public interface Bridge {
 
   /** Profession service. */
   ProfessionService professionService();
+
+  /** Authoritative service for player upgrade-tree state and mutations. */
+  UpgradeService upgradeService();
 
   /** Recipe service. */
   RecipeService recipeService();
