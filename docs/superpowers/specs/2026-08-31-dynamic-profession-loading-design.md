@@ -1,7 +1,7 @@
 # Dynamic Profession Loading
 
 **Date:** 2026-08-31
-**Status:** Approved in chat; pending written-spec review
+**Status:** Approved
 
 ## Problem
 
