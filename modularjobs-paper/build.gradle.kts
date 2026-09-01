@@ -17,13 +17,19 @@ dependencies {
     implementation(libs.configurate.core)
     compileOnly("io.github.flog99:mapgui-api:1.0.0")
     compileOnly(libs.placeholderapi)
+    compileOnly(libs.vault.api)
     compileOnly(libs.jetbrains.annotations)
     compileOnly(libs.paper.api)
-    // Mint ledger API (soft-depend; Mint plugin ships it at runtime)
-    compileOnly(libs.mint.api)
+    // Mint2 ledger API (soft-depend; Mint2 ships it at runtime; included build
+    // substitutes dev.mintychochip:mint-api / mint-common from ../mint2)
+    compileOnly(libs.mint2.api)
+    compileOnly(libs.mint2.common)
     // External Preferences API (soft-depend; Preferences plugin ships it at runtime)
     compileOnly(libs.preferences.api)
+    testImplementation(libs.mint2.api)
+    testImplementation(libs.mint2.common)
     testImplementation(libs.preferences.api)
+    testImplementation(libs.vault.api)
 
     compileOnly(libs.mcmmo) {
         exclude(group = "com.sk89q.worldguard")

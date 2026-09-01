@@ -4,6 +4,9 @@ import java.time.Duration;
 import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Parses duration strings like "1h30m", "30s", "2d", "1h 30m 15s". Handles spaces, case-insensitive
@@ -30,7 +33,8 @@ public final class DurationParser {
    * @param input duration string
    * @return parsed Duration
    */
-  public static Duration parse(String input) {
+  @Contract(value = "null -> fail", pure = true)
+  public static @NotNull Duration parse(@NotNull String input) {
     if (input == null || input.isBlank()) {
       throw new IllegalArgumentException("Duration string cannot be empty");
     }
@@ -85,7 +89,8 @@ public final class DurationParser {
    * @param duration the duration to format
    * @return formatted string (e.g., "1h 30m", "2d 5h")
    */
-  public static String format(Duration duration) {
+  @Contract(pure = true)
+  public static @NotNull String format(@Nullable Duration duration) {
     if (duration == null) {
       return "Permanent";
     }
@@ -124,7 +129,7 @@ public final class DurationParser {
    * @param duration the duration
    * @return formatted remaining time string
    */
-  public static String formatRemaining(long startMillis, Duration duration) {
+  public static @NotNull String formatRemaining(long startMillis, @Nullable Duration duration) {
     if (duration == null) {
       return "Permanent";
     }

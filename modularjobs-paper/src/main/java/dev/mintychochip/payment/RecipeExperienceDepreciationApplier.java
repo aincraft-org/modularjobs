@@ -43,7 +43,7 @@ public final class RecipeExperienceDepreciationApplier {
     if (!(context instanceof Context.ItemContext item)) {
       return amount;
     }
-    Key outputKey = CraftRecipeLookup.outputKeyFromMaterialKey(item.materialKey());
+    Key outputKey = item.materialKey();
     Optional<RecipeDefinition> definition =
         CraftRecipeLookup.definitionForCraftOutput(recipeService, outputKey);
     if (definition.isEmpty()) {

@@ -14,11 +14,14 @@ import dev.mintychochip.upgrade.Requirements.StateEqualsRequirement;
 import java.util.List;
 import java.util.Map;
 import net.kyori.adventure.key.Key;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 
 class RequirementTreeTest {
 
-  private SkillTreeState state() {
+  @Contract(pure = true)
+  private @NotNull SkillTreeState state() {
     return new SkillTreeState(
         "p1",
         "miner",

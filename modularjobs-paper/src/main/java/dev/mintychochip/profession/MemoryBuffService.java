@@ -26,7 +26,7 @@ public final class MemoryBuffService implements BuffService {
   }
 
   /** Memory buff service. */
-  public MemoryBuffService(Clock clock) {
+  public MemoryBuffService(@NotNull Clock clock) {
     this.clock = Objects.requireNonNull(clock);
   }
 
@@ -66,7 +66,8 @@ public final class MemoryBuffService implements BuffService {
   }
 
   @Override
-  public Optional<ActiveBuff> activeInSlot(@NotNull UUID playerId, @NotNull BuffSlot slot) {
+  public @NotNull Optional<ActiveBuff> activeInSlot(
+      @NotNull UUID playerId, @NotNull BuffSlot slot) {
     Instant now = clock.instant();
     Map<BuffSlot, ActiveBuff> slots = byPlayer.get(playerId);
     if (slots == null) {
@@ -86,7 +87,7 @@ public final class MemoryBuffService implements BuffService {
     byPlayer.remove(playerId);
   }
 
-  private void purgeExpired(Map<BuffSlot, ActiveBuff> slots, Instant now) {
+  private void purgeExpired(@NotNull Map<BuffSlot, ActiveBuff> slots, @NotNull Instant now) {
     List<BuffSlot> expired = new ArrayList<>();
     for (Map.Entry<BuffSlot, ActiveBuff> e : slots.entrySet()) {
       if (e.getValue().isExpired(now)) {

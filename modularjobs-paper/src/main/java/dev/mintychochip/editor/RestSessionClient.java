@@ -15,6 +15,9 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.concurrent.CompletableFuture;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /** HTTP client for the Rust-backed editor session API. */
 public final class RestSessionClient {
@@ -27,7 +30,7 @@ public final class RestSessionClient {
   private final Gson gson;
 
   /** Rest session client. */
-  public RestSessionClient(EditorConfig config, Gson gson) {
+  public RestSessionClient(@NotNull EditorConfig config, @NotNull Gson gson) {
     this.httpClient = HttpClient.newBuilder().connectTimeout(TIMEOUT).build();
     this.baseUrl = trimTrailingSlashes(config.sessionApiUrl());
     this.createSecret = config.sessionCreateSecret();
@@ -35,7 +38,7 @@ public final class RestSessionClient {
   }
 
   /** Create. */
-  public CompletableFuture<CreatedSession> create(EditorPayload payload) {
+  public @NotNull CompletableFuture<CreatedSession> create(@NotNull EditorPayload payload) {
     HttpRequest.Builder builder =
         requestBuilder("/api/v1/sessions")
             .header("Content-Type", "application/json")
@@ -58,7 +61,8 @@ public final class RestSessionClient {
   }
 
   /** Fetch payload. */
-  public CompletableFuture<EditorPayload> fetchPayload(String sessionCode, String token) {
+  public @NotNull CompletableFuture<EditorPayload> fetchPayload(
+      @NotNull String sessionCode, @NotNull String token) {
     if (sessionCode == null || sessionCode.isBlank()) {
       throw new IllegalArgumentException("session code is required");
     }
@@ -91,11 +95,13 @@ public final class RestSessionClient {
             });
   }
 
-  private HttpRequest.Builder requestBuilder(String path) {
+  @Contract(pure = true)
+  private @NotNull HttpRequest.Builder requestBuilder(@NotNull String path) {
     return HttpRequest.newBuilder(URI.create(baseUrl + path)).timeout(TIMEOUT);
   }
 
-  private static void requireStatus(HttpResponse<String> response, int... accepted) {
+  @Contract(pure = true)
+  private static void requireStatus(@NotNull HttpResponse<String> response, int... accepted) {
     for (int status : accepted) {
       if (response.statusCode() == status) {
         return;
@@ -105,7 +111,9 @@ public final class RestSessionClient {
     throw new RestSessionException(status, responseMessage(response), status == 410, null);
   }
 
-  private static JsonObject parseObject(HttpResponse<String> response, String description) {
+  @Contract(pure = true)
+  private static @NotNull JsonObject parseObject(
+      @NotNull HttpResponse<String> response, @NotNull String description) {
     try {
       JsonObject object = new Gson().fromJson(response.body(), JsonObject.class);
       if (object == null) {
@@ -118,7 +126,9 @@ public final class RestSessionClient {
     }
   }
 
-  private static String requiredString(JsonObject body, String field, int status) {
+  @Contract(pure = true)
+  private static @NotNull String requiredString(
+      @NotNull JsonObject body, @NotNull String field, int status) {
     if (!body.has(field) || body.get(field).isJsonNull() || !body.get(field).isJsonPrimitive()) {
       throw new RestSessionException(status, "missing response field: " + field, false, null);
     }
@@ -129,7 +139,8 @@ public final class RestSessionClient {
     return value;
   }
 
-  private static Instant parseExpiry(String value, int status) {
+  @Contract(pure = true)
+  private static @NotNull Instant parseExpiry(@NotNull String value, int status) {
     try {
       return OffsetDateTime.parse(value).toInstant();
     } catch (DateTimeParseException e) {
@@ -137,7 +148,8 @@ public final class RestSessionClient {
     }
   }
 
-  private static String responseMessage(HttpResponse<String> response) {
+  @Contract(pure = true)
+  private static @NotNull String responseMessage(@NotNull HttpResponse<String> response) {
     String body = response.body();
     if (body == null || body.isBlank()) {
       return "REST session request failed with HTTP " + response.statusCode();
@@ -153,19 +165,22 @@ public final class RestSessionClient {
     return "REST session request failed with HTTP " + response.statusCode() + ": " + body;
   }
 
-  private static String trimTrailingSlashes(String value) {
+  @Contract(pure = true)
+  private static @NotNull String trimTrailingSlashes(@NotNull String value) {
     if (value == null || value.isBlank()) {
       throw new IllegalArgumentException("session API URL is required");
     }
     return value.trim().replaceFirst("/+$", "");
   }
 
-  private static String encodePathSegment(String value) {
+  @Contract(pure = true)
+  private static @NotNull String encodePathSegment(@NotNull String value) {
     return URLEncoder.encode(value, StandardCharsets.UTF_8).replace("+", "%20");
   }
 
   /** Created session. */
-  public record CreatedSession(String sessionCode, String token, Instant expiresAt) {}
+  public record CreatedSession(
+      @NotNull String sessionCode, @NotNull String token, @NotNull Instant expiresAt) {}
 
   /** Rest session exception. */
   public static final class RestSessionException extends RuntimeException {
@@ -175,13 +190,15 @@ public final class RestSessionClient {
     private final int statusCode;
     private final boolean expired;
 
-    private RestSessionException(int statusCode, String message, boolean expired, Throwable cause) {
+    private RestSessionException(
+        int statusCode, @NotNull String message, boolean expired, @Nullable Throwable cause) {
       super(message, cause);
       this.statusCode = statusCode;
       this.expired = expired;
     }
 
     /** Status code. */
+    @Contract(pure = true)
     public int statusCode() {
       return statusCode;
     }

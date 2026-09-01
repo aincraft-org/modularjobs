@@ -13,6 +13,9 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import net.kyori.adventure.key.Key;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Parses BoostSourceConfig from JSON into BoostSource instances. Provides reusable parsing methods
@@ -24,13 +27,15 @@ public final class BoostSourceConfigParser {
   private final ConditionConfigParser conditionParser;
 
   /** Creates a parser with the factories used to build boosts and conditions. */
-  public BoostSourceConfigParser(ConditionFactory conditionFactory, BoostFactory boostFactory) {
+  public BoostSourceConfigParser(
+      @NotNull ConditionFactory conditionFactory, @NotNull BoostFactory boostFactory) {
     this.boostFactory = boostFactory;
     this.conditionParser = new ConditionConfigParser(conditionFactory);
   }
 
   /** Parse a complete BoostSourceConfig into a BoostSource. */
-  public BoostSource parse(BoostSourceConfig config) {
+  @Contract(pure = true)
+  public @NotNull BoostSource parse(@NotNull BoostSourceConfig config) {
     Key key = Key.key(config.key());
     List<Rule> rules = new ArrayList<>();
 
@@ -46,7 +51,9 @@ public final class BoostSourceConfigParser {
    * Build a BoostSource from individual components. Useful when constructing from non-standard
    * config formats.
    */
-  public BoostSource buildBoostSource(Key key, String description, List<RuleConfig> ruleConfigs) {
+  @Contract(pure = true)
+  public @NotNull BoostSource buildBoostSource(
+      @NotNull Key key, @Nullable String description, @Nullable List<RuleConfig> ruleConfigs) {
     List<Rule> rules = new ArrayList<>();
 
     if (ruleConfigs != null) {
@@ -60,7 +67,8 @@ public final class BoostSourceConfigParser {
   }
 
   /** Parse a rule configuration. */
-  public Rule parseRule(RuleConfig config) {
+  @Contract(pure = true)
+  public @NotNull Rule parseRule(@NotNull RuleConfig config) {
     Condition condition = conditionParser.parse(config.conditions());
     Boost boost = parseBoost(config.boost());
     int priority = config.priority();
@@ -68,7 +76,9 @@ public final class BoostSourceConfigParser {
   }
 
   /** Parse an UpgradeTreeConfig rule configuration. */
-  public Rule parseRule(dev.mintychochip.upgrade.config.UpgradeTreeConfig.RuleConfig config) {
+  @Contract(pure = true)
+  public @NotNull Rule parseRule(
+      @NotNull dev.mintychochip.upgrade.config.UpgradeTreeConfig.RuleConfig config) {
     Condition condition = conditionParser.parse(config.conditions());
     Boost boost = parseBoost(config.boost());
     int priority = config.priority();
@@ -76,7 +86,8 @@ public final class BoostSourceConfigParser {
   }
 
   /** Parse a boost configuration. */
-  public Boost parseBoost(BoostConfig config) {
+  @Contract(pure = true)
+  public @NotNull Boost parseBoost(@NotNull BoostConfig config) {
     BigDecimal amount = BigDecimal.valueOf(config.amount());
     return switch (config.type().toLowerCase()) {
       case "multiplicative" -> boostFactory.multiplicative(amount);
@@ -86,7 +97,9 @@ public final class BoostSourceConfigParser {
   }
 
   /** Parse an UpgradeTreeConfig boost configuration. */
-  public Boost parseBoost(dev.mintychochip.upgrade.config.UpgradeTreeConfig.BoostConfig config) {
+  @Contract(pure = true)
+  public @NotNull Boost parseBoost(
+      @NotNull dev.mintychochip.upgrade.config.UpgradeTreeConfig.BoostConfig config) {
     BigDecimal amount = BigDecimal.valueOf(config.amount());
     return switch (config.type().toLowerCase()) {
       case "multiplicative" -> boostFactory.multiplicative(amount);

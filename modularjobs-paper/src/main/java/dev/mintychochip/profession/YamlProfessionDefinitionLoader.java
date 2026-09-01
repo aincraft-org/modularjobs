@@ -22,8 +22,7 @@ final class YamlProfessionDefinitionLoader {
 
   private YamlProfessionDefinitionLoader() {}
 
-  static @NotNull ProfessionIndex load(
-      @NotNull JavaPlugin plugin, @NotNull JobService jobService) {
+  static @NotNull ProfessionIndex load(@NotNull JavaPlugin plugin, @NotNull JobService jobService) {
     plugin.saveResource(CONFIG_FILE, false);
     Set<String> availableJobs =
         jobService.getJobs().stream()
@@ -40,8 +39,7 @@ final class YamlProfessionDefinitionLoader {
   }
 
   static @NotNull ProfessionIndex loadFromConfiguration(
-      @NotNull ConfigurationSection configuration,
-      @NotNull Set<String> availableJobStorageKeys) {
+      @NotNull ConfigurationSection configuration, @NotNull Set<String> availableJobStorageKeys) {
     Object raw = configuration.get(ROOT);
     if (!(raw instanceof List<?> entries)) {
       throw error(ROOT, "must be a list");

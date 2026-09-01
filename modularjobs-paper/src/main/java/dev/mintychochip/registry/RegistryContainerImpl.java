@@ -14,13 +14,13 @@ public final class RegistryContainerImpl implements RegistryContainer {
   private final Map<Key, Registry<?>> registrar = new HashMap<>();
 
   @Override
-  public <T> boolean hasRegistry(RegistryKey<T> key) {
+  public <T> boolean hasRegistry(@NotNull RegistryKey<T> key) {
     return registrar.containsKey(key.key());
   }
 
   @SuppressWarnings("unchecked")
   @Override
-  public @NotNull <T> RegistryView<T> getRegistry(RegistryKey<T> key) {
+  public @NotNull <T> RegistryView<T> getRegistry(@NotNull RegistryKey<T> key) {
     Preconditions.checkArgument(hasRegistry(key));
     return (RegistryView<T>) registrar.get(key.key());
   }
@@ -28,14 +28,14 @@ public final class RegistryContainerImpl implements RegistryContainer {
   @SuppressWarnings("unchecked")
   @Override
   public <T extends Keyed> void editRegistry(
-      RegistryKey<T> key, Consumer<Registry<T>> registryConsumer) {
+      @NotNull RegistryKey<T> key, @NotNull Consumer<Registry<T>> registryConsumer) {
     Preconditions.checkArgument(hasRegistry(key));
     Registry<T> registry = (Registry<T>) registrar.get(key.key());
     registryConsumer.accept(registry);
   }
 
   /** Adds a registry under the supplied key. */
-  public <T extends Keyed> void addRegistry(Key key, Registry<T> registry) {
+  public <T extends Keyed> void addRegistry(@NotNull Key key, @NotNull Registry<T> registry) {
     registrar.put(key, registry);
   }
 }

@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.function.IntSupplier;
 import java.util.function.Predicate;
 import net.kyori.adventure.key.Key;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -29,20 +30,22 @@ public record SkillTreeState(
 
   /** Skill tree state. */
   public SkillTreeState(
-      String playerId,
-      String jobKey,
+      @NotNull String playerId,
+      @NotNull String jobKey,
       int totalSkillPoints,
-      Map<String, Integer> nodeLevels,
-      Map<Key, String> state) {
+      @NotNull Map<String, Integer> nodeLevels,
+      @NotNull Map<Key, String> state) {
     this(playerId, jobKey, totalSkillPoints, nodeLevels, state, () -> 0, k -> false);
   }
 
   /** Level of. */
+  @Contract(pure = true)
   public int levelOf(@NotNull String nodeKey) {
     return nodeLevels.getOrDefault(nodeKey, 0);
   }
 
   /** Returns whether has unlocked. */
+  @Contract(pure = true)
   public boolean hasUnlocked(@NotNull String nodeKey) {
     return levelOf(nodeKey) > 0;
   }
@@ -58,7 +61,8 @@ public record SkillTreeState(
   }
 
   /** Spent points = sum of purchased level costs plus major costs. Needs the tree. */
-  public static SkillTreeState empty(@NotNull String playerId, @NotNull String jobKey) {
+  @Contract(pure = true)
+  public static @NotNull SkillTreeState empty(@NotNull String playerId, @NotNull String jobKey) {
     return new SkillTreeState(playerId, jobKey, 0, Map.of(), Map.of());
   }
 }

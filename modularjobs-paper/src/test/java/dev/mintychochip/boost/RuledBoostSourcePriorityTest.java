@@ -10,6 +10,7 @@ import dev.mintychochip.container.boost.RuledBoostSource.Rule;
 import java.math.BigDecimal;
 import java.util.List;
 import net.kyori.adventure.key.Key;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 
 /** Highest-priority matching rule wins; lower-priority matches do not stack. */
@@ -82,7 +83,7 @@ class RuledBoostSourcePriorityTest {
     assertEquals(0, new BigDecimal("300").compareTo(evaluated.get(0).boost(new BigDecimal("100"))));
   }
 
-  private static BoostContext dummyContext() {
+  private static @NotNull BoostContext dummyContext() {
     // Conditions used in these tests do not touch context fields
     return new BoostContext(null, null, null, null, null);
   }

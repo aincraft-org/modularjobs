@@ -31,7 +31,7 @@ public final class BukkitJobsPaymentEvent extends Event implements Cancellable {
     return pure;
   }
 
-  public Payable getBase() {
+  public @NotNull Payable getBase() {
     return pure.getBase();
   }
 
@@ -50,7 +50,7 @@ public final class BukkitJobsPaymentEvent extends Event implements Cancellable {
     return HANDLERS;
   }
 
-  public static HandlerList getHandlerList() {
+  public static @NotNull HandlerList getHandlerList() {
     return HANDLERS;
   }
 }

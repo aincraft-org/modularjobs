@@ -3,6 +3,7 @@ package dev.mintychochip.common.editor;
 import com.google.gson.annotations.SerializedName;
 import java.util.List;
 import java.util.Map;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -33,7 +34,8 @@ public record EditorPayload(
    * @param registeredPayableTypes available payable type keys
    * @return new payload instance
    */
-  public static EditorPayload create(
+  @Contract(pure = true)
+  public static @NotNull EditorPayload create(
       @NotNull EditorMetadata metadata,
       @NotNull Map<String, JobData> jobs,
       @NotNull List<String> registeredActionTypes,

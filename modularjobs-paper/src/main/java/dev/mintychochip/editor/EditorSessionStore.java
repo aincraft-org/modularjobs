@@ -6,6 +6,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
+import org.jetbrains.annotations.NotNull;
 
 /** Stores the Paper-local code-to-token handoff for REST editor sessions. */
 public final class EditorSessionStore {
@@ -13,7 +14,7 @@ public final class EditorSessionStore {
   private final Cache<String, EditorSession> sessionCache;
 
   /** Editor session store. */
-  public EditorSessionStore(EditorConfig config) {
+  public EditorSessionStore(@NotNull EditorConfig config) {
     this.sessionCache =
         Caffeine.newBuilder()
             .expireAfterWrite(Duration.ofMinutes(config.sessionTtlMinutes()))
@@ -21,12 +22,12 @@ public final class EditorSessionStore {
   }
 
   /** Store. */
-  public void store(EditorSession session) {
+  public void store(@NotNull EditorSession session) {
     sessionCache.put(session.sessionCode(), session);
   }
 
   /** Get. */
-  public Optional<EditorSession> get(String sessionCode) {
+  public @NotNull Optional<EditorSession> get(@NotNull String sessionCode) {
     EditorSession session = sessionCache.getIfPresent(sessionCode);
     if (session == null) {
       return Optional.empty();
@@ -39,12 +40,13 @@ public final class EditorSessionStore {
   }
 
   /** Returns the owned. */
-  public Optional<EditorSession> getOwned(String sessionCode, UUID playerId) {
+  public @NotNull Optional<EditorSession> getOwned(
+      @NotNull String sessionCode, @NotNull UUID playerId) {
     return get(sessionCode).filter(session -> session.playerId().equals(playerId));
   }
 
   /** Remove. */
-  public void remove(String sessionCode) {
+  public void remove(@NotNull String sessionCode) {
     sessionCache.invalidate(sessionCode);
   }
 }

@@ -10,6 +10,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import net.kyori.adventure.key.Key;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -18,12 +20,13 @@ import org.junit.jupiter.api.Test;
  */
 class SkillNodeModelTest {
 
-  private static SkillNode node(
-      SkillNodeKind kind,
+  @Contract(pure = true)
+  private static @NotNull SkillNode node(
+      @NotNull SkillNodeKind kind,
       int cost,
-      List<NodeLevel> levels,
-      LevelEffectMode mode,
-      List<Requirement> requirements) {
+      @NotNull List<NodeLevel> levels,
+      @NotNull LevelEffectMode mode,
+      @NotNull List<Requirement> requirements) {
     return new SkillNode(
         Key.key("miner", "test"),
         "Test",

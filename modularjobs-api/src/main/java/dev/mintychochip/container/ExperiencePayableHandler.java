@@ -1,6 +1,6 @@
 package dev.mintychochip.container;
 
-import dev.mintychochip.JobProgressionView;
+import dev.mintychochip.PlayerJobState;
 import java.math.BigDecimal;
 import java.util.UUID;
 import net.kyori.adventure.bossbar.BossBar;
@@ -25,6 +25,7 @@ public interface ExperiencePayableHandler extends PayableHandler {
      * @param context details of the experience reward being presented
      * @return the formatted boss bar, which may be the supplied instance
      */
+    @NotNull
     BossBar format(@NotNull BossBar bossBar, @NotNull ExperienceBarContext context);
 
     /**
@@ -45,15 +46,16 @@ public interface ExperiencePayableHandler extends PayableHandler {
      * @param context details of the experience reward to display
      * @param formatter formatter used to build the boss bar
      */
-    void display(ExperienceBarContext context, ExperienceBarFormatter formatter);
+    void display(@NotNull ExperienceBarContext context, @NotNull ExperienceBarFormatter formatter);
   }
 
   /**
    * Immutable context describing an experience reward presentation.
    *
-   * @param progression progression view associated with the player
+   * @param jobState current job state associated with the player
    * @param playerId unique identifier of the player
    * @param amount experience amount being rewarded
    */
-  record ExperienceBarContext(JobProgressionView progression, UUID playerId, BigDecimal amount) {}
+  record ExperienceBarContext(
+      @NotNull PlayerJobState jobState, @NotNull UUID playerId, @NotNull BigDecimal amount) {}
 }

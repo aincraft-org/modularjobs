@@ -34,6 +34,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import net.kyori.adventure.key.Key;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -115,8 +117,9 @@ class BoostEngineAggregationTest {
         "applyBoosts must apply both boosts, got " + applied);
   }
 
-  private static BigDecimal applyInKeyOrder(
-      BigDecimal base, Map<Key, Boost> boosts, List<Key> order) {
+  @Contract(pure = true)
+  private static @NotNull BigDecimal applyInKeyOrder(
+      @NotNull BigDecimal base, @NotNull Map<Key, Boost> boosts, @NotNull List<Key> order) {
     BigDecimal current = base;
     for (Key key : order) {
       current = boosts.get(key).boost(current);
@@ -124,25 +127,26 @@ class BoostEngineAggregationTest {
     return current;
   }
 
-  private static BoostSource ruled(Key key, Boost boost) {
+  @Contract(pure = true)
+  private static @NotNull BoostSource ruled(@NotNull Key key, @NotNull Boost boost) {
     return new RuledBoostSourceImpl(List.of(new Rule(ALWAYS, 1, boost)), key, "test");
   }
 
-  private static ItemBoostDataService unusedItemService() {
+  private static @NotNull ItemBoostDataService unusedItemService() {
     // evaluateSources does not call item service; real concrete still wires BoostEngine
     return new ItemBoostDataService(
         new BoostDataCodec(GsonConditionSerializer.gson(), BoostFactoryImpl.INSTANCE));
   }
 
-  private static TimedBoostDataService unusedTimedService() {
+  private static @NotNull TimedBoostDataService unusedTimedService() {
     return new TimedBoostDataService() {
       @Override
-      public List<ActiveBoostData> findApplicableBoosts(Target target) {
+      public @NotNull List<ActiveBoostData> findApplicableBoosts(@NotNull Target target) {
         return List.of();
       }
 
       @Override
-      public List<ActiveBoostData> findBoosts(Target target) {
+      public @NotNull List<ActiveBoostData> findBoosts(@NotNull Target target) {
         return List.of();
       }
 
@@ -150,16 +154,16 @@ class BoostEngineAggregationTest {
       public <
               T extends
                   dev.mintychochip.container.boost.BoostData.TimedBoostData & SerializableBoostData>
-          void addData(T data, Target target) {}
+          void addData(@NotNull T data, @NotNull Target target) {}
 
       @Override
-      public boolean removeBoost(Target target, String sourceIdentifier) {
+      public boolean removeBoost(@NotNull Target target, @NotNull String sourceIdentifier) {
         return false;
       }
     };
   }
 
-  private static UpgradeBoostDataService unusedUpgradeService() {
+  private static @NotNull UpgradeBoostDataService unusedUpgradeService() {
     // Connection never used on evaluateSources path
     return new UpgradeBoostDataServiceImpl(
         new PlayerUpgradeRepository(unusedConnectionSource()),
@@ -167,13 +171,13 @@ class BoostEngineAggregationTest {
         new SimpleRegistryImpl<SkillTree>());
   }
 
-  private static ConnectionSource unusedConnectionSource() {
+  private static @NotNull ConnectionSource unusedConnectionSource() {
     return new ConnectionSource() {
       @Override
       public void shutdown() {}
 
       @Override
-      public DatabaseType getType() {
+      public @NotNull DatabaseType getType() {
         return DatabaseType.MYSQL;
       }
 
@@ -183,7 +187,7 @@ class BoostEngineAggregationTest {
       }
 
       @Override
-      public Connection getConnection() throws SQLException {
+      public @NotNull Connection getConnection() throws SQLException {
         throw new UnsupportedOperationException("unused in evaluateSources test");
       }
 

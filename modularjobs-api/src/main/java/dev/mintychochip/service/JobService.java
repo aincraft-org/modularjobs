@@ -1,8 +1,9 @@
 package dev.mintychochip.service;
 
 import dev.mintychochip.Job;
-import dev.mintychochip.JobProgression;
+import dev.mintychochip.JobNodeKey;
 import dev.mintychochip.JobTask;
+import dev.mintychochip.PlayerJobState;
 import dev.mintychochip.container.ActionType;
 import dev.mintychochip.container.Context;
 import java.util.List;
@@ -10,58 +11,58 @@ import java.util.Map;
 import java.util.UUID;
 import net.kyori.adventure.key.Key;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
- * Provides access to jobs, their task definitions, and player job progression.
+ * Provides access to complete job trees, inherited node tasks, and immutable player job states.
  *
- * <p>Job records are typically keyed by string or Adventure key. Methods that address a single job
- * by key throw {@link IllegalArgumentException} when the key is unknown; mutation methods report
- * success via their boolean return value.
+ * <p>Root and specialization keys both resolve to their owning complete {@link Job}. {@link
+ * #getJob(String)} and {@link #joinJob(String, String)} reject unknown keys with {@link
+ * IllegalArgumentException}; query methods return an empty result for unknown trees.
  */
 public interface JobService {
 
   /**
-   * Returns all jobs known to the service.
+   * Returns every root-owned job tree known to the service.
    *
-   * @return the list of all jobs
+   * @return complete job trees, one per root
    */
   @NotNull
   List<Job> getJobs();
 
   /**
-   * Returns the job identified by the given key.
+   * Returns the complete job tree containing the given root or specialization key.
    *
-   * @param jobKey the job key
-   * @return the matching job
-   * @throws IllegalArgumentException if no job matches the key
+   * @param jobKey root or node key
+   * @return the owning complete job tree
+   * @throws IllegalArgumentException if no root or node matches the key
    */
-  Job getJob(String jobKey);
+  @NotNull
+  Job getJob(@NotNull String jobKey);
 
   /**
-   * Returns the task a job defines for the given action type and context.
+   * Resolves the task visible at a job node. The nearest node definition replaces an ancestor task
+   * with the same action-and-context key.
    *
-   * @param job the job to query
-   * @param type the action type
-   * @param context the action context
-   * @return the matching task, or {@code null} if the job defines none
+   * @param job complete job tree
+   * @param nodeKey active node whose inherited task path is resolved
+   * @param type action type
+   * @param context action context
+   * @return resolved task, or {@code null} when no node on the path defines it
    */
-  JobTask getTask(Job job, ActionType type, Context context);
+  @Nullable
+  JobTask getTask(
+      @NotNull Job job,
+      @NotNull JobNodeKey nodeKey,
+      @NotNull ActionType type,
+      @NotNull Context context);
 
-  /**
-   * Returns all tasks defined by the given job, grouped by action type.
-   *
-   * @param job the job to query
-   * @return the job's tasks grouped by action type
-   */
-  Map<ActionType, List<JobTask>> getAllTasks(Job job);
+  /** Returns all tasks visible at a node after nearest-descendant replacement. */
+  @NotNull
+  Map<ActionType, List<JobTask>> getAllTasks(@NotNull Job job, @NotNull JobNodeKey nodeKey);
 
-  /**
-   * Persists the given progression, returning whether the update succeeded.
-   *
-   * @param progression the progression to save
-   * @return {@code true} if the progression was updated, {@code false} otherwise
-   */
-  boolean update(JobProgression progression);
+  /** Persists the given immutable player state. */
+  boolean update(@NotNull PlayerJobState state);
 
   /**
    * Adds the given player to the given job.
@@ -71,7 +72,7 @@ public interface JobService {
    * @return {@code true} if the player joined, {@code false} otherwise
    * @throws IllegalArgumentException if the job key is unknown
    */
-  boolean joinJob(String playerId, String jobKey);
+  boolean joinJob(@NotNull String playerId, @NotNull String jobKey);
 
   /**
    * Removes the given player from the given job.
@@ -79,42 +80,22 @@ public interface JobService {
    * @param playerId the player identifier
    * @param jobKey the job key
    * @return {@code true} if the player left, {@code false} otherwise
-   * @throws IllegalArgumentException if the job key is unknown
    */
-  boolean leaveJob(String playerId, String jobKey);
+  boolean leaveJob(@NotNull String playerId, @NotNull String jobKey);
 
-  /**
-   * Returns the player's progression in the given job.
-   *
-   * @param playerId the player identifier
-   * @param jobKey the job key
-   * @return the player's progression in the job
-   * @throws IllegalArgumentException if the job key is unknown
-   */
-  JobProgression getProgression(String playerId, String jobKey);
+  /** Returns the player's state in the requested job tree, or {@code null} if absent or unknown. */
+  @Nullable
+  PlayerJobState getPlayerJobState(@NotNull String playerId, @NotNull String jobKey);
 
-  /**
-   * Returns all progressions for the given player.
-   *
-   * @param playerId the player identifier
-   * @return the player's progressions across jobs
-   */
-  List<JobProgression> getProgressions(UUID playerId);
+  /** Returns all job-tree states for the given player. */
+  @NotNull
+  List<PlayerJobState> getPlayerJobStates(@NotNull UUID playerId);
 
-  /**
-   * Returns up to the given number of progressions for the given job.
-   *
-   * @param jobKey the job key
-   * @param limit the maximum number of progressions to return
-   * @return the latest progressions for the job, limited by {@code limit}
-   */
-  List<JobProgression> getProgressions(Key jobKey, int limit);
+  /** Returns up to {@code limit} player states for one job tree, ordered by experience. */
+  @NotNull
+  List<PlayerJobState> getPlayerJobStates(@NotNull Key jobKey, int limit);
 
-  /**
-   * Returns the archived progressions for the given player.
-   *
-   * @param playerId the player identifier
-   * @return the player's archived progressions
-   */
-  List<JobProgression> getArchivedProgressions(UUID playerId);
+  /** Returns the archived job-tree states for the given player. */
+  @NotNull
+  List<PlayerJobState> getArchivedPlayerJobStates(@NotNull UUID playerId);
 }

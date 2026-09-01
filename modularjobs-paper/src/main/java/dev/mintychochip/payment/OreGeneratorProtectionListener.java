@@ -7,6 +7,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockFromToEvent;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Generator-formed stone, cobblestone, and obsidian follow the configured protection policy. When
@@ -18,12 +19,12 @@ final class OreGeneratorProtectionListener implements Listener {
 
   private final ExploitService exploitService;
 
-  OreGeneratorProtectionListener(ExploitService exploitService) {
+  OreGeneratorProtectionListener(@NotNull ExploitService exploitService) {
     this.exploitService = exploitService;
   }
 
   @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-  void onBlockFromTo(final BlockFromToEvent event) {
+  void onBlockFromTo(final @NotNull BlockFromToEvent event) {
     Block to = event.getToBlock();
     Material mat = to.getType();
     if (mat.isAir()) {

@@ -1,6 +1,7 @@
 package dev.mintychochip.container;
 
 import java.util.UUID;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Abstraction over the server economy used to pay player rewards.
@@ -25,5 +26,5 @@ public interface EconomyProvider {
    * @param payableAmount amount to deposit, including its currency
    * @return {@code true} if the deposit was applied, {@code false} if it was declined or failed
    */
-  boolean deposit(UUID playerId, PayableAmount payableAmount);
+  boolean deposit(@NotNull UUID playerId, @NotNull PayableAmount payableAmount);
 }

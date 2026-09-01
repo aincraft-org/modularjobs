@@ -68,7 +68,7 @@ public final class MemoryRecipeService implements RecipeService {
   }
 
   @Override
-  public Optional<RecipeDefinition> definition(@NotNull Key recipeId) {
+  public @NotNull Optional<RecipeDefinition> definition(@NotNull Key recipeId) {
     return Optional.ofNullable(definitions.get(recipeId));
   }
 
@@ -81,7 +81,8 @@ public final class MemoryRecipeService implements RecipeService {
   }
 
   @Override
-  public Optional<RecipeDefinition> definitionForCraftOutput(@NotNull Key outputMaterialKey) {
+  public @NotNull Optional<RecipeDefinition> definitionForCraftOutput(
+      @NotNull Key outputMaterialKey) {
     RecipeDefinition byOutput = definitionsByCraftOutput.get(outputMaterialKey);
     if (byOutput != null) {
       return Optional.of(byOutput);

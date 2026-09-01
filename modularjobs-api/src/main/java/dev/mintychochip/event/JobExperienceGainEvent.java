@@ -1,47 +1,49 @@
 package dev.mintychochip.event;
 
 import dev.mintychochip.Job;
-import dev.mintychochip.JobProgression;
+import dev.mintychochip.PlayerJobState;
 import java.math.BigDecimal;
 import java.util.Objects;
 import java.util.UUID;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 
 /** Fired before experience is applied; listeners may cancel or mutate the amount. */
 public final class JobExperienceGainEvent implements Cancellable {
 
-  private final UUID playerId;
-  private final Job job;
-  private final JobProgression progression;
+  private final PlayerJobState state;
   private BigDecimal experienceGained;
   private boolean cancelled;
 
-  /** Job experience gain event. */
+  /** Creates a cancellable experience change for the supplied player state. */
   public JobExperienceGainEvent(
-      UUID playerId, Job job, JobProgression progression, BigDecimal experienceGained) {
-    this.playerId = Objects.requireNonNull(playerId, "playerId");
-    this.job = job;
-    this.progression = progression;
-    this.experienceGained = experienceGained;
+      @NotNull PlayerJobState state, @NotNull BigDecimal experienceGained) {
+    this.state = Objects.requireNonNull(state, "state");
+    this.experienceGained = Objects.requireNonNull(experienceGained, "experienceGained");
   }
 
-  public UUID getPlayerId() {
-    return playerId;
+  @Contract(pure = true)
+  public @NotNull UUID getPlayerId() {
+    return state.playerId();
   }
 
-  public Job getJob() {
-    return job;
+  @Contract(pure = true)
+  public @NotNull Job getJob() {
+    return state.job();
   }
 
-  public JobProgression getProgression() {
-    return progression;
+  @Contract(pure = true)
+  public @NotNull PlayerJobState getPlayerJobState() {
+    return state;
   }
 
-  public BigDecimal getExperienceGained() {
+  @Contract(pure = true)
+  public @NotNull BigDecimal getExperienceGained() {
     return experienceGained;
   }
 
-  public void setExperienceGained(BigDecimal experienceGained) {
-    this.experienceGained = experienceGained;
+  public void setExperienceGained(@NotNull BigDecimal experienceGained) {
+    this.experienceGained = Objects.requireNonNull(experienceGained, "experienceGained");
   }
 
   @Override

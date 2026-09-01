@@ -20,6 +20,7 @@ import org.bukkit.Material;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.jetbrains.annotations.NotNull;
 
 /** Item boost command for giving items with boost sources attached. */
 public final class ItemBoostCommand implements JobsCommand {
@@ -29,17 +30,18 @@ public final class ItemBoostCommand implements JobsCommand {
 
   /** Item boost command. */
   public ItemBoostCommand(
-      Registry<BoostSource> boostSourceRegistry, ItemBoostDataService itemBoostDataService) {
+      @NotNull Registry<BoostSource> boostSourceRegistry,
+      @NotNull ItemBoostDataService itemBoostDataService) {
     this.boostSourceRegistry = boostSourceRegistry;
     this.itemBoostDataService = itemBoostDataService;
   }
 
   @Override
-  public LiteralArgumentBuilder<CommandSourceStack> build() {
+  public @NotNull LiteralArgumentBuilder<CommandSourceStack> build() {
     return Commands.literal("itemboost").then(buildGiveCommand());
   }
 
-  private LiteralArgumentBuilder<CommandSourceStack> buildGiveCommand() {
+  private @NotNull LiteralArgumentBuilder<CommandSourceStack> buildGiveCommand() {
     return Commands.literal("give")
         .then(
             Commands.argument("player", ArgumentTypes.player())
@@ -93,11 +95,11 @@ public final class ItemBoostCommand implements JobsCommand {
   }
 
   private int giveItemBoost(
-      CommandSourceStack source,
-      Player target,
-      String materialName,
-      String boostKeyStr,
-      String slotSetSpec) {
+      @NotNull CommandSourceStack source,
+      @NotNull Player target,
+      @NotNull String materialName,
+      @NotNull String boostKeyStr,
+      @NotNull String slotSetSpec) {
     CommandSender sender = source.getSender();
 
     // Parse material

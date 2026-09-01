@@ -8,7 +8,9 @@ import dev.mintychochip.upgrade.Requirements;
 import java.util.ArrayList;
 import java.util.List;
 import net.kyori.adventure.key.Key;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Parses the JSON requirement vocabulary into the sealed Requirement tree. Unknown types throw so
@@ -16,9 +18,8 @@ import org.jetbrains.annotations.NotNull;
  */
 public final class SkillTreeRequirementParser {
 
-  /** API member. */
-  @NotNull
-  public Requirement parse(@NotNull JsonElement element) {
+  @Contract(pure = true)
+  public @NotNull Requirement parse(@NotNull JsonElement element) {
     JsonObject obj = element.getAsJsonObject();
     String type =
         obj.has("type")
@@ -55,7 +56,7 @@ public final class SkillTreeRequirementParser {
     };
   }
 
-  private List<Requirement> parseList(JsonArray array) {
+  private @NotNull List<Requirement> parseList(@Nullable JsonArray array) {
     List<Requirement> result = new ArrayList<>();
     if (array != null) {
       for (JsonElement el : array) {
@@ -65,7 +66,7 @@ public final class SkillTreeRequirementParser {
     return List.copyOf(result);
   }
 
-  private Key parseKey(String raw) {
+  private @NotNull Key parseKey(@NotNull String raw) {
     int separator = raw.indexOf(':');
     if (separator > 0) {
       return Key.key(raw.substring(0, separator), raw.substring(separator + 1));

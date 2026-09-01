@@ -2,6 +2,7 @@ package dev.mintychochip.service;
 
 import java.util.List;
 import java.util.UUID;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 /** World gather hook for resource nodes. */
@@ -18,7 +19,8 @@ public interface NodeHarvestService {
    */
   record HarvestResult(
       boolean success, @NotNull List<String> materialTags, int xpTier, @NotNull String nodeId) {
-    public static HarvestResult empty() {
+    @Contract(pure = true)
+    public static @NotNull HarvestResult empty() {
       return new HarvestResult(false, List.of(), 1, "");
     }
   }

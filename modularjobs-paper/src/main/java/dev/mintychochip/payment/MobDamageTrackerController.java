@@ -8,6 +8,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.projectiles.ProjectileSource;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Records damage contributions onto a {@link MobDamageTrackerStore} as entities are damaged.
@@ -18,7 +19,7 @@ final class MobDamageTrackerController implements Listener {
 
   private final MobDamageTrackerStore store;
 
-  MobDamageTrackerController(MobDamageTrackerStore store) {
+  MobDamageTrackerController(@NotNull MobDamageTrackerStore store) {
     this.store = store;
   }
 
@@ -29,7 +30,7 @@ final class MobDamageTrackerController implements Listener {
    */
   @SuppressWarnings("UnstableApiUsage")
   @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-  void onDamageTrackedEntity(final EntityDamageByEntityEvent event) {
+  void onDamageTrackedEntity(final @NotNull EntityDamageByEntityEvent event) {
     Entity victim = event.getEntity();
     // Start tracking on the first player damage event.
     DamageSource damageSource = event.getDamageSource();

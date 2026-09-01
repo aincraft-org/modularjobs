@@ -1,5 +1,6 @@
 package dev.mintychochip.util;
 
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -16,6 +17,7 @@ public interface DomainMapper<D, R> {
    * @param record persisted record; must not be {@code null}
    * @return domain value
    */
+  @Contract(pure = true)
   @NotNull
   D toDomain(@NotNull R record);
 
@@ -25,6 +27,7 @@ public interface DomainMapper<D, R> {
    * @param domain domain value; must not be {@code null}
    * @return persistence record
    */
+  @Contract(pure = true)
   @NotNull
   R toRecord(@NotNull D domain);
 }

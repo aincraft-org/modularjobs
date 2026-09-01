@@ -1,10 +1,12 @@
 package dev.mintychochip.listener;
 
 import dev.mintychochip.Job;
+import dev.mintychochip.PlayerJobState;
 import dev.mintychochip.hooks.PermissionHook;
 import dev.mintychochip.paper.event.BukkitJobJoinEvent;
 import dev.mintychochip.paper.event.BukkitJobLeaveEvent;
 import dev.mintychochip.paper.event.BukkitJobLevelEvent;
+import dev.mintychochip.service.JobPerkCatalog;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -14,26 +16,31 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.jetbrains.annotations.NotNull;
 
 /** Grants/revokes job perk permissions on level-up, join, and leave. */
 public final class JobLevelUpListener implements Listener {
 
   private final PermissionHook permissions;
+  private final JobPerkCatalog perkCatalog;
 
   /** Job level up listener. */
-  public JobLevelUpListener(PermissionHook permissions) {
+  public JobLevelUpListener(
+      @NotNull PermissionHook permissions, @NotNull JobPerkCatalog perkCatalog) {
     this.permissions = permissions;
+    this.perkCatalog = perkCatalog;
   }
 
   /** Event handler. */
   @EventHandler(priority = EventPriority.MONITOR)
-  public void onLevelUp(BukkitJobLevelEvent event) {
+  public void onLevelUp(@NotNull BukkitJobLevelEvent event) {
     Player player = event.getPlayer();
-    Job job = event.getJob();
+    PlayerJobState state = event.getPlayerJobState();
+    Job job = state.job();
     int oldLevel = event.getOldLevel();
     int newLevel = event.getNewLevel();
 
-    Map<Integer, List<String>> unlocks = job.perkUnlocks();
+    Map<Integer, List<String>> unlocks = perkCatalog.unlocks(job, state.currentNode().nodeKey());
     for (int level = oldLevel + 1; level <= newLevel; level++) {
       List<String> perks = unlocks.get(level);
       if (perks == null) {
@@ -55,24 +62,24 @@ public final class JobLevelUpListener implements Listener {
 
   /** Event handler. */
   @EventHandler(priority = EventPriority.MONITOR)
-  public void onJobJoin(BukkitJobJoinEvent event) {
+  public void onJobJoin(@NotNull BukkitJobJoinEvent event) {
     Player player = event.getPlayer();
-    Job job = event.getJob();
-    int level = event.getLevel();
+    PlayerJobState state = event.getPlayerJobState();
+    Job job = state.job();
+    int level = state.level();
 
-    Map<Integer, List<String>> unlocks = job.perkUnlocks();
-    String highestStoragePerk = null;
+    Map<Integer, List<String>> unlocks = perkCatalog.unlocks(job, state.currentNode().nodeKey());
     for (Map.Entry<Integer, List<String>> entry : unlocks.entrySet()) {
       if (entry.getKey() <= level) {
         for (String perk : entry.getValue()) {
-          if (perk.startsWith("storage.")) {
-            highestStoragePerk = perk;
-          } else {
+          if (!perk.startsWith("storage.")) {
             permissions.grantPerkPermission(player, perk);
           }
         }
       }
     }
+    String highestStoragePerk =
+        perkCatalog.highestStorageUnlock(job, state.currentNode().nodeKey(), level).orElse(null);
     if (highestStoragePerk != null) {
       permissions.grantPerkPermission(player, highestStoragePerk);
     }
@@ -92,11 +99,12 @@ public final class JobLevelUpListener implements Listener {
 
   /** Event handler. */
   @EventHandler(priority = EventPriority.MONITOR)
-  public void onJobLeave(BukkitJobLeaveEvent event) {
+  public void onJobLeave(@NotNull BukkitJobLeaveEvent event) {
     Player player = event.getPlayer();
-    Job job = event.getJob();
+    PlayerJobState state = event.getPlayerJobState();
+    Job job = state.job();
 
-    for (List<String> perks : job.perkUnlocks().values()) {
+    for (List<String> perks : perkCatalog.allUnlocks(job).values()) {
       for (String perk : perks) {
         permissions.revokePerkPermission(player, perk);
       }
@@ -113,9 +121,9 @@ public final class JobLevelUpListener implements Listener {
             .build());
   }
 
-  private List<String> getAllStoragePermissions(Job job) {
+  private @NotNull List<String> getAllStoragePermissions(@NotNull Job job) {
     List<String> storage = new ArrayList<>();
-    for (List<String> perks : job.perkUnlocks().values()) {
+    for (List<String> perks : perkCatalog.allUnlocks(job).values()) {
       for (String perk : perks) {
         if (perk.startsWith("storage.")) {
           storage.add(perk);
@@ -125,7 +133,7 @@ public final class JobLevelUpListener implements Listener {
     return storage;
   }
 
-  private void notifyPerkUnlock(Player player, String perkName) {
+  private void notifyPerkUnlock(@NotNull Player player, @NotNull String perkName) {
     player.sendMessage(
         Component.text()
             .append(Component.text("[", NamedTextColor.GRAY))

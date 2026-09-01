@@ -5,37 +5,38 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import dev.mintychochip.config.YamlConfigTestPlugin;
-import dev.mintychochip.test.MockBukkitSupport;
-import dev.mintychochip.upgrade.editor.EditorNode;
-import dev.mintychochip.upgrade.editor.EditorSession;
-import dev.mintychochip.upgrade.editor.TreeEditorExporter;
-import dev.mintychochip.upgrade.editor.TreeEditorGui;
-import dev.mintychochip.upgrade.editor.TreeEditorNodeGui;
-import dev.mintychochip.upgrade.editor.TreeEditorSettingsGui;
 import dev.mintychochip.boost.BoostFactoryImpl;
+import dev.mintychochip.config.YamlConfigTestPlugin;
 import dev.mintychochip.editor.json.GsonProvider;
 import dev.mintychochip.registry.SimpleRegistryImpl;
+import dev.mintychochip.test.MockBukkitSupport;
 import dev.mintychochip.upgrade.SkillTree;
 import dev.mintychochip.upgrade.UpgradeTree;
 import dev.mintychochip.upgrade.config.UpgradeTreeLoader;
+import dev.mintychochip.upgrade.rendering.editor.EditorNode;
+import dev.mintychochip.upgrade.rendering.editor.EditorSession;
+import dev.mintychochip.upgrade.rendering.editor.TreeEditorExporter;
+import dev.mintychochip.upgrade.rendering.editor.TreeEditorGui;
+import dev.mintychochip.upgrade.rendering.editor.TreeEditorNodeGui;
+import dev.mintychochip.upgrade.rendering.editor.TreeEditorSettingsGui;
+import java.io.File;
 import java.util.UUID;
 import org.bukkit.Material;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryClickEvent;
-import java.io.File;
 import org.bukkit.event.inventory.InventoryType.SlotType;
+import org.bukkit.event.player.AsyncPlayerChatEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mockbukkit.mockbukkit.ServerMock;
 import org.mockbukkit.mockbukkit.entity.PlayerMock;
 
-import org.bukkit.event.player.AsyncPlayerChatEvent;
-import org.bukkit.event.player.PlayerQuitEvent;
 class NativeTreeEditorGuiTest {
   private static ServerMock server;
   private static JavaPlugin plugin;
@@ -80,9 +81,18 @@ class NativeTreeEditorGuiTest {
     fixture.click(4, ClickType.RIGHT);
 
     assertTrue(fixture.player.getOpenInventory().getTitle().startsWith("Edit Node:"));
-    assertEquals(Material.NAME_TAG, fixture.player.getOpenInventory().getTopInventory().getItem(10).getType());
+    assertEquals(
+        Material.NAME_TAG,
+        fixture.player.getOpenInventory().getTopInventory().getItem(10).getType());
     fixture.click(12, ClickType.LEFT);
-    EditorNode root = fixture.gui.getSession(fixture.player).orElseThrow().tree().getNode("miner_basics").orElseThrow();
+    EditorNode root =
+        fixture
+            .gui
+            .getSession(fixture.player)
+            .orElseThrow()
+            .tree()
+            .getNode("miner_basics")
+            .orElseThrow();
     assertEquals(Material.BLAZE_POWDER, root.icon());
 
     fixture.click(0, ClickType.LEFT);
@@ -118,6 +128,7 @@ class NativeTreeEditorGuiTest {
     fixture.host.close(fixture.player);
     assertEquals(Material.DIAMOND, fixture.player.getInventory().getItem(0).getType());
   }
+
   @Test
   void toolbarPreservesBoundsUndoRedoAndPathMode() {
     Fixture fixture = fixture("toolbar");
@@ -180,10 +191,18 @@ class NativeTreeEditorGuiTest {
     fixture.click(4, ClickType.RIGHT);
     fixture.click(10, ClickType.LEFT);
     AsyncPlayerChatEvent chat =
-        new AsyncPlayerChatEvent(false, fixture.player, "Renamed", java.util.Set.of(fixture.player));
+        new AsyncPlayerChatEvent(
+            false, fixture.player, "Renamed", java.util.Set.of(fixture.player));
     fixture.node.onChat(chat);
     server.getScheduler().performOneTick();
-    EditorNode root = fixture.gui.getSession(fixture.player).orElseThrow().tree().getNode("miner_basics").orElseThrow();
+    EditorNode root =
+        fixture
+            .gui
+            .getSession(fixture.player)
+            .orElseThrow()
+            .tree()
+            .getNode("miner_basics")
+            .orElseThrow();
     assertEquals("Renamed", root.name());
     assertTrue(fixture.player.getOpenInventory().getTitle().startsWith("Edit Node:"));
   }
@@ -195,19 +214,22 @@ class NativeTreeEditorGuiTest {
     fixture.click(52, ClickType.LEFT);
     fixture.click(10, ClickType.LEFT);
     AsyncPlayerChatEvent chat =
-        new AsyncPlayerChatEvent(false, fixture.player, "Renamed Tree", java.util.Set.of(fixture.player));
+        new AsyncPlayerChatEvent(
+            false, fixture.player, "Renamed Tree", java.util.Set.of(fixture.player));
     fixture.settings.onChat(chat);
     server.getScheduler().performOneTick();
     assertEquals(
-        "Renamed Tree",
-        fixture.gui.getSession(fixture.player).orElseThrow().tree().displayName());
+        "Renamed Tree", fixture.gui.getSession(fixture.player).orElseThrow().tree().displayName());
     assertTrue(fixture.player.getOpenInventory().getTitle().startsWith("Tree Settings:"));
   }
 
   @Test
   void waitingNodeOrSettingsPromptQuitCleansMainSessionAndRestoresInventory() {
     Fixture nodeFixture = fixture("node-prompt-quit");
-    nodeFixture.player.getInventory().setItem(0, new org.bukkit.inventory.ItemStack(Material.DIAMOND));
+    nodeFixture
+        .player
+        .getInventory()
+        .setItem(0, new org.bukkit.inventory.ItemStack(Material.DIAMOND));
     nodeFixture.gui.openNew(nodeFixture.player, "miner");
     nodeFixture.click(4, ClickType.RIGHT);
     nodeFixture.click(10, ClickType.LEFT);
@@ -217,7 +239,10 @@ class NativeTreeEditorGuiTest {
     assertEquals(Material.DIAMOND, nodeFixture.player.getInventory().getItem(0).getType());
 
     Fixture settingsFixture = fixture("settings-prompt-quit");
-    settingsFixture.player.getInventory().setItem(0, new org.bukkit.inventory.ItemStack(Material.DIAMOND));
+    settingsFixture
+        .player
+        .getInventory()
+        .setItem(0, new org.bukkit.inventory.ItemStack(Material.DIAMOND));
     settingsFixture.gui.openNew(settingsFixture.player, "miner");
     settingsFixture.click(52, ClickType.LEFT);
     settingsFixture.click(10, ClickType.LEFT);
@@ -230,7 +255,10 @@ class NativeTreeEditorGuiTest {
   @Test
   void subEditorCloseAndQuitRestoreInventoryAndClearMainSession() {
     Fixture closeFixture = fixture("sub-close");
-    closeFixture.player.getInventory().setItem(0, new org.bukkit.inventory.ItemStack(Material.DIAMOND));
+    closeFixture
+        .player
+        .getInventory()
+        .setItem(0, new org.bukkit.inventory.ItemStack(Material.DIAMOND));
     closeFixture.gui.openNew(closeFixture.player, "miner");
     closeFixture.click(4, ClickType.RIGHT);
     closeFixture.host.close(closeFixture.player);
@@ -238,7 +266,10 @@ class NativeTreeEditorGuiTest {
     assertEquals(Material.DIAMOND, closeFixture.player.getInventory().getItem(0).getType());
 
     Fixture quitFixture = fixture("sub-quit");
-    quitFixture.player.getInventory().setItem(0, new org.bukkit.inventory.ItemStack(Material.DIAMOND));
+    quitFixture
+        .player
+        .getInventory()
+        .setItem(0, new org.bukkit.inventory.ItemStack(Material.DIAMOND));
     quitFixture.gui.openNew(quitFixture.player, "miner");
     quitFixture.click(52, ClickType.LEFT);
     quitFixture.host.onPlayerQuit(
@@ -247,7 +278,7 @@ class NativeTreeEditorGuiTest {
     assertEquals(Material.DIAMOND, quitFixture.player.getInventory().getItem(0).getType());
   }
 
-  private static Fixture fixture(String name) {
+  private static @NotNull Fixture fixture(@NotNull String name) {
     PlayerMock player = server.addPlayer("tree-" + name + "-" + UUID.randomUUID());
     PaperUiHost host = new PaperUiHost();
     TreeEditorNodeGui node = new TreeEditorNodeGui(plugin, host);
@@ -266,13 +297,13 @@ class NativeTreeEditorGuiTest {
   }
 
   private record Fixture(
-      PlayerMock player,
-      PaperUiHost host,
-      TreeEditorGui gui,
-      TreeEditorNodeGui node,
-      TreeEditorSettingsGui settings,
-      UpgradeTreeLoader loader) {
-    private void click(int rawSlot, ClickType click) {
+      @NotNull PlayerMock player,
+      @NotNull PaperUiHost host,
+      @NotNull TreeEditorGui gui,
+      @NotNull TreeEditorNodeGui node,
+      @NotNull TreeEditorSettingsGui settings,
+      @NotNull UpgradeTreeLoader loader) {
+    private void click(int rawSlot, @NotNull ClickType click) {
       InventoryClickEvent event =
           new InventoryClickEvent(
               player.getOpenInventory(),

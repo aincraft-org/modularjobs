@@ -6,7 +6,7 @@ import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import dev.mintychochip.upgrade.PerkPolicy;
-import dev.mintychochip.upgrade.Position;
+import dev.mintychochip.upgrade.rendering.Position;
 import dev.mintychochip.upgrade.wynncraft.AbilityMeta;
 import dev.mintychochip.upgrade.wynncraft.AbilityMeta.BoostConfig;
 import dev.mintychochip.upgrade.wynncraft.AbilityMeta.EffectConfig;
@@ -21,6 +21,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Custom Gson deserializer for WynncraftTreeConfig. Handles the polymorphic meta field in
@@ -28,10 +31,12 @@ import java.util.Map;
  */
 public final class WynncraftTreeConfigDeserializer
     implements JsonDeserializer<WynncraftTreeConfig> {
-
+  @Contract(pure = true)
   @Override
-  public WynncraftTreeConfig deserialize(
-      JsonElement json, Type typeOfT, JsonDeserializationContext context) {
+  public @NotNull WynncraftTreeConfig deserialize(
+      @NotNull JsonElement json,
+      @NotNull Type typeOfT,
+      @Nullable JsonDeserializationContext context) {
     JsonObject root = json.getAsJsonObject();
 
     final String treeId = getString(root, "tree_id");
@@ -113,7 +118,7 @@ public final class WynncraftTreeConfigDeserializer
         perkPolicies);
   }
 
-  private LayoutItem deserializeLayoutItem(JsonObject itemObj) {
+  private @NotNull LayoutItem deserializeLayoutItem(@NotNull JsonObject itemObj) {
     final String id = getString(itemObj, "id");
     String typeStr = getString(itemObj, "type");
     LayoutItemType type = LayoutItemType.valueOf(typeStr.toUpperCase());
@@ -163,7 +168,7 @@ public final class WynncraftTreeConfigDeserializer
         family);
   }
 
-  private AbilityMeta deserializeAbilityMeta(JsonObject meta) {
+  private @NotNull AbilityMeta deserializeAbilityMeta(@NotNull JsonObject meta) {
     final String name = getString(meta, "name");
 
     // Parse icon - supports both new format (locked/unlocked) and legacy format (single icon)
@@ -257,7 +262,7 @@ public final class WynncraftTreeConfigDeserializer
         level);
   }
 
-  private EffectConfig deserializeEffectConfig(JsonObject effectObj) {
+  private @NotNull EffectConfig deserializeEffectConfig(@NotNull JsonObject effectObj) {
     // Parse rules for ruled_boost effects
     List<RuleConfig> rules = null;
     if (effectObj.has("rules")) {
@@ -301,7 +306,7 @@ public final class WynncraftTreeConfigDeserializer
         rules);
   }
 
-  private String getString(JsonObject obj, String memberName) {
+  private @NotNull String getString(@NotNull JsonObject obj, @NotNull String memberName) {
     if (!obj.has(memberName)) {
       throw new IllegalArgumentException("Missing required field: " + memberName);
     }

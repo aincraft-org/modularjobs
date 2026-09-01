@@ -5,6 +5,7 @@ import dev.mintychochip.registry.RegistryKeys;
 import dev.mintychochip.registry.RegistryView;
 import net.kyori.adventure.key.Key;
 import org.jetbrains.annotations.ApiStatus.Internal;
+import org.jetbrains.annotations.NotNull;
 
 /** Action types. */
 public final class ActionTypes {
@@ -85,7 +86,7 @@ public final class ActionTypes {
   public static final ActionType VILLAGER_TRADE = type("villager_trade");
 
   @Internal
-  private static ActionType type(String keyString) {
+  private static @NotNull ActionType type(@NotNull String keyString) {
     RegistryView<ActionType> registry =
         RegistryContainer.registryContainer().getRegistry(RegistryKeys.ACTION_TYPES);
     return registry.getOrThrow(Key.key("modularjobs", keyString));

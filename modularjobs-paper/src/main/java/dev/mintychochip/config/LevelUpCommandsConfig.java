@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.plugin.Plugin;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -19,12 +20,14 @@ public record LevelUpCommandsConfig(@NotNull List<LevelUpCommand> commands) {
   public record LevelUpCommand(@NotNull String command, int minLevel) {}
 
   /** No level-up commands configured. */
-  public static LevelUpCommandsConfig defaults() {
+  @Contract(pure = true)
+  public static @NotNull LevelUpCommandsConfig defaults() {
     return new LevelUpCommandsConfig(List.of());
   }
 
   /** Parses from a raw map (used by tests and {@link #fromPlugin}). */
-  public static LevelUpCommandsConfig fromMap(@NotNull Map<?, ?> source) {
+  @Contract(pure = true)
+  public static @NotNull LevelUpCommandsConfig fromMap(@NotNull Map<?, ?> source) {
     Object raw = source.get("level-up-commands");
     if (!(raw instanceof List<?> list)) {
       return defaults();
@@ -49,7 +52,7 @@ public record LevelUpCommandsConfig(@NotNull List<LevelUpCommand> commands) {
   }
 
   /** Loads from {@code config.yml}. */
-  public static LevelUpCommandsConfig fromPlugin(@NotNull Plugin plugin) {
+  public static @NotNull LevelUpCommandsConfig fromPlugin(@NotNull Plugin plugin) {
     ConfigurationSection section = plugin.getConfig().getConfigurationSection("level-up-commands");
     if (section == null) {
       return defaults();

@@ -3,6 +3,7 @@ package dev.mintychochip.profession.content;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import dev.mintychochip.JobNodeKey;
 import java.util.List;
 import net.kyori.adventure.key.Key;
 import org.junit.jupiter.api.Test;
@@ -15,7 +16,8 @@ class CraftRecipeContentValidationTest {
     CraftRecipeValidationReport report =
         CraftRecipeContentValidation.validate(
             List.of(
-                new CraftTaskSnapshot(Key.key("modularjobs", "blacksmith"), ironSword, ironSword)),
+                new CraftTaskSnapshot(
+                    new JobNodeKey(Key.key("modularjobs", "blacksmith")), ironSword, ironSword)),
             List.of(new RegisteredRecipeSnapshot(ironSword, ironSword, "weaponsmithing", 10)));
 
     assertTrue(report.tasksWithoutRecipe().isEmpty());
@@ -28,7 +30,8 @@ class CraftRecipeContentValidationTest {
     CraftRecipeValidationReport report =
         CraftRecipeContentValidation.validate(
             List.of(
-                new CraftTaskSnapshot(Key.key("modularjobs", "artisan"), stoneBricks, stoneBricks)),
+                new CraftTaskSnapshot(
+                    new JobNodeKey(Key.key("modularjobs", "artisan")), stoneBricks, stoneBricks)),
             List.of());
 
     assertEquals(1, report.tasksWithoutRecipe().size());
@@ -56,7 +59,8 @@ class CraftRecipeContentValidationTest {
     CraftRecipeValidationReport report =
         CraftRecipeContentValidation.validate(
             List.of(
-                new CraftTaskSnapshot(Key.key("modularjobs", "blacksmith"), ironSword, ironSword)),
+                new CraftTaskSnapshot(
+                    new JobNodeKey(Key.key("modularjobs", "blacksmith")), ironSword, ironSword)),
             List.of(new RegisteredRecipeSnapshot(recipeId, ironSword, "weaponsmithing", 25)));
 
     assertTrue(report.tasksWithoutRecipe().isEmpty());

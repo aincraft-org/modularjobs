@@ -8,6 +8,7 @@ import dev.mintychochip.service.ProfessionService;
 import dev.mintychochip.service.RecipeService;
 import dev.mintychochip.service.StationService;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.jetbrains.annotations.NotNull;
 
 /** Manual composition for the profession service surfaces. */
 public final class ProfessionWiring {
@@ -19,11 +20,11 @@ public final class ProfessionWiring {
   public final NodeHarvestService nodeHarvestService;
 
   private ProfessionWiring(
-      ProfessionService professionService,
-      RecipeService recipeService,
-      BuffService buffService,
-      StationService stationService,
-      NodeHarvestService nodeHarvestService) {
+      @NotNull ProfessionService professionService,
+      @NotNull RecipeService recipeService,
+      @NotNull BuffService buffService,
+      @NotNull StationService stationService,
+      @NotNull NodeHarvestService nodeHarvestService) {
     this.professionService = professionService;
     this.recipeService = recipeService;
     this.buffService = buffService;
@@ -32,11 +33,14 @@ public final class ProfessionWiring {
   }
 
   /** Create. */
-  public static ProfessionWiring create(JavaPlugin plugin, JobService jobService) {
+  public static @NotNull ProfessionWiring create(
+      @NotNull JavaPlugin plugin, @NotNull JobService jobService) {
+    ProfessionIndex professionIndex = YamlProfessionDefinitionLoader.load(plugin, jobService);
+    ProfessionService professionService = new ProfessionServiceImpl(jobService, professionIndex);
     MemoryRecipeService recipeService = new MemoryRecipeService();
     YamlRecipeDefinitionLoader.load(plugin, recipeService);
     return new ProfessionWiring(
-        new ProfessionServiceImpl(jobService),
+        professionService,
         recipeService,
         new MemoryBuffService(),
         new StubStationService(),

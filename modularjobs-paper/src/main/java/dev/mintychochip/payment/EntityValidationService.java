@@ -16,7 +16,7 @@ public final class EntityValidationService {
   @LazyInit private NamespacedKey invalidationKey = null;
 
   /** Lazily creates the plugin-scoped key used for invalidation markers. */
-  private NamespacedKey invalidationKey() {
+  private @NotNull NamespacedKey invalidationKey() {
     if (invalidationKey == null) {
       invalidationKey = new NamespacedKey(plugin, "invalid");
     }
@@ -29,13 +29,13 @@ public final class EntityValidationService {
   }
 
   /** Returns whether the entity has not been explicitly invalidated. */
-  public boolean isValid(Entity entity) {
+  public boolean isValid(@NotNull Entity entity) {
     PersistentDataContainer pdc = entity.getPersistentDataContainer();
     return !pdc.has(invalidationKey());
   }
 
   /** Marks an entity valid or invalid by adding or removing its marker. */
-  public void setValid(Entity entity, boolean valid) {
+  public void setValid(@NotNull Entity entity, boolean valid) {
     PersistentDataContainer pdc = entity.getPersistentDataContainer();
     if (valid) {
       pdc.remove(invalidationKey());

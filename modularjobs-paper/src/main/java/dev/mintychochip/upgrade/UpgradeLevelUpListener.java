@@ -11,6 +11,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Awards skill points on job level-up and clears skill tree state on leave. v2 trees take
@@ -23,14 +24,14 @@ public final class UpgradeLevelUpListener implements Listener {
 
   /** Upgrade level up listener. */
   public UpgradeLevelUpListener(
-      UpgradeService upgradeService, Registry<SkillTree> skillTreeRegistry) {
+      @NotNull UpgradeService upgradeService, @NotNull Registry<SkillTree> skillTreeRegistry) {
     this.upgradeService = upgradeService;
     this.skillTreeRegistry = skillTreeRegistry;
   }
 
   /** Event handler. */
   @EventHandler(priority = EventPriority.NORMAL)
-  public void onJobLevelUp(BukkitJobLevelEvent event) {
+  public void onJobLevelUp(@NotNull BukkitJobLevelEvent event) {
     Player player = event.getPlayer();
     Job job = event.getJob();
     int newLevel = event.getNewLevel();
@@ -65,7 +66,7 @@ public final class UpgradeLevelUpListener implements Listener {
    *
    * @return points awarded, or 0 when no tree or already at expected total
    */
-  int awardPointsForLevel(String playerId, String jobKey, int newLevel) {
+  int awardPointsForLevel(@NotNull String playerId, @NotNull String jobKey, int newLevel) {
     Optional<SkillTree> v2TreeOpt = skillTreeFor(jobKey);
     if (v2TreeOpt.isPresent()) {
       SkillTree tree = v2TreeOpt.get();
@@ -96,13 +97,13 @@ public final class UpgradeLevelUpListener implements Listener {
 
   /** Event handler. */
   @EventHandler(priority = EventPriority.MONITOR)
-  public void onJobLeave(BukkitJobLeaveEvent event) {
+  public void onJobLeave(@NotNull BukkitJobLeaveEvent event) {
     String playerId = event.getPlayer().getUniqueId().toString();
     String jobKey = event.getJob().key().value();
     upgradeService.clearTreeState(playerId, jobKey);
   }
 
-  private Optional<SkillTree> skillTreeFor(String jobKey) {
+  private @NotNull Optional<SkillTree> skillTreeFor(@NotNull String jobKey) {
     return skillTreeRegistry.get(Key.key("modularjobs", "upgrade_tree/" + jobKey));
   }
 }

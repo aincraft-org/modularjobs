@@ -31,7 +31,7 @@ public final class PluginResources {
   }
 
   /** Returns tracked sources in composition order. */
-  public List<ConnectionSource> connectionSources() {
+  public @NotNull List<ConnectionSource> connectionSources() {
     return List.copyOf(connectionSources);
   }
 

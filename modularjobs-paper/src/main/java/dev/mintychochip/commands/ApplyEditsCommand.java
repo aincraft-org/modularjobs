@@ -11,6 +11,7 @@ import io.papermc.paper.command.brigadier.Commands;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Imports web-editor payloads (task edits) into live job definitions. Admin-only; requires a player
@@ -25,7 +26,7 @@ public final class ApplyEditsCommand implements JobsCommand {
    *
    * @param editorService service used to import web-editor task payloads
    */
-  public ApplyEditsCommand(EditorService editorService) {
+  public ApplyEditsCommand(@NotNull EditorService editorService) {
     this.editorService = editorService;
   }
 
@@ -33,7 +34,7 @@ public final class ApplyEditsCommand implements JobsCommand {
   public static final String PERMISSION = AdminPermissions.ADMIN;
 
   @Override
-  public LiteralArgumentBuilder<CommandSourceStack> build() {
+  public @NotNull LiteralArgumentBuilder<CommandSourceStack> build() {
     return Commands.literal("applyedits")
         .requires(AdminPermissions::isAdmin)
         .then(

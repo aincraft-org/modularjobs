@@ -1,6 +1,8 @@
 package dev.mintychochip.container.boost;
 
 import java.util.function.BiPredicate;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * A boolean logic operator applied to two boolean operands.
@@ -24,7 +26,8 @@ public enum LogicalOperator implements BiPredicate<Boolean, Boolean> {
   }
 
   @Override
-  public boolean test(Boolean a, Boolean b) {
+  @Contract(pure = true)
+  public boolean test(@NotNull Boolean a, @NotNull Boolean b) {
     return predicate.test(a, b);
   }
 }

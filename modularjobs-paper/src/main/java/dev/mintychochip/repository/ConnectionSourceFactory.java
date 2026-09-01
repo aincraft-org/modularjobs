@@ -43,15 +43,44 @@ public final class ConnectionSourceFactory {
     ConnectionSource source =
         new HikariSourceImpl(new HikariConfigProvider(configuration, type).create(), type);
 
-    if (SchemaPolicy.shouldVerifySchemaPresent(type)) {
-      try (Connection connection = source.getConnection()) {
-        SchemaPresence.requireTables(connection, type, SchemaPresence.REQUIRED_TABLES);
-      } catch (SQLException e) {
-        throw new RuntimeException(
-            "Failed to verify MySQL schema (is the database up and schema applied?)", e);
-      }
-    }
+    verifySchemaOrClose(source, type);
 
     return source;
+  }
+
+  static void verifySchemaOrClose(@NotNull ConnectionSource source, @NotNull DatabaseType type) {
+    try (SourceOwnership ownership = new SourceOwnership(source)) {
+      if (SchemaPolicy.shouldVerifySchemaPresent(type)) {
+        try (Connection connection = source.getConnection()) {
+          SchemaPresence.requireTables(connection, type, SchemaPresence.REQUIRED_TABLES);
+          SchemaPresence.requireColumns(connection, type, SchemaPresence.REQUIRED_COLUMNS);
+        }
+      }
+      ownership.transfer();
+    } catch (SQLException failure) {
+      throw new RuntimeException(
+          "Failed to verify MySQL schema (is the database up and schema applied?)", failure);
+    }
+  }
+
+  /** Holds shutdown responsibility until schema verification succeeds. */
+  private static final class SourceOwnership implements AutoCloseable {
+    private final ConnectionSource source;
+    private boolean transferred;
+
+    private SourceOwnership(@NotNull ConnectionSource source) {
+      this.source = source;
+    }
+
+    private void transfer() {
+      transferred = true;
+    }
+
+    @Override
+    public void close() throws SQLException {
+      if (!transferred) {
+        source.shutdown();
+      }
+    }
   }
 }

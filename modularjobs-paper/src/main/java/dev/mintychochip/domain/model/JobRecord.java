@@ -1,28 +1,28 @@
 package dev.mintychochip.domain.model;
 
-import java.util.List;
 import java.util.Map;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
- * Immutable definition of a job's configuration: identity, presentation, leveling, payable curves,
- * and upgrade/perk rules.
+ * Flat configuration definition of one node in a job tree.
  *
- * @param jobKey the unique job key
- * @param displayName the human-readable job name
- * @param description the job description
- * @param maxLevel the maximum achievable level for the job
- * @param levellingCurve the expression describing experience-to-level progression
- * @param payableCurves payable type key to curve expression mappings
- * @param upgradeLevel the level at which the job may be upgraded
- * @param perkUnlocks map of level to the perk keys unlocked at that level
+ * <p>Presentation and lineage belong to this node. The loader normalizes the owning root's
+ * tree-wide leveling and payout rules into each record before runtime assembly.
+ *
+ * @param jobKey the unique node key
+ * @param displayName the human-readable node name
+ * @param description the node description
+ * @param maxLevel the owning tree's maximum level
+ * @param levellingCurve the owning tree's experience-threshold expression
+ * @param payableCurves the owning tree's payout-curve expressions
+ * @param parentKey the direct parent node key, or {@code null} for a root node
  */
 public record JobRecord(
     @NotNull String jobKey,
     @NotNull String displayName,
-    @NotNull String description,
+    @Nullable String description,
     int maxLevel,
     @NotNull String levellingCurve,
     @NotNull Map<String, String> payableCurves,
-    int upgradeLevel,
-    @NotNull Map<Integer, List<String>> perkUnlocks) {}
+    @Nullable String parentKey) {}

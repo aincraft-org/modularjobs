@@ -3,7 +3,7 @@ package dev.mintychochip.commands;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
-import dev.mintychochip.JobProgression;
+import dev.mintychochip.PlayerJobState;
 import dev.mintychochip.gui.StatsGui;
 import dev.mintychochip.service.JobService;
 import dev.mintychochip.util.Messages;
@@ -18,6 +18,9 @@ import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /** Stats command. */
 public class StatsCommand implements JobsCommand {
@@ -26,13 +29,13 @@ public class StatsCommand implements JobsCommand {
   private final StatsGui statsGui;
 
   /** Stats command. */
-  public StatsCommand(JobService jobService, StatsGui statsGui) {
+  public StatsCommand(@NotNull JobService jobService, @NotNull StatsGui statsGui) {
     this.jobService = jobService;
     this.statsGui = statsGui;
   }
 
   @Override
-  public LiteralArgumentBuilder<CommandSourceStack> build() {
+  public @NotNull LiteralArgumentBuilder<CommandSourceStack> build() {
     return Commands.literal("stats")
         // /jobs stats chat <playerName> - admin variant (chat output)
         .then(
@@ -110,7 +113,7 @@ public class StatsCommand implements JobsCommand {
   }
 
   /** Displays stats in the native inventory GUI, falling back to chat if sender is not a player. */
-  private void displayStats(CommandSender viewer, OfflinePlayer target) {
+  private void displayStats(@NotNull CommandSender viewer, @NotNull OfflinePlayer target) {
     if (viewer instanceof Player player) {
       displayStatsDialog(player, target);
     } else {
@@ -119,14 +122,14 @@ public class StatsCommand implements JobsCommand {
   }
 
   /** Displays stats in the native inventory GUI. */
-  private void displayStatsDialog(Player viewer, OfflinePlayer target) {
-    final List<JobProgression> progressions = jobService.getProgressions(target.getUniqueId());
-    statsGui.open(viewer, target, progressions, 1);
+  private void displayStatsDialog(@NotNull Player viewer, @NotNull OfflinePlayer target) {
+    final List<PlayerJobState> states = jobService.getPlayerJobStates(target.getUniqueId());
+    statsGui.open(viewer, target, states, 1);
   }
 
   /** Displays stats in chat format (original implementation). */
-  private void displayStatsChat(CommandSender viewer, OfflinePlayer target) {
-    final List<JobProgression> progressions = jobService.getProgressions(target.getUniqueId());
+  private void displayStatsChat(@NotNull CommandSender viewer, @NotNull OfflinePlayer target) {
+    final List<PlayerJobState> states = jobService.getPlayerJobStates(target.getUniqueId());
 
     String targetName = target.getName() != null ? target.getName() : "Unknown";
     String header =
@@ -138,7 +141,7 @@ public class StatsCommand implements JobsCommand {
     Messages.send(viewer, "<neutral>━━━━━━━━━ " + header + " <neutral> ━━━━━━━━━");
     Messages.send(viewer, "");
 
-    if (progressions.isEmpty()) {
+    if (states.isEmpty()) {
       String message =
           viewer.equals(target)
               ? "<neutral>  You are not in any jobs."
@@ -147,8 +150,8 @@ public class StatsCommand implements JobsCommand {
       Messages.send(viewer, "<neutral>  Use <secondary>/jobs join<neutral> to join a job.");
       Messages.send(viewer, "");
     } else {
-      for (JobProgression progression : progressions) {
-        displayJobStats(viewer, progression);
+      for (PlayerJobState state : states) {
+        displayJobStats(viewer, state);
       }
     }
 
@@ -157,10 +160,10 @@ public class StatsCommand implements JobsCommand {
     Messages.send(viewer, "");
   }
 
-  private void displayJobStats(CommandSender viewer, JobProgression progression) {
-    int currentLevel = progression.level();
-    BigDecimal currentXp = progression.experience();
-    int maxLevel = progression.job().maxLevel();
+  private void displayJobStats(@NotNull CommandSender viewer, @NotNull PlayerJobState state) {
+    int currentLevel = state.level();
+    BigDecimal currentXp = state.experience();
+    int maxLevel = state.job().maxLevel();
 
     // Calculate percentage and XP values for display
     double percentage;
@@ -172,8 +175,8 @@ public class StatsCommand implements JobsCommand {
       xpCurrent = currentXp;
       xpTotal = null; // MAX level
     } else {
-      BigDecimal currentLevelXp = progression.experienceForLevel(currentLevel);
-      BigDecimal nextLevelXp = progression.experienceForLevel(currentLevel + 1);
+      BigDecimal currentLevelXp = state.experienceForLevel(currentLevel);
+      BigDecimal nextLevelXp = state.experienceForLevel(currentLevel + 1);
       xpCurrent = currentXp.subtract(currentLevelXp);
       xpTotal = nextLevelXp.subtract(currentLevelXp);
       percentage =
@@ -190,7 +193,7 @@ public class StatsCommand implements JobsCommand {
     // Build main display: bar + Lvl. [level] + [name]
     String bar = createProgressBar(percentage);
     Component barComponent = Messages.component(bar);
-    Component jobName = progression.job().displayName();
+    Component jobName = state.job().displayName();
     Component mainDisplay =
         Component.text("  ")
             .append(barComponent)
@@ -204,12 +207,13 @@ public class StatsCommand implements JobsCommand {
     viewer.sendMessage(mainDisplay);
   }
 
-  private Component buildHoverText(
+  @Contract(pure = true)
+  private @NotNull Component buildHoverText(
       int currentLevel,
       int maxLevel,
-      BigDecimal currentXp,
-      BigDecimal xpCurrent,
-      BigDecimal xpTotal,
+      @NotNull BigDecimal currentXp,
+      @NotNull BigDecimal xpCurrent,
+      @Nullable BigDecimal xpTotal,
       double percentage) {
     String percentageStr = String.format("%.1f%%", percentage);
     String xpCurrentStr = formatFullNumber(xpCurrent);
@@ -234,7 +238,8 @@ public class StatsCommand implements JobsCommand {
             + totalXpStr);
   }
 
-  private String createProgressBar(double percentage) {
+  @Contract(pure = true)
+  private @NotNull String createProgressBar(double percentage) {
     int barLength = 32;
     int filled = (int) Math.round(percentage / 100.0 * barLength);
     filled = Math.min(barLength, Math.max(0, filled));
@@ -254,7 +259,8 @@ public class StatsCommand implements JobsCommand {
     return bar.toString();
   }
 
-  private String getProgressColorTag(double percentage) {
+  @Contract(pure = true)
+  private @NotNull String getProgressColorTag(double percentage) {
     if (percentage >= 75) {
       return "accent"; // Aqua
     } else if (percentage >= 50) {
@@ -266,7 +272,8 @@ public class StatsCommand implements JobsCommand {
     }
   }
 
-  private String formatFullNumber(BigDecimal number) {
+  @Contract(pure = true)
+  private @NotNull String formatFullNumber(@NotNull BigDecimal number) {
     return String.format("%,d", number.setScale(0, RoundingMode.HALF_UP).intValue());
   }
 }

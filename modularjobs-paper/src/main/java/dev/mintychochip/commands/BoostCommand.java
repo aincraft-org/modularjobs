@@ -5,7 +5,7 @@ import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
-import dev.mintychochip.JobProgression;
+import dev.mintychochip.PlayerJobState;
 import dev.mintychochip.boost.AdditiveBoostImpl;
 import dev.mintychochip.boost.ConditionTreeFormatter;
 import dev.mintychochip.boost.MultiplicativeBoostImpl;
@@ -46,6 +46,9 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Unified boost management command.
@@ -74,12 +77,12 @@ public final class BoostCommand implements JobsCommand {
 
   /** Boost command. */
   public BoostCommand(
-      Registry<BoostSource> boostSourceRegistry,
-      TimedBoostDataService timedBoostDataService,
-      ItemBoostDataService itemBoostDataService,
-      BoostSourceLoader boostSourceLoader,
-      UpgradeBoostDataService upgradeBoostDataService,
-      JobService jobService) {
+      @NotNull Registry<BoostSource> boostSourceRegistry,
+      @NotNull TimedBoostDataService timedBoostDataService,
+      @NotNull ItemBoostDataService itemBoostDataService,
+      @NotNull BoostSourceLoader boostSourceLoader,
+      @NotNull UpgradeBoostDataService upgradeBoostDataService,
+      @NotNull JobService jobService) {
     this.boostSourceRegistry = boostSourceRegistry;
     this.timedBoostDataService = timedBoostDataService;
     this.itemBoostDataService = itemBoostDataService;
@@ -92,7 +95,7 @@ public final class BoostCommand implements JobsCommand {
   public static final String PERMISSION = AdminPermissions.ADMIN;
 
   @Override
-  public LiteralArgumentBuilder<CommandSourceStack> build() {
+  public @NotNull LiteralArgumentBuilder<CommandSourceStack> build() {
     return Commands.literal("boost")
         .requires(AdminPermissions::isAdmin)
         .then(buildApplyCommand())
@@ -106,7 +109,7 @@ public final class BoostCommand implements JobsCommand {
   // APPLY COMMAND
   // ─────────────────────────────────────────────────────────────────────────────
 
-  private LiteralArgumentBuilder<CommandSourceStack> buildApplyCommand() {
+  private @NotNull LiteralArgumentBuilder<CommandSourceStack> buildApplyCommand() {
     return Commands.literal("apply")
         .then(
             Commands.argument("target", StringArgumentType.word())
@@ -131,7 +134,7 @@ public final class BoostCommand implements JobsCommand {
                                 .executes(this::executeApply))));
   }
 
-  private int executeApply(CommandContext<CommandSourceStack> context) {
+  private int executeApply(@NotNull CommandContext<CommandSourceStack> context) {
     CommandSender sender = context.getSource().getSender();
     String targetStr = context.getArgument("target", String.class);
     Key sourceKey = context.getArgument("source", Key.class);
@@ -204,7 +207,7 @@ public final class BoostCommand implements JobsCommand {
   // REMOVE COMMAND
   // ─────────────────────────────────────────────────────────────────────────────
 
-  private LiteralArgumentBuilder<CommandSourceStack> buildRemoveCommand() {
+  private @NotNull LiteralArgumentBuilder<CommandSourceStack> buildRemoveCommand() {
     return Commands.literal("remove")
         .then(
             Commands.argument("target", StringArgumentType.word())
@@ -226,7 +229,7 @@ public final class BoostCommand implements JobsCommand {
                         .executes(this::executeRemove)));
   }
 
-  private int executeRemove(CommandContext<CommandSourceStack> context) {
+  private int executeRemove(@NotNull CommandContext<CommandSourceStack> context) {
     CommandSender sender = context.getSource().getSender();
     String targetStr = context.getArgument("target", String.class);
     Key sourceKey = context.getArgument("source", Key.class);
@@ -272,7 +275,7 @@ public final class BoostCommand implements JobsCommand {
   // LIST COMMAND
   // ─────────────────────────────────────────────────────────────────────────────
 
-  private LiteralArgumentBuilder<CommandSourceStack> buildListCommand() {
+  private @NotNull LiteralArgumentBuilder<CommandSourceStack> buildListCommand() {
     return Commands.literal("list")
         .executes(context -> executeList(context, null))
         .then(
@@ -287,7 +290,8 @@ public final class BoostCommand implements JobsCommand {
                     context -> executeList(context, context.getArgument("target", String.class))));
   }
 
-  private int executeList(CommandContext<CommandSourceStack> context, String targetStr) {
+  private int executeList(
+      @NotNull CommandContext<CommandSourceStack> context, @Nullable String targetStr) {
     CommandSender sender = context.getSource().getSender();
 
     // Default to self if player, otherwise require target
@@ -313,7 +317,7 @@ public final class BoostCommand implements JobsCommand {
     return listPlayerBoosts(sender, target);
   }
 
-  private int listPlayerBoosts(CommandSender sender, Player player) {
+  private int listPlayerBoosts(@NotNull CommandSender sender, @NotNull Player player) {
     Messages.send(
         sender, "<neutral>━━━━━━━━━ <primary>Boosts: " + player.getName() + "<neutral> ━━━━━━━━━");
     Messages.send(sender, "");
@@ -354,12 +358,12 @@ public final class BoostCommand implements JobsCommand {
     }
 
     // Upgrade tree boosts (now uses the same BoostSource API)
-    List<JobProgression> progressions = jobService.getProgressions(player.getUniqueId());
+    List<PlayerJobState> states = jobService.getPlayerJobStates(player.getUniqueId());
     boolean hasUpgradeBoosts = false;
 
-    for (JobProgression progression : progressions) {
+    for (PlayerJobState state : states) {
       List<BoostSource> upgradeBoosts =
-          upgradeBoostDataService.getBoostSources(player.getUniqueId(), progression.job().key());
+          upgradeBoostDataService.getBoostSources(player.getUniqueId(), state.job().key());
 
       if (!upgradeBoosts.isEmpty()) {
         if (!hasUpgradeBoosts) {
@@ -367,7 +371,7 @@ public final class BoostCommand implements JobsCommand {
           hasUpgradeBoosts = true;
         }
 
-        String jobName = progression.job().key().value();
+        String jobName = state.job().key().value();
         for (BoostSource source : upgradeBoosts) {
           String boostEffects = formatBoostEffects(source);
           String desc = source.description() != null ? source.description() : source.key().value();
@@ -396,7 +400,7 @@ public final class BoostCommand implements JobsCommand {
     return Command.SINGLE_SUCCESS;
   }
 
-  private int listGlobalBoosts(CommandSender sender) {
+  private int listGlobalBoosts(@NotNull CommandSender sender) {
     Messages.send(sender, "<neutral>━━━━━━━━━ <primary>Global Boosts<neutral> ━━━━━━━━━");
     Messages.send(sender, "");
 
@@ -423,7 +427,7 @@ public final class BoostCommand implements JobsCommand {
     return Command.SINGLE_SUCCESS;
   }
 
-  private List<PassiveBoostInfo> getPassiveBoosts(Player player) {
+  private @NotNull List<PassiveBoostInfo> getPassiveBoosts(@NotNull Player player) {
     List<PassiveBoostInfo> passiveBoosts = new ArrayList<>();
     Set<String> seenBoostKeys = new HashSet<>();
     PlayerInventory inventory = player.getInventory();
@@ -458,7 +462,7 @@ public final class BoostCommand implements JobsCommand {
   // ITEM COMMAND
   // ─────────────────────────────────────────────────────────────────────────────
 
-  private LiteralArgumentBuilder<CommandSourceStack> buildItemCommand() {
+  private @NotNull LiteralArgumentBuilder<CommandSourceStack> buildItemCommand() {
     return Commands.literal("item")
         .then(
             Commands.argument("source", ArgumentTypes.key())
@@ -481,7 +485,7 @@ public final class BoostCommand implements JobsCommand {
                                             context.getArgument("amount", Integer.class))))));
   }
 
-  private int executeItem(CommandContext<CommandSourceStack> context, int amount) {
+  private int executeItem(@NotNull CommandContext<CommandSourceStack> context, int amount) {
     CommandSender sender = context.getSource().getSender();
 
     if (!(sender instanceof Player player)) {
@@ -549,7 +553,7 @@ public final class BoostCommand implements JobsCommand {
   // SOURCES COMMAND
   // ─────────────────────────────────────────────────────────────────────────────
 
-  private LiteralArgumentBuilder<CommandSourceStack> buildSourcesCommand() {
+  private @NotNull LiteralArgumentBuilder<CommandSourceStack> buildSourcesCommand() {
     return Commands.literal("sources")
         .executes(context -> listSources(context.getSource()))
         .then(Commands.literal("reload").executes(context -> reloadSources(context.getSource())))
@@ -571,7 +575,7 @@ public final class BoostCommand implements JobsCommand {
                                     context.getArgument("source", Key.class)))));
   }
 
-  private int listSources(CommandSourceStack source) {
+  private int listSources(@NotNull CommandSourceStack source) {
     CommandSender sender = source.getSender();
     var sources = boostSourceRegistry.stream().toList();
 
@@ -596,7 +600,7 @@ public final class BoostCommand implements JobsCommand {
     return Command.SINGLE_SUCCESS;
   }
 
-  private int reloadSources(CommandSourceStack source) {
+  private int reloadSources(@NotNull CommandSourceStack source) {
     CommandSender sender = source.getSender();
     Messages.send(sender, "<secondary>Reloading boost sources...");
 
@@ -607,7 +611,7 @@ public final class BoostCommand implements JobsCommand {
     return Command.SINGLE_SUCCESS;
   }
 
-  private int showSourceInfo(CommandSourceStack source, Key sourceKey) {
+  private int showSourceInfo(@NotNull CommandSourceStack source, @NotNull Key sourceKey) {
     CommandSender sender = source.getSender();
 
     BoostSource boostSource = boostSourceRegistry.get(sourceKey).orElse(null);
@@ -632,7 +636,8 @@ public final class BoostCommand implements JobsCommand {
     return Command.SINGLE_SUCCESS;
   }
 
-  private void showRuledSourceDetails(CommandSender sender, RuledBoostSource source) {
+  private void showRuledSourceDetails(
+      @NotNull CommandSender sender, @NotNull RuledBoostSource source) {
     var rules = source.rules();
     Messages.send(sender, "<neutral>Rules: <secondary>" + rules.size() + " rule(s)");
 
@@ -656,7 +661,8 @@ public final class BoostCommand implements JobsCommand {
     }
   }
 
-  private String formatBoostEffects(BoostSource source) {
+  @Contract(pure = true)
+  private @NotNull String formatBoostEffects(@NotNull BoostSource source) {
     if (source instanceof RuledBoostSource ruledSource) {
       List<Rule> rules = ruledSource.rules();
       if (rules.isEmpty()) {
@@ -682,7 +688,8 @@ public final class BoostCommand implements JobsCommand {
     return desc != null && !desc.isEmpty() ? desc : "Active";
   }
 
-  private String formatBoost(Boost boost) {
+  @Contract(pure = true)
+  private @NotNull String formatBoost(@NotNull Boost boost) {
     return switch (boost) {
       case MultiplicativeBoostImpl m -> "x" + m.amount().stripTrailingZeros().toPlainString();
       case AdditiveBoostImpl a -> "+" + a.amount().stripTrailingZeros().toPlainString();
@@ -690,5 +697,5 @@ public final class BoostCommand implements JobsCommand {
     };
   }
 
-  private record PassiveBoostInfo(BoostSource boostSource, int slot) {}
+  private record PassiveBoostInfo(@NotNull BoostSource boostSource, int slot) {}
 }

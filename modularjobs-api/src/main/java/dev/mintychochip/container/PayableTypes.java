@@ -3,6 +3,8 @@ package dev.mintychochip.container;
 import dev.mintychochip.registry.RegistryContainer;
 import dev.mintychochip.registry.RegistryKeys;
 import net.kyori.adventure.key.Key;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Well-known {@link PayableType} instances resolved from the payable-type registry.
@@ -30,7 +32,8 @@ public class PayableTypes {
    * @param keyString the key name without namespace
    * @return the registered payable type
    */
-  private static PayableType type(String keyString) {
+  @Contract(pure = true)
+  private static @NotNull PayableType type(@NotNull String keyString) {
     return RegistryContainer.registryContainer()
         .getRegistry(RegistryKeys.PAYABLE_TYPES)
         .getOrThrow(Key.key("modularjobs", keyString));

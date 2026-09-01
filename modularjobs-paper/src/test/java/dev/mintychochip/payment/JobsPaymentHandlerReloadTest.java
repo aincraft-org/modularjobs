@@ -4,10 +4,15 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 
 import dev.mintychochip.Job;
-import dev.mintychochip.JobProgression;
+import dev.mintychochip.JobKey;
+import dev.mintychochip.JobNode;
+import dev.mintychochip.JobNodeKey;
 import dev.mintychochip.JobTask;
 import dev.mintychochip.LevelingCurve;
 import dev.mintychochip.PayableCurve;
+import dev.mintychochip.PlayerJobState;
+import dev.mintychochip.boost.BoostDataCodec;
+import dev.mintychochip.boost.BoostFactoryImpl;
 import dev.mintychochip.container.ActionType;
 import dev.mintychochip.container.Context;
 import dev.mintychochip.container.Context.MaterialContext;
@@ -15,8 +20,14 @@ import dev.mintychochip.container.Payable;
 import dev.mintychochip.container.PayableAmount;
 import dev.mintychochip.container.PayableHandler;
 import dev.mintychochip.container.PayableType;
+import dev.mintychochip.container.boost.BoostData.SerializableBoostData;
+import dev.mintychochip.container.boost.BoostData.TimedBoostData;
+import dev.mintychochip.container.boost.TimedBoostDataService;
+import dev.mintychochip.container.boost.TimedBoostDataService.ActiveBoostData;
+import dev.mintychochip.databag.gson.GsonConditionSerializer;
 import dev.mintychochip.profession.RecipeDefinition;
 import dev.mintychochip.profession.RecipeExperienceDepreciationPolicy;
+import dev.mintychochip.service.ItemBoostDataService;
 import dev.mintychochip.service.JobService;
 import dev.mintychochip.service.ProfessionService;
 import dev.mintychochip.service.RecipeService;
@@ -34,14 +45,13 @@ import net.kyori.adventure.text.Component;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockbukkit.mockbukkit.MockBukkit;
 
-/**
- * Proves {@link JobsPaymentHandler} reloads progression per payable so multi-XP awards accumulate.
- */
+/** Proves {@link JobsPaymentHandler} reloads state per payable so multi-XP awards accumulate. */
 class JobsPaymentHandlerReloadTest {
 
   private Plugin plugin;
@@ -58,75 +68,122 @@ class JobsPaymentHandlerReloadTest {
   }
 
   @Test
-  void reloadProgressionUsesServiceOverSnapshot() {
+  void reloadStateUsesServiceOverSnapshot() {
     OfflinePlayer player = MockBukkitSupport.offlinePlayer(UUID.randomUUID());
-    JobProgression snapshot = progression(player, BigDecimal.TEN);
-    JobProgression reloaded = progression(player, new BigDecimal("99"));
+    PlayerJobState snapshot = state(player, BigDecimal.TEN);
+    PlayerJobState reloaded = state(player, new BigDecimal("99"));
     AtomicInteger getCalls = new AtomicInteger();
     JobService service =
         new StubJobService() {
           @Override
-          public JobProgression getProgression(String playerId, String jobKey) {
+          public @NotNull PlayerJobState getPlayerJobState(
+              @NotNull String playerId, @NotNull String jobKey) {
             getCalls.incrementAndGet();
             return reloaded;
           }
         };
-    JobsPaymentHandler handler =
-        new JobsPaymentHandler(plugin, new BoostEngine(null, null, null), service);
-    JobProgression result =
-        handler.reloadProgression(player.getUniqueId().toString(), "modularjobs:miner", snapshot);
+    JobsPaymentHandler handler = new JobsPaymentHandler(plugin, unusedBoostEngine(), service);
+    PlayerJobState result =
+        handler.reloadState(player.getUniqueId().toString(), "modularjobs:miner", snapshot);
     assertSame(reloaded, result);
     assertEquals(1, getCalls.get());
   }
 
   @Test
-  void payReloadsProgressionForEachPayable() {
-    AtomicInteger getProgressionCalls = new AtomicInteger();
+  void payReloadsStateForEachPayable() {
+    AtomicInteger getStateCalls = new AtomicInteger();
     List<BigDecimal> xpSnapshotsAtPay = new ArrayList<>();
     OfflinePlayer player = MockBukkitSupport.offlinePlayer(UUID.randomUUID());
 
-    JobProgression p0 = progression(player, new BigDecimal("0"));
-    JobProgression p10 = progression(player, new BigDecimal("10"));
+    PlayerJobState p0 = state(player, new BigDecimal("0"));
+    PlayerJobState p10 = state(player, new BigDecimal("10"));
 
-    PayableType expType =
-        experienceType(ctx -> xpSnapshotsAtPay.add(ctx.jobProgression().experience()));
+    PayableType expType = experienceType(ctx -> xpSnapshotsAtPay.add(ctx.jobState().experience()));
 
-    Payable pay1 = new Payable(expType, PayableAmount.create(new BigDecimal("10"), null));
-    Payable pay2 = new Payable(expType, PayableAmount.create(new BigDecimal("10"), null));
+    Payable pay1 = new Payable(expType, PayableAmount.create(new BigDecimal("10")));
+    Payable pay2 = new Payable(expType, PayableAmount.create(new BigDecimal("10")));
     Job job = p0.job();
     ActionType blockBreak = actionType("block_break");
     JobTask task =
         new JobTask(
-            job.key(), blockBreak.key(), Key.key("minecraft", "stone"), List.of(pay1, pay2));
+            job.rootNode().nodeKey(),
+            blockBreak.key(),
+            Key.key("minecraft", "stone"),
+            List.of(pay1, pay2));
 
     JobService service =
         new StubJobService() {
           @Override
-          public List<JobProgression> getProgressions(UUID p) {
+          public @NotNull List<PlayerJobState> getPlayerJobStates(@NotNull UUID p) {
             return List.of(p0);
           }
 
           @Override
-          public JobTask getTask(Job j, ActionType type, Context context) {
+          public @NotNull JobTask getTask(
+              @NotNull Job j,
+              @NotNull JobNodeKey nodeKey,
+              @NotNull ActionType type,
+              @NotNull Context context) {
             return task;
           }
 
           @Override
-          public JobProgression getProgression(String playerId, String jobKey) {
-            int n = getProgressionCalls.getAndIncrement();
+          public @NotNull PlayerJobState getPlayerJobState(
+              @NotNull String playerId, @NotNull String jobKey) {
+            int n = getStateCalls.getAndIncrement();
             return n == 0 ? p0 : p10;
           }
         };
 
     // Offline player → BoostEngine.evaluate returns empty without needing services
-    JobsPaymentHandler handler =
-        new JobsPaymentHandler(plugin, new BoostEngine(null, null, null), service);
-    handler.pay(player, blockBreak, new MaterialContext("minecraft:stone"));
+    JobsPaymentHandler handler = new JobsPaymentHandler(plugin, unusedBoostEngine(), service);
+    handler.pay(player, blockBreak, new MaterialContext(Key.key("minecraft", "stone")));
 
-    assertEquals(2, getProgressionCalls.get(), "one reload per payable");
+    assertEquals(2, getStateCalls.get(), "one reload per payable");
     assertEquals(2, xpSnapshotsAtPay.size());
     assertEquals(0, xpSnapshotsAtPay.get(0).compareTo(BigDecimal.ZERO));
     assertEquals(0, xpSnapshotsAtPay.get(1).compareTo(new BigDecimal("10")));
+  }
+
+  @Test
+  void payAppliesTreeWideCurveForThePayableType() {
+    List<BigDecimal> paid = new ArrayList<>();
+    OfflinePlayer player = MockBukkitSupport.offlinePlayer(UUID.randomUUID());
+    PayableType experience = experienceType(ctx -> paid.add(ctx.payable().amount().value()));
+    PlayerJobState state =
+        state(
+            player,
+            BigDecimal.ZERO,
+            Map.of(
+                experience.key(), parameters -> parameters.base().multiply(BigDecimal.valueOf(2))));
+    ActionType blockBreak = actionType("block_break");
+    JobTask task =
+        new JobTask(
+            state.currentNode().nodeKey(),
+            blockBreak.key(),
+            Key.key("minecraft", "stone"),
+            List.of(new Payable(experience, PayableAmount.create(BigDecimal.TEN))));
+    JobService service =
+        new StubJobService() {
+          @Override
+          public @NotNull List<PlayerJobState> getPlayerJobStates(@NotNull UUID playerId) {
+            return List.of(state);
+          }
+
+          @Override
+          public @NotNull JobTask getTask(
+              @NotNull Job job,
+              @NotNull JobNodeKey nodeKey,
+              @NotNull ActionType type,
+              @NotNull Context context) {
+            return task;
+          }
+        };
+
+    new JobsPaymentHandler(plugin, unusedBoostEngine(), service)
+        .pay(player, blockBreak, new MaterialContext(Key.key("minecraft", "stone")));
+
+    assertEquals(List.of(new BigDecimal("20")), paid);
   }
 
   @Test
@@ -140,12 +197,12 @@ class JobsPaymentHandlerReloadTest {
     recipes.registerDefinition(new RecipeDefinition(recipeId, "weaponsmithing", 25, 2, output));
 
     PayableType expType = experienceType(ctx -> paid.add(ctx.payable().amount().value()));
-    Payable payable = new Payable(expType, PayableAmount.create(new BigDecimal("100"), null));
-    JobProgression progression = progression(player, BigDecimal.ZERO);
+    Payable payable = new Payable(expType, PayableAmount.create(new BigDecimal("100")));
+    PlayerJobState state = state(player, BigDecimal.ZERO);
     ActionType craft = actionType("craft");
     JobTask task =
         new JobTask(
-            progression.job().key(),
+            state.currentNode().nodeKey(),
             craft.key(),
             Key.key("minecraft", "iron_sword"),
             List.of(payable));
@@ -153,12 +210,16 @@ class JobsPaymentHandlerReloadTest {
     JobService service =
         new StubJobService() {
           @Override
-          public List<JobProgression> getProgressions(UUID p) {
-            return List.of(progression);
+          public @NotNull List<PlayerJobState> getPlayerJobStates(@NotNull UUID p) {
+            return List.of(state);
           }
 
           @Override
-          public JobTask getTask(Job job, ActionType type, Context context) {
+          public @NotNull JobTask getTask(
+              @NotNull Job job,
+              @NotNull JobNodeKey nodeKey,
+              @NotNull ActionType type,
+              @NotNull Context context) {
             return task;
           }
         };
@@ -170,8 +231,8 @@ class JobsPaymentHandlerReloadTest {
             new RecordingProfessionService(30));
 
     JobsPaymentHandler handler =
-        new JobsPaymentHandler(plugin, new BoostEngine(null, null, null), service, depreciation);
-    handler.pay(player, craft, new Context.ItemContext("minecraft:iron_sword", 1));
+        new JobsPaymentHandler(plugin, unusedBoostEngine(), service, depreciation);
+    handler.pay(player, craft, new Context.ItemContext(output, 1));
 
     assertEquals(output, recipes.lastCraftOutputLookup());
     assertEquals(1, paid.size());
@@ -183,42 +244,44 @@ class JobsPaymentHandlerReloadTest {
     private Key lastCraftOutputLookup;
 
     @Override
-    public boolean knows(UUID playerId, Key recipeId) {
+    public boolean knows(@NotNull UUID playerId, @NotNull Key recipeId) {
       return false;
     }
 
     @Override
-    public void grant(UUID playerId, Key recipeId) {}
+    public void grant(@NotNull UUID playerId, @NotNull Key recipeId) {}
 
     @Override
-    public void revoke(UUID playerId, Key recipeId) {}
+    public void revoke(@NotNull UUID playerId, @NotNull Key recipeId) {}
 
     @Override
-    public java.util.Set<Key> knownRecipes(UUID playerId) {
+    public @NotNull java.util.Set<Key> knownRecipes(@NotNull UUID playerId) {
       return java.util.Set.of();
     }
 
     @Override
-    public boolean canCraft(UUID playerId, Key recipeId, int professionLevel) {
+    public boolean canCraft(@NotNull UUID playerId, @NotNull Key recipeId, int professionLevel) {
       return false;
     }
 
     @Override
-    public void registerDefinition(RecipeDefinition definition) {
+    public void registerDefinition(@NotNull RecipeDefinition definition) {
       byCraftOutput.put(definition.craftOutputKey(), definition);
     }
 
     @Override
-    public java.util.Optional<RecipeDefinition> definition(Key recipeId) {
+    public @NotNull java.util.Optional<RecipeDefinition> definition(@NotNull Key recipeId) {
       return java.util.Optional.empty();
     }
 
     @Override
-    public java.util.Optional<RecipeDefinition> definitionForCraftOutput(Key outputMaterialKey) {
+    public @NotNull java.util.Optional<RecipeDefinition> definitionForCraftOutput(
+        @NotNull Key outputMaterialKey) {
       lastCraftOutputLookup = outputMaterialKey;
       return java.util.Optional.ofNullable(byCraftOutput.get(outputMaterialKey));
     }
 
+    @Nullable
     Key lastCraftOutputLookup() {
       return lastCraftOutputLookup;
     }
@@ -232,38 +295,59 @@ class JobsPaymentHandlerReloadTest {
     }
 
     @Override
-    public List<dev.mintychochip.profession.ProfessionDefinition> tracks() {
+    public @NotNull List<dev.mintychochip.profession.ProfessionDefinition> tracks() {
       return List.of();
     }
 
     @Override
-    public java.util.Optional<dev.mintychochip.profession.ProfessionDefinition> resolve(
-        String idOrAlias) {
+    public @NotNull java.util.Optional<dev.mintychochip.profession.ProfessionDefinition> resolve(
+        @NotNull String idOrAlias) {
       return java.util.Optional.empty();
     }
 
     @Override
-    public OptionalInt level(UUID playerId, String professionIdOrAlias) {
+    public @NotNull OptionalInt level(@NotNull UUID playerId, @NotNull String professionIdOrAlias) {
       return OptionalInt.of(level);
     }
 
     @Override
-    public java.util.Optional<BigDecimal> experience(UUID playerId, String professionIdOrAlias) {
+    public @NotNull java.util.Optional<BigDecimal> experience(
+        @NotNull UUID playerId, @NotNull String professionIdOrAlias) {
       return java.util.Optional.empty();
     }
 
     @Override
-    public boolean ensureTrack(UUID playerId, String professionIdOrAlias) {
+    public boolean ensureTrack(@NotNull UUID playerId, @NotNull String professionIdOrAlias) {
       return false;
     }
   }
 
-  private static JobProgression progression(OfflinePlayer player, BigDecimal xp) {
-    Job job =
-        new Job() {
+  private static @NotNull PlayerJobState state(
+      @NotNull OfflinePlayer player, @NotNull BigDecimal xp) {
+    return state(player, xp, Map.of());
+  }
+
+  private static @NotNull PlayerJobState state(
+      @NotNull OfflinePlayer player,
+      @NotNull BigDecimal xp,
+      @NotNull Map<Key, PayableCurve> payableCurves) {
+    JobKey jobKey = new JobKey(Key.key("modularjobs", "miner"));
+    JobNodeKey nodeKey = new JobNodeKey(jobKey.key());
+    JobNode root =
+        new JobNode() {
           @Override
-          public @NotNull Key key() {
-            return Key.key("modularjobs", "miner");
+          public @NotNull JobKey jobKey() {
+            return jobKey;
+          }
+
+          @Override
+          public @NotNull JobNodeKey nodeKey() {
+            return nodeKey;
+          }
+
+          @Override
+          public JobNodeKey parentKey() {
+            return null;
           }
 
           @Override
@@ -272,13 +356,30 @@ class JobsPaymentHandlerReloadTest {
           }
 
           @Override
-          public String getPlainName() {
+          public @NotNull String getPlainName() {
             return "miner";
           }
 
           @Override
           public @NotNull Component description() {
             return Component.empty();
+          }
+        };
+    Job job =
+        new Job() {
+          @Override
+          public @NotNull JobKey jobKey() {
+            return jobKey;
+          }
+
+          @Override
+          public @NotNull JobNode rootNode() {
+            return root;
+          }
+
+          @Override
+          public @NotNull Map<JobNodeKey, JobNode> nodes() {
+            return Map.of(nodeKey, root);
           }
 
           @Override
@@ -288,42 +389,37 @@ class JobsPaymentHandlerReloadTest {
 
           @Override
           public @NotNull Map<Key, PayableCurve> payableCurves() {
-            return Map.of();
+            return payableCurves;
           }
 
           @Override
           public int maxLevel() {
             return 100;
           }
-
-          @Override
-          public int upgradeLevel() {
-            return 0;
-          }
-
-          @Override
-          public @NotNull Map<Integer, List<String>> perkUnlocks() {
-            return Map.of();
-          }
         };
-    return new JobProgression() {
+    return new PlayerJobState() {
       @Override
-      public BigDecimal experienceForLevel(int level) {
+      public @NotNull JobNode currentNode() {
+        return root;
+      }
+
+      @Override
+      public @NotNull BigDecimal experienceForLevel(int level) {
         return BigDecimal.valueOf(level * 100L);
       }
 
       @Override
-      public Job job() {
+      public @NotNull Job job() {
         return job;
       }
 
       @Override
-      public UUID playerId() {
+      public @NotNull UUID playerId() {
         return player.getUniqueId();
       }
 
       @Override
-      public BigDecimal experience() {
+      public @NotNull BigDecimal experience() {
         return xp;
       }
 
@@ -333,44 +429,75 @@ class JobsPaymentHandlerReloadTest {
       }
 
       @Override
-      public JobProgression setExperience(BigDecimal experience) {
-        return progression(player, experience);
+      public @NotNull PlayerJobState withExperience(@NotNull BigDecimal experience) {
+        return state(player, experience);
+      }
+
+      @Override
+      public @NotNull PlayerJobState withCurrentNode(@NotNull JobNodeKey newNodeKey) {
+        if (!nodeKey.equals(newNodeKey)) {
+          throw new IllegalArgumentException();
+        }
+        return this;
       }
     };
   }
 
-  private static ActionType actionType(String name) {
+  private static @NotNull ActionType actionType(@NotNull String name) {
     Key key = Key.key("modularjobs", name);
     return new ActionType() {
       @Override
-      public Key key() {
+      public @NotNull Key key() {
         return key;
       }
 
       @Override
-      public String name() {
+      public @NotNull String name() {
         return name;
       }
     };
   }
 
-  private static PayableType experienceType(PayableHandler handler) {
+  private static @NotNull PayableType experienceType(@NotNull PayableHandler handler) {
     return new PayableType() {
       @Override
-      public PayableHandler handler() {
+      public @NotNull PayableHandler handler() {
         return handler;
       }
 
       @Override
-      public Key key() {
+      public @NotNull Key key() {
         return Key.key("modularjobs", "experience");
       }
-
-      @Override
-      public Component render(PayableAmount amount, int places) {
-        return Component.empty();
-      }
     };
+  }
+
+  private static @NotNull BoostEngine unusedBoostEngine() {
+    ItemBoostDataService itemBoosts =
+        new ItemBoostDataService(
+            new BoostDataCodec(GsonConditionSerializer.gson(), BoostFactoryImpl.INSTANCE));
+    TimedBoostDataService timedBoosts =
+        new TimedBoostDataService() {
+          @Override
+          public @NotNull List<ActiveBoostData> findApplicableBoosts(@NotNull Target target) {
+            return List.of();
+          }
+
+          @Override
+          public @NotNull List<ActiveBoostData> findBoosts(@NotNull Target target) {
+            return List.of();
+          }
+
+          @Override
+          public <T extends TimedBoostData & SerializableBoostData> void addData(
+              @NotNull T data, @NotNull Target target) {}
+
+          @Override
+          public boolean removeBoost(@NotNull Target target, @NotNull String sourceIdentifier) {
+            return false;
+          }
+        };
+    return new BoostEngine(itemBoosts, timedBoosts, (playerId, jobKey) -> List.of());
   }
 
   private abstract static class StubJobService implements JobService {
@@ -380,52 +507,58 @@ class JobsPaymentHandlerReloadTest {
     }
 
     @Override
-    public Job getJob(String jobKey) {
+    public @NotNull Job getJob(@NotNull String jobKey) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public @Nullable JobTask getTask(
+        @NotNull Job job,
+        @NotNull JobNodeKey nodeKey,
+        @NotNull ActionType type,
+        @NotNull Context context) {
       return null;
     }
 
     @Override
-    public JobTask getTask(Job job, ActionType type, Context context) {
-      return null;
-    }
-
-    @Override
-    public Map<ActionType, List<JobTask>> getAllTasks(Job job) {
+    public @NotNull Map<ActionType, List<JobTask>> getAllTasks(
+        @NotNull Job job, @NotNull JobNodeKey nodeKey) {
       return Map.of();
     }
 
     @Override
-    public boolean update(JobProgression progression) {
+    public boolean update(@NotNull PlayerJobState state) {
       return true;
     }
 
     @Override
-    public boolean joinJob(String playerId, String jobKey) {
+    public boolean joinJob(@NotNull String playerId, @NotNull String jobKey) {
       return false;
     }
 
     @Override
-    public boolean leaveJob(String playerId, String jobKey) {
+    public boolean leaveJob(@NotNull String playerId, @NotNull String jobKey) {
       return false;
     }
 
     @Override
-    public JobProgression getProgression(String playerId, String jobKey) {
+    public @Nullable PlayerJobState getPlayerJobState(
+        @NotNull String playerId, @NotNull String jobKey) {
       return null;
     }
 
     @Override
-    public List<JobProgression> getProgressions(UUID playerId) {
+    public @NotNull List<PlayerJobState> getPlayerJobStates(@NotNull UUID playerId) {
       return List.of();
     }
 
     @Override
-    public List<JobProgression> getProgressions(Key jobKey, int limit) {
+    public @NotNull List<PlayerJobState> getPlayerJobStates(@NotNull Key jobKey, int limit) {
       return List.of();
     }
 
     @Override
-    public List<JobProgression> getArchivedProgressions(UUID playerId) {
+    public @NotNull List<PlayerJobState> getArchivedPlayerJobStates(@NotNull UUID playerId) {
       return List.of();
     }
   }

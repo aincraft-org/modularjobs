@@ -14,6 +14,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.Map;
 import org.bukkit.plugin.Plugin;
+import org.jetbrains.annotations.NotNull;
 
 /** Loads boost sources from JSON configuration file. */
 public final class BoostSourceLoader {
@@ -31,11 +32,11 @@ public final class BoostSourceLoader {
    * first load) and registers parsed sources into {@code registry}.
    */
   public BoostSourceLoader(
-      Plugin plugin,
-      Gson gson,
-      ConditionFactory conditionFactory,
-      BoostFactory boostFactory,
-      Registry<BoostSource> registry) {
+      @NotNull Plugin plugin,
+      @NotNull Gson gson,
+      @NotNull ConditionFactory conditionFactory,
+      @NotNull BoostFactory boostFactory,
+      @NotNull Registry<BoostSource> registry) {
     this.plugin = plugin;
     this.gson = gson;
     this.parser = new BoostSourceConfigParser(conditionFactory, boostFactory);
@@ -74,7 +75,7 @@ public final class BoostSourceLoader {
     return load();
   }
 
-  private int loadFromReader(java.io.Reader reader) {
+  private int loadFromReader(@NotNull java.io.Reader reader) {
     JsonObject root = gson.fromJson(reader, JsonObject.class);
     if (root == null || !root.has("boost_sources")) {
       plugin.getLogger().warning("No 'boost_sources' key found in configuration");
@@ -101,7 +102,7 @@ public final class BoostSourceLoader {
     return count;
   }
 
-  private void createDefaultConfig(File configFile) {
+  private void createDefaultConfig(@NotNull File configFile) {
     try {
       // Ensure data folder exists
       if (!plugin.getDataFolder().exists()) {

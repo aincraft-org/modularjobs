@@ -34,6 +34,7 @@ public interface RecipeService {
   }
 
   /** Definition. */
+  @NotNull
   Optional<RecipeDefinition> definition(@NotNull Key recipeId);
 
   /**
@@ -42,7 +43,8 @@ public interface RecipeService {
    * <p>Default implementation matches {@link #definition(Key)} only; implementations may also index
    * {@link RecipeDefinition#craftOutputKey()}.
    */
-  default Optional<RecipeDefinition> definitionForCraftOutput(@NotNull Key outputMaterialKey) {
+  default @NotNull Optional<RecipeDefinition> definitionForCraftOutput(
+      @NotNull Key outputMaterialKey) {
     return definition(outputMaterialKey);
   }
 

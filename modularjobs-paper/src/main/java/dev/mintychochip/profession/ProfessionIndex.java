@@ -30,12 +30,7 @@ final class ProfessionIndex {
       ProfessionDefinition definition = Objects.requireNonNull(tracks.get(index), "definition");
       putUnique(ids, idIndexes, definition.id(), definition, index, "id");
       putUnique(
-          storageKeys,
-          storageIndexes,
-          definition.storageKey(),
-          definition,
-          index,
-          "storage-key");
+          storageKeys, storageIndexes, definition.storageKey(), definition, index, "storage-key");
     }
     for (Map.Entry<String, Integer> entry : idIndexes.entrySet()) {
       Integer storageIndex = storageIndexes.get(entry.getKey());
@@ -53,11 +48,13 @@ final class ProfessionIndex {
     byStorageKey = Map.copyOf(storageKeys);
   }
 
-  @NotNull List<ProfessionDefinition> tracks() {
+  @NotNull
+  List<ProfessionDefinition> tracks() {
     return tracks;
   }
 
-  @NotNull Optional<ProfessionDefinition> resolve(@Nullable String input) {
+  @NotNull
+  Optional<ProfessionDefinition> resolve(@Nullable String input) {
     if (input == null || input.isBlank()) {
       return Optional.empty();
     }
@@ -80,7 +77,14 @@ final class ProfessionIndex {
     Integer previous = indexes.putIfAbsent(key, index);
     if (previous != null) {
       throw new IllegalArgumentException(
-          "duplicate profession " + field + " '" + key + "' at indexes " + previous + " and " + index);
+          "duplicate profession "
+              + field
+              + " '"
+              + key
+              + "' at indexes "
+              + previous
+              + " and "
+              + index);
     }
     definitions.put(key, definition);
   }

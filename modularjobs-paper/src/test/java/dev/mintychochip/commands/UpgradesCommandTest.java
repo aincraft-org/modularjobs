@@ -9,6 +9,8 @@ import java.lang.reflect.Proxy;
 import java.util.Map;
 import java.util.Optional;
 import net.kyori.adventure.key.Key;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 
 class UpgradesCommandTest {
@@ -23,7 +25,7 @@ class UpgradesCommandTest {
     assertTrue(UpgradesCommand.hasTreeForJob(service, "miner"));
   }
 
-  private static UpgradeService serviceWithSkillTree(SkillTree tree) {
+  private static @NotNull UpgradeService serviceWithSkillTree(@NotNull SkillTree tree) {
     return (UpgradeService)
         Proxy.newProxyInstance(
             Thread.currentThread().getContextClassLoader(),
@@ -36,7 +38,7 @@ class UpgradesCommandTest {
                 });
   }
 
-  private static Object defaultValue(Class<?> type) {
+  private static @Nullable Object defaultValue(@NotNull Class<?> type) {
     if (type == boolean.class) {
       return false;
     }

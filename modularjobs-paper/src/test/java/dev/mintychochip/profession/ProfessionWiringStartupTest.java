@@ -4,26 +4,24 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import dev.mintychochip.Job;
-import dev.mintychochip.JobProgression;
-import dev.mintychochip.JobTask;
-import dev.mintychochip.container.ActionType;
-import dev.mintychochip.container.Context;
-import dev.mintychochip.service.JobService;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import net.kyori.adventure.key.Key;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockbukkit.mockbukkit.MockBukkit;
 
 /**
- * Proves {@link ProfessionWiring#create} loads the bundled {@code recipes.yml} without duplicate
- * craft-output conflicts (startup-fatal with default resources).
+ * Proves {@link ProfessionWiring#create} loads bundled profession and recipe resources through the
+ * real {@code saveResource} path.
  */
 class ProfessionWiringStartupTest {
 
@@ -38,9 +36,14 @@ class ProfessionWiringStartupTest {
   }
 
   @Test
-  void createLoadsBundledRecipesYmlThroughSaveResourcePath() {
-    JavaPlugin plugin = MockBukkit.loadSimple(RecipeLoaderTestPlugin.class);
-    ProfessionWiring wiring = ProfessionWiring.create(plugin, unusedJobService());
+  void createLoadsBundledProfessionAndRecipeYmlThroughSaveResourcePath() {
+    JavaPlugin plugin = MockBukkit.loadSimple(ProfessionWiringTestPlugin.class);
+    ProfessionWiring wiring =
+        ProfessionWiring.create(plugin, StubJobService.withJobs(bundledJobStorageKeys()));
+
+    assertTrue(Files.isRegularFile(plugin.getDataFolder().toPath().resolve("professions.yml")));
+    assertEquals(15, wiring.professionService.tracks().size());
+    assertEquals("mining", wiring.professionService.resolve("miner").orElseThrow().id());
 
     assertNotNull(wiring.recipeService);
     assertTrue(
@@ -62,62 +65,17 @@ class ProfessionWiringStartupTest {
             .requiredLevel());
   }
 
-  private static JobService unusedJobService() {
-    return new JobService() {
-      @Override
-      public List<Job> getJobs() {
-        return List.of();
-      }
-
-      @Override
-      public Job getJob(String jobKey) {
-        throw new IllegalArgumentException("unknown job: " + jobKey);
-      }
-
-      @Override
-      public JobTask getTask(Job job, ActionType type, Context context) {
-        return null;
-      }
-
-      @Override
-      public Map<ActionType, List<JobTask>> getAllTasks(Job job) {
-        return Map.of();
-      }
-
-      @Override
-      public boolean update(JobProgression progression) {
-        return false;
-      }
-
-      @Override
-      public boolean joinJob(String playerId, String jobKey) {
-        return false;
-      }
-
-      @Override
-      public boolean leaveJob(String playerId, String jobKey) {
-        return false;
-      }
-
-      @Override
-      public JobProgression getProgression(String playerId, String jobKey) {
-        throw new IllegalArgumentException("unknown job: " + jobKey);
-      }
-
-      @Override
-      public List<JobProgression> getProgressions(UUID playerId) {
-        return Collections.emptyList();
-      }
-
-      @Override
-      public List<JobProgression> getProgressions(Key jobKey, int limit) {
-        return Collections.emptyList();
-      }
-
-      @Override
-      public List<JobProgression> getArchivedProgressions(UUID playerId) {
-        return Collections.emptyList();
-      }
-    };
+  private static @NotNull String[] bundledJobStorageKeys() {
+    InputStream resource =
+        ProfessionWiringTestPlugin.class.getClassLoader().getResourceAsStream("jobs.yml");
+    if (resource == null) {
+      throw new AssertionError("missing bundled jobs.yml");
+    }
+    try (Reader reader = new InputStreamReader(resource, StandardCharsets.UTF_8)) {
+      YamlConfiguration yaml = YamlConfiguration.loadConfiguration(reader);
+      return yaml.getKeys(false).toArray(String[]::new);
+    } catch (IOException exception) {
+      throw new AssertionError("failed to read bundled jobs.yml", exception);
+    }
   }
 }

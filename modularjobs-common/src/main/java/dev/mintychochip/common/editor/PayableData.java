@@ -1,6 +1,7 @@
 package dev.mintychochip.common.editor;
 
 import com.google.gson.annotations.SerializedName;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -20,7 +21,8 @@ public record PayableData(
    * @param amount BigDecimal value as string for precision
    * @return new payable data instance
    */
-  public static PayableData create(@NotNull String type, @NotNull String amount) {
+  @Contract(pure = true)
+  public static @NotNull PayableData create(@NotNull String type, @NotNull String amount) {
     return new PayableData(type, amount);
   }
 }

@@ -3,6 +3,7 @@ package dev.mintychochip.upgrade;
 import java.util.Map;
 import java.util.Set;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -15,6 +16,7 @@ import org.jetbrains.annotations.NotNull;
 public interface NodeEffectApplier {
 
   /** The full active effect set the given state implies (pure computation). */
+  @Contract(pure = true)
   @NotNull
   Set<NodeEffect> derive(@NotNull SkillTreeState state, @NotNull SkillTree tree);
 

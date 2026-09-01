@@ -2,6 +2,7 @@ package dev.mintychochip.upgrade;
 
 import java.util.Map;
 import java.util.Set;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -11,23 +12,29 @@ import org.jetbrains.annotations.NotNull;
 public interface PlayerUpgradeData {
 
   /** The player's UUID as string. */
+  @Contract(pure = true)
   @NotNull
   String playerId();
 
   /** The job key this data belongs to. */
+  @Contract(pure = true)
   @NotNull
   String jobKey();
 
   /** Total skill points. */
+  @Contract(pure = true)
   int totalSkillPoints();
 
   /** Available skill points. */
+  @Contract(pure = true)
   int availableSkillPoints();
 
   /** Spent skill points. */
+  @Contract(pure = true)
   int spentSkillPoints();
 
   /** The full skill tree state backing this data (v2 format). */
+  @Contract(pure = true)
   @NotNull
   SkillTreeState state();
 
@@ -35,21 +42,25 @@ public interface PlayerUpgradeData {
    * Map of node key -> purchased level (v2 format). Only contains nodes that have been unlocked
    * (level >= 1).
    */
+  @Contract(pure = true)
   default @NotNull Map<String, Integer> nodeLevels() {
     return state().nodeLevels();
   }
 
   /** Set of unlocked node keys. */
+  @Contract(pure = true)
   @NotNull
   Set<String> unlockedNodes();
 
   /** Returns whether has unlocked. */
+  @Contract(pure = true)
   boolean hasUnlocked(@NotNull String nodeKey);
 
   /**
    * Map of perk levels (perkId -> max level unlocked). Only contains perks that have been unlocked
    * (level >= 1).
    */
+  @Contract(pure = true)
   @NotNull
   Map<String, Integer> perkLevels();
 
@@ -58,6 +69,7 @@ public interface PlayerUpgradeData {
    *
    * @return perk level (0 if not unlocked, else the max level unlocked)
    */
+  @Contract(pure = true)
   default int getPerkLevel(@NotNull String perkId) {
     return perkLevels().getOrDefault(perkId, 0);
   }
@@ -69,6 +81,7 @@ public interface PlayerUpgradeData {
    * @param perkId the perk ID to check
    * @return max level achievable for this perk, or 1 if unknown
    */
+  @Contract(pure = true)
   int getMaxLevel(@NotNull String perkId);
 
   /**
@@ -77,6 +90,7 @@ public interface PlayerUpgradeData {
    * @param perkId the perk ID to check
    * @return true if perk level equals max level, false otherwise
    */
+  @Contract(pure = true)
   default boolean isMaxLevel(@NotNull String perkId) {
     int current = getPerkLevel(perkId);
     int max = getMaxLevel(perkId);

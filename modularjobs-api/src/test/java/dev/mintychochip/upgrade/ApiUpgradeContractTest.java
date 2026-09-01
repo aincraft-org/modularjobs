@@ -6,6 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Map;
 import net.kyori.adventure.key.Key;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 
 class ApiUpgradeContractTest {
@@ -30,65 +32,72 @@ class ApiUpgradeContractTest {
     UpgradeService service =
         new UpgradeService() {
           @Override
-          public java.util.Optional<UpgradeTree> getTree(String jobKey) {
+          public @NotNull java.util.Optional<UpgradeTree> getTree(@NotNull String jobKey) {
             return java.util.Optional.empty();
           }
 
           @Override
-          public java.util.Optional<SkillTree> getSkillTree(String jobKey) {
+          public @NotNull java.util.Optional<SkillTree> getSkillTree(@NotNull String jobKey) {
             return java.util.Optional.empty();
           }
 
           @Override
-          public java.util.Collection<UpgradeTree> getAllTrees() {
+          public @NotNull java.util.Collection<UpgradeTree> getAllTrees() {
             return java.util.List.of();
           }
 
           @Override
-          public PlayerUpgradeData getPlayerData(String playerId, String jobKey) {
+          public @Nullable PlayerUpgradeData getPlayerData(
+              @NotNull String playerId, @NotNull String jobKey) {
             return null;
           }
 
           @Override
-          public java.util.Set<UpgradeNode> getAvailableNodes(String playerId, String jobKey) {
+          public @NotNull java.util.Set<UpgradeNode> getAvailableNodes(
+              @NotNull String playerId, @NotNull String jobKey) {
             return java.util.Set.of();
           }
 
           @Override
-          public UnlockResult unlock(String playerId, String jobKey, String nodeKey) {
+          public @NotNull UnlockResult unlock(
+              @NotNull String playerId, @NotNull String jobKey, @NotNull String nodeKey) {
             return new UnlockResult.TreeNotFound(jobKey);
           }
 
           @Override
-          public void awardSkillPoints(String playerId, String jobKey, int points) {}
+          public void awardSkillPoints(
+              @NotNull String playerId, @NotNull String jobKey, int points) {}
 
           @Override
-          public boolean resetUpgrades(String playerId, String jobKey) {
+          public boolean resetUpgrades(@NotNull String playerId, @NotNull String jobKey) {
             return false;
           }
 
           @Override
-          public SkillTreeState getSkillTreeState(String playerId, String jobKey) {
+          public @NotNull SkillTreeState getSkillTreeState(
+              @NotNull String playerId, @NotNull String jobKey) {
             return SkillTreeState.empty(playerId, jobKey);
           }
 
           @Override
-          public PurchaseResult purchaseSkillLevel(String playerId, String jobKey, String nodeKey) {
+          public @NotNull PurchaseResult purchaseSkillLevel(
+              @NotNull String playerId, @NotNull String jobKey, @NotNull String nodeKey) {
             return new PurchaseResult.TreeNotFound(jobKey);
           }
 
           @Override
-          public PurchaseResult purchaseMajor(String playerId, String jobKey, String nodeKey) {
+          public @NotNull PurchaseResult purchaseMajor(
+              @NotNull String playerId, @NotNull String jobKey, @NotNull String nodeKey) {
             return new PurchaseResult.TreeNotFound(jobKey);
           }
 
           @Override
-          public boolean resetTree(String playerId, String jobKey) {
+          public boolean resetTree(@NotNull String playerId, @NotNull String jobKey) {
             return false;
           }
 
           @Override
-          public void clearTreeState(String playerId, String jobKey) {}
+          public void clearTreeState(@NotNull String playerId, @NotNull String jobKey) {}
         };
 
     assertFalse(service.resetTree("player", "job"));

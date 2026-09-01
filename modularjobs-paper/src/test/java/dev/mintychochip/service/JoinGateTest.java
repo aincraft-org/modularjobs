@@ -3,13 +3,16 @@ package dev.mintychochip.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import dev.mintychochip.Job;
-import dev.mintychochip.JobProgression;
+import dev.mintychochip.PlayerJobState;
 import dev.mintychochip.config.ProgressionLimitsConfig;
 import dev.mintychochip.service.JoinGate.JoinResult;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 
 class JoinGateTest {
@@ -28,7 +31,7 @@ class JoinGateTest {
   void deniesWhenAtMaxJobs() {
     JoinGate gate =
         new JoinGate(new ProgressionLimitsConfig(1, List.of(), true), NO_DISABLED_WORLDS);
-    JobProgression existing = progression(job("farmer"));
+    PlayerJobState existing = state(job("farmer"));
     assertEquals(
         JoinResult.MAX_JOBS,
         gate.canJoin(permittedPlayer(true, "world"), job("miner"), List.of(existing)));
@@ -47,8 +50,8 @@ class JoinGateTest {
   void unlimitedMaxJobsDoesNotGate() {
     JoinGate gate =
         new JoinGate(new ProgressionLimitsConfig(0, List.of(), true), NO_DISABLED_WORLDS);
-    JobProgression a = progression(job("farmer"));
-    JobProgression b = progression(job("builder"));
+    PlayerJobState a = state(job("farmer"));
+    PlayerJobState b = state(job("builder"));
     assertEquals(
         JoinResult.ALLOWED,
         gate.canJoin(permittedPlayer(true, "world"), job("miner"), List.of(a, b)));
@@ -91,7 +94,7 @@ class JoinGateTest {
     assertEquals("jobs.join.miner", "jobs.join." + "Miner".toLowerCase(Locale.ROOT));
   }
 
-  private static Player permittedPlayer(boolean permitted, String worldName) {
+  private static @NotNull Player permittedPlayer(boolean permitted, @NotNull String worldName) {
     ClassLoader loader = Thread.currentThread().getContextClassLoader();
     return (Player)
         java.lang.reflect.Proxy.newProxyInstance(
@@ -108,7 +111,7 @@ class JoinGateTest {
             });
   }
 
-  private static Object world(String name) {
+  private static @NotNull Object world(@NotNull String name) {
     ClassLoader loader = Thread.currentThread().getContextClassLoader();
     return java.lang.reflect.Proxy.newProxyInstance(
         loader,
@@ -121,7 +124,7 @@ class JoinGateTest {
         });
   }
 
-  private static Job job(String name) {
+  private static @NotNull Job job(@NotNull String name) {
     ClassLoader loader = Thread.currentThread().getContextClassLoader();
     return (Job)
         java.lang.reflect.Proxy.newProxyInstance(
@@ -131,6 +134,10 @@ class JoinGateTest {
               if (method.getName().equals("getPlainName")) {
                 return name;
               }
+              if (method.getName().equals("jobKey")) {
+                return new dev.mintychochip.JobKey(
+                    net.kyori.adventure.key.Key.key("modularjobs", name.toLowerCase(Locale.ROOT)));
+              }
               if (method.getName().equals("key")) {
                 return net.kyori.adventure.key.Key.key(
                     "modularjobs", name.toLowerCase(Locale.ROOT));
@@ -139,12 +146,12 @@ class JoinGateTest {
             });
   }
 
-  private static JobProgression progression(Job job) {
+  private static @NotNull PlayerJobState state(@NotNull Job job) {
     ClassLoader loader = Thread.currentThread().getContextClassLoader();
-    return (JobProgression)
+    return (PlayerJobState)
         java.lang.reflect.Proxy.newProxyInstance(
             loader,
-            new Class<?>[] {JobProgression.class},
+            new Class<?>[] {PlayerJobState.class},
             (proxy, method, args) -> {
               if (method.getName().equals("job")) {
                 return job;
@@ -153,7 +160,8 @@ class JoinGateTest {
             });
   }
 
-  private static Object defaultValue(Class<?> type) {
+  @Contract(pure = true)
+  private static @Nullable Object defaultValue(@NotNull Class<?> type) {
     if (type == boolean.class) {
       return false;
     }

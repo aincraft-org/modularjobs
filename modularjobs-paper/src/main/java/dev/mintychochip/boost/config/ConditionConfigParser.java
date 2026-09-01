@@ -11,6 +11,8 @@ import dev.mintychochip.container.boost.WeatherState;
 import dev.mintychochip.container.boost.factories.ConditionFactory;
 import java.util.ArrayList;
 import java.util.List;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 
 /** Parses ConditionConfig from JSON into Condition instances. */
 public final class ConditionConfigParser {
@@ -18,7 +20,7 @@ public final class ConditionConfigParser {
   private final ConditionFactory conditionFactory;
 
   /** Creates a parser delegating condition construction to {@code conditionFactory}. */
-  public ConditionConfigParser(ConditionFactory conditionFactory) {
+  public ConditionConfigParser(@NotNull ConditionFactory conditionFactory) {
     this.conditionFactory = conditionFactory;
   }
 
@@ -27,9 +29,11 @@ public final class ConditionConfigParser {
    *
    * @throws IllegalArgumentException when the condition type is unknown or misconfigured
    */
-  public Condition parse(ConditionConfig config) {
+  @Contract(pure = true)
+  public @NotNull Condition parse(@NotNull ConditionConfig config) {
     return switch (config.type().toLowerCase()) {
-      case "always" -> SnapshotCondition.wrap(dev.mintychochip.databag.Conditions.always());
+      case "always" ->
+          SnapshotCondition.wrap(dev.mintychochip.databag.condition.Conditions.always());
       case "biome" -> parseBiome(config);
       case "world" -> parseWorld(config);
       case "sneaking" -> parseSneaking(config);
@@ -46,7 +50,8 @@ public final class ConditionConfigParser {
     };
   }
 
-  private Condition parseBiome(ConditionConfig config) {
+  @Contract(pure = true)
+  private @NotNull Condition parseBiome(@NotNull ConditionConfig config) {
     if (!(config.value() instanceof String biomeStr) || biomeStr.isBlank()) {
       throw new IllegalArgumentException("biome condition requires a non-empty string 'value'");
     }
@@ -58,24 +63,28 @@ public final class ConditionConfigParser {
    * Parse world by name or key string. Does not require the world to exist at parse time; matching
    * is deferred to snapshot evaluation.
    */
-  private Condition parseWorld(ConditionConfig config) {
+  @Contract(pure = true)
+  private @NotNull Condition parseWorld(@NotNull ConditionConfig config) {
     if (!(config.value() instanceof String worldName) || worldName.isBlank()) {
       throw new IllegalArgumentException("world condition requires a non-empty string 'value'");
     }
     return conditionFactory.world(worldName);
   }
 
-  private Condition parseSneaking(ConditionConfig config) {
+  @Contract(pure = true)
+  private @NotNull Condition parseSneaking(@NotNull ConditionConfig config) {
     boolean state = (boolean) config.value();
     return conditionFactory.sneaking(state);
   }
 
-  private Condition parseSprinting(ConditionConfig config) {
+  @Contract(pure = true)
+  private @NotNull Condition parseSprinting(@NotNull ConditionConfig config) {
     boolean state = (boolean) config.value();
     return conditionFactory.sprinting(state);
   }
 
-  private Condition parsePlayerResource(ConditionConfig config) {
+  @Contract(pure = true)
+  private @NotNull Condition parsePlayerResource(@NotNull ConditionConfig config) {
     String resourceTypeStr = config.resourceType();
     if (resourceTypeStr == null) {
       throw new IllegalArgumentException("player_resource condition requires 'resourceType'");
@@ -98,7 +107,8 @@ public final class ConditionConfigParser {
     return conditionFactory.playerResource(resourceType, value, operator);
   }
 
-  private Condition parsePotionEffect(ConditionConfig config) {
+  @Contract(pure = true)
+  private @NotNull Condition parsePotionEffect(@NotNull ConditionConfig config) {
     String effectStr = config.effect();
     if (effectStr == null || effectStr.isBlank()) {
       throw new IllegalArgumentException("potion_effect condition requires 'effect'");
@@ -116,7 +126,8 @@ public final class ConditionConfigParser {
     return conditionFactory.potionType(effectStr);
   }
 
-  private Condition parseLiquid(ConditionConfig config) {
+  @Contract(pure = true)
+  private @NotNull Condition parseLiquid(@NotNull ConditionConfig config) {
     Boolean touching = config.touching();
     if (touching == null || !touching) {
       throw new IllegalArgumentException("liquid condition currently only supports touching=true");
@@ -129,13 +140,15 @@ public final class ConditionConfigParser {
     return conditionFactory.liquid(materialKey);
   }
 
-  private Condition parseWeather(ConditionConfig config) {
+  @Contract(pure = true)
+  private @NotNull Condition parseWeather(@NotNull ConditionConfig config) {
     String weatherStr = (String) config.value();
     WeatherState state = WeatherState.valueOf(weatherStr.toUpperCase());
     return conditionFactory.weather(state);
   }
 
-  private Condition parseJob(ConditionConfig config) {
+  @Contract(pure = true)
+  private @NotNull Condition parseJob(@NotNull ConditionConfig config) {
     // Single job key
     if (config.value() != null) {
       String jobKey = (String) config.value();
@@ -160,14 +173,15 @@ public final class ConditionConfigParser {
    * Ensure job key is properly namespaced. If the key already contains a colon, return as-is.
    * Otherwise, prepend "modularjobs:" namespace.
    */
-  private String namespaceJobKey(String jobKey) {
+  private @NotNull String namespaceJobKey(@NotNull String jobKey) {
     if (jobKey.contains(":")) {
       return jobKey;
     }
     return "modularjobs:" + jobKey;
   }
 
-  private Condition parseComposite(ConditionConfig config, LogicalOperator operator) {
+  private @NotNull Condition parseComposite(
+      @NotNull ConditionConfig config, @NotNull LogicalOperator operator) {
     List<ConditionConfig> subConditions = config.conditions();
     if (subConditions == null || subConditions.size() < 2) {
       throw new IllegalArgumentException(
@@ -187,7 +201,7 @@ public final class ConditionConfigParser {
     return result;
   }
 
-  private Condition parseNegation(ConditionConfig config) {
+  private @NotNull Condition parseNegation(@NotNull ConditionConfig config) {
     ConditionConfig subCondition = config.condition();
     if (subCondition == null) {
       throw new IllegalArgumentException("not condition requires 'condition'");
@@ -195,7 +209,7 @@ public final class ConditionConfigParser {
     return conditionFactory.negate(parse(subCondition));
   }
 
-  private RelationalOperator parseRelationalOperator(String operator) {
+  private @NotNull RelationalOperator parseRelationalOperator(@NotNull String operator) {
     return switch (operator.toLowerCase()) {
       case "less_than", "<" -> RelationalOperator.LESS_THAN;
       case "less_than_or_equal", "<=" -> RelationalOperator.LESS_THAN_OR_EQUAL;
@@ -207,7 +221,7 @@ public final class ConditionConfigParser {
     };
   }
 
-  private PlayerResourceType parsePlayerResourceType(String resourceTypeStr) {
+  private @NotNull PlayerResourceType parsePlayerResourceType(@NotNull String resourceTypeStr) {
     return switch (resourceTypeStr.toUpperCase()) {
       case "HEALTH", "HP" -> PlayerResourceType.HEALTH;
       case "HUNGER", "FOOD", "FOOD_LEVEL" -> PlayerResourceType.HUNGER;

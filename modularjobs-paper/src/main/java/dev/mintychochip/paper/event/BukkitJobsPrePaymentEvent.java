@@ -34,15 +34,15 @@ public final class BukkitJobsPrePaymentEvent extends Event implements Cancellabl
     return pure;
   }
 
-  public Payable getPayable() {
+  public @NotNull Payable getPayable() {
     return pure.getPayable();
   }
 
-  public Job getJob() {
+  public @NotNull Job getJob() {
     return pure.getJob();
   }
 
-  public JobTask getJobTask() {
+  public @NotNull JobTask getJobTask() {
     return pure.getJobTask();
   }
 
@@ -61,7 +61,7 @@ public final class BukkitJobsPrePaymentEvent extends Event implements Cancellabl
     return HANDLERS;
   }
 
-  public static HandlerList getHandlerList() {
+  public static @NotNull HandlerList getHandlerList() {
     return HANDLERS;
   }
 }

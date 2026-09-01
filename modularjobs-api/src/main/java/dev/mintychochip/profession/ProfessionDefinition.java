@@ -6,7 +6,7 @@ import org.jetbrains.annotations.NotNull;
  * One built-in profession track.
  *
  * @param id canonical id (e.g. {@code mining})
- * @param storageKey ModularJobs job key used for progression/tasks (e.g. {@code miner})
+ * @param storageKey ModularJobs job/node key used for player state and tasks (e.g. {@code miner})
  * @param category gathering / processing / crafting
  * @param displayName plain English label
  */

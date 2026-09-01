@@ -4,6 +4,7 @@ import dev.mintychochip.Job;
 import dev.mintychochip.JobTask;
 import dev.mintychochip.container.ActionType;
 import dev.mintychochip.container.Payable;
+import dev.mintychochip.container.PayableRenderer;
 import dev.mintychochip.service.PreferencesService;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -19,6 +20,8 @@ import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 
 /** Job info inventory showing action types and rewards. */
 public final class JobInfoGui {
@@ -30,24 +33,38 @@ public final class JobInfoGui {
 
   private final PaperUiHost host;
   private final PreferencesService preferencesService;
+  private final PayableRenderer payableRenderer;
   private final Map<UUID, Session> sessions = new HashMap<>();
 
   private record Session(
-      Job job, List<Map.Entry<ActionType, List<JobTask>>> entries, int page, int entriesPerPage) {}
+      @NotNull Job job,
+      @NotNull List<Map.Entry<ActionType, List<JobTask>>> entries,
+      int page,
+      int entriesPerPage) {}
 
   /** Builds the job-info presenter over the shared native host. */
-  public JobInfoGui(PaperUiHost host, PreferencesService preferencesService) {
+  public JobInfoGui(
+      @NotNull PaperUiHost host,
+      @NotNull PreferencesService preferencesService,
+      @NotNull PayableRenderer payableRenderer) {
     this.host = host;
     this.preferencesService = preferencesService;
+    this.payableRenderer = payableRenderer;
   }
 
   /** Calculates the number of pages required for the supplied task groups. */
-  public int calculateTotalPages(Map<ActionType, List<JobTask>> tasks, int entriesPerPage) {
+  @Contract(pure = true)
+  public int calculateTotalPages(
+      @NotNull Map<ActionType, List<JobTask>> tasks, int entriesPerPage) {
     return Math.max(1, (int) Math.ceil((double) tasks.size() / Math.max(1, entriesPerPage)));
   }
 
   /** Opens the job-info inventory when {@code page} is valid. */
-  public boolean open(Player player, Job job, Map<ActionType, List<JobTask>> tasks, int page) {
+  public boolean open(
+      @NotNull Player player,
+      @NotNull Job job,
+      @NotNull Map<ActionType, List<JobTask>> tasks,
+      int page) {
     int entriesPerPage = preferencesService.getEntriesPerPage(player.getUniqueId());
     int totalPages = calculateTotalPages(tasks, entriesPerPage);
     if (page < 1 || page > totalPages) {
@@ -60,7 +77,7 @@ public final class JobInfoGui {
   }
 
   /** Opens the previous page for an owned info screen. */
-  public void onPrev(Player player, InventoryClickEvent event) {
+  public void onPrev(@NotNull Player player, @NotNull InventoryClickEvent event) {
     Session session = sessions.get(player.getUniqueId());
     if (session == null || session.page() <= 1) {
       return;
@@ -69,7 +86,7 @@ public final class JobInfoGui {
   }
 
   /** Opens the next page for an owned info screen. */
-  public void onNext(Player player, InventoryClickEvent event) {
+  public void onNext(@NotNull Player player, @NotNull InventoryClickEvent event) {
     Session session = sessions.get(player.getUniqueId());
     if (session == null) {
       return;
@@ -86,7 +103,7 @@ public final class JobInfoGui {
     reopen(player, session.page() + 1);
   }
 
-  private void reopen(Player player, int page) {
+  private void reopen(@NotNull Player player, int page) {
     Session session = sessions.get(player.getUniqueId());
     if (session == null) {
       return;
@@ -98,16 +115,12 @@ public final class JobInfoGui {
     open(player, session.job(), map, page);
   }
 
-  PaperUiHost.ScreenView buildView(UUID audience) {
+  @NotNull
+  PaperUiHost.ScreenView buildView(@NotNull UUID audience) {
     Session session = sessions.get(audience);
     if (session == null) {
       return new PaperUiHost.ScreenView(
-          MENU_ID,
-          GUI_ROWS,
-          Component.text("Job Info"),
-          panes(),
-          Map.of(),
-          ignored -> {});
+          MENU_ID, GUI_ROWS, Component.text("Job Info"), panes(), Map.of(), ignored -> {});
     }
 
     Job job = session.job();
@@ -152,7 +165,8 @@ public final class JobInfoGui {
       items.put(45, PaperItemFactory.of(Material.ARROW, "Previous", List.of("Page " + (page - 1))));
       actions.put(45, this::onPrev);
     }
-    items.put(49, PaperItemFactory.of(Material.PAPER, "Page " + page + "/" + totalPages, List.of()));
+    items.put(
+        49, PaperItemFactory.of(Material.PAPER, "Page " + page + "/" + totalPages, List.of()));
     if (page < totalPages) {
       items.put(53, PaperItemFactory.of(Material.ARROW, "Next", List.of("Page " + (page + 1))));
       actions.put(53, this::onNext);
@@ -167,7 +181,7 @@ public final class JobInfoGui {
         ignored -> sessions.remove(audience));
   }
 
-  private static Map<Integer, ItemStack> panes() {
+  private static @NotNull Map<Integer, ItemStack> panes() {
     Map<Integer, ItemStack> items = new HashMap<>();
     ItemStack pane = PaperItemFactory.pane(Material.GRAY_STAINED_GLASS_PANE);
     for (int i = 0; i < GUI_ROWS * 9; i++) {
@@ -176,7 +190,7 @@ public final class JobInfoGui {
     return items;
   }
 
-  private ItemStack actionItem(ActionType type, List<JobTask> tasks) {
+  private @NotNull ItemStack actionItem(@NotNull ActionType type, @NotNull List<JobTask> tasks) {
     String name = formatActionTypeName(type.name());
     List<String> lore = new ArrayList<>();
     int shown = 0;
@@ -191,7 +205,7 @@ public final class JobInfoGui {
     return PaperItemFactory.of(Material.PAPER, name, lore);
   }
 
-  private static String formatPayables(List<Payable> payables) {
+  private @NotNull String formatPayables(@NotNull List<Payable> payables) {
     if (payables.isEmpty()) {
       return "No rewards";
     }
@@ -200,19 +214,19 @@ public final class JobInfoGui {
       if (i > 0) {
         sb.append(", ");
       }
-      sb.append(PLAIN.serialize(payables.get(i).asComponent()));
+      sb.append(PLAIN.serialize(payableRenderer.render(payables.get(i))));
     }
     return sb.toString();
   }
 
-  private static String formatActionTypeName(String name) {
+  private static @NotNull String formatActionTypeName(@NotNull String name) {
     return Arrays.stream(name.toLowerCase(java.util.Locale.ROOT).split("_"))
         .filter(w -> !w.isEmpty())
         .map(word -> Character.toUpperCase(word.charAt(0)) + word.substring(1))
         .collect(Collectors.joining(" "));
   }
 
-  private static String formatContextKey(Key key) {
+  private static @NotNull String formatContextKey(@NotNull Key key) {
     String value = key.value();
     return Arrays.stream(value.split("[_/]"))
         .filter(w -> !w.isEmpty())

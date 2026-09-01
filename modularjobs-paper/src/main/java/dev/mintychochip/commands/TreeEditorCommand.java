@@ -8,7 +8,7 @@ import dev.mintychochip.domain.JobResolver;
 import dev.mintychochip.upgrade.UpgradeService;
 import dev.mintychochip.upgrade.UpgradeTree;
 import dev.mintychochip.upgrade.config.UpgradeTreeLoader;
-import dev.mintychochip.upgrade.editor.TreeEditorGui;
+import dev.mintychochip.upgrade.rendering.editor.TreeEditorGui;
 import dev.mintychochip.util.Messages;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import io.papermc.paper.command.brigadier.Commands;
@@ -16,6 +16,7 @@ import java.util.Optional;
 import org.bukkit.Sound;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Command for editing upgrade trees.
@@ -34,10 +35,10 @@ public class TreeEditorCommand implements JobsCommand {
 
   /** Tree editor command. */
   public TreeEditorCommand(
-      UpgradeService upgradeService,
-      JobResolver jobResolver,
-      TreeEditorGui treeEditorGui,
-      UpgradeTreeLoader treeLoader) {
+      @NotNull UpgradeService upgradeService,
+      @NotNull JobResolver jobResolver,
+      @NotNull TreeEditorGui treeEditorGui,
+      @NotNull UpgradeTreeLoader treeLoader) {
     this.upgradeService = upgradeService;
     this.jobResolver = jobResolver;
     this.treeEditorGui = treeEditorGui;
@@ -45,7 +46,7 @@ public class TreeEditorCommand implements JobsCommand {
   }
 
   @Override
-  public LiteralArgumentBuilder<CommandSourceStack> build() {
+  public @NotNull LiteralArgumentBuilder<CommandSourceStack> build() {
     return Commands.literal("treeeditor")
         .requires(source -> source.getSender().hasPermission("jobs.command.admin.treeeditor"))
         // Edit existing tree: /jobs treeeditor <job>
@@ -76,7 +77,7 @@ public class TreeEditorCommand implements JobsCommand {
                                     context.getArgument("job", String.class)))));
   }
 
-  private int executeEdit(CommandSourceStack source, String jobName) {
+  private int executeEdit(@NotNull CommandSourceStack source, @NotNull String jobName) {
     CommandSender sender = source.getSender();
 
     if (!(sender instanceof Player player)) {
@@ -120,7 +121,7 @@ public class TreeEditorCommand implements JobsCommand {
     return Command.SINGLE_SUCCESS;
   }
 
-  private int executeNew(CommandSourceStack source, String jobName) {
+  private int executeNew(@NotNull CommandSourceStack source, @NotNull String jobName) {
     CommandSender sender = source.getSender();
 
     if (!(sender instanceof Player player)) {

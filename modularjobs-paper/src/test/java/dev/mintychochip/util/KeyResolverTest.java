@@ -3,6 +3,7 @@ package dev.mintychochip.util;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
+import dev.mintychochip.container.Context.KeyContext;
 import dev.mintychochip.container.Context.MaterialContext;
 import net.kyori.adventure.key.Key;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,16 +24,16 @@ class KeyResolverTest {
 
   @Test
   void resolveWithoutStrategyReturnsNull() {
-    MaterialContext ctx = new MaterialContext("minecraft:stone");
+    MaterialContext ctx = new MaterialContext(Key.key("minecraft", "stone"));
     assertNull(resolver.resolve(ctx));
   }
 
   @Test
   void resolveUsesRegisteredStrategy() {
-    resolver.addStrategy(MaterialContext.class, context -> Key.key(context.materialKey()));
+    resolver.addStrategy(MaterialContext.class, MaterialContext::materialKey);
 
-    Key stone = resolver.resolve(new MaterialContext("minecraft:stone"));
-    Key dirt = resolver.resolve(new MaterialContext("minecraft:dirt"));
+    Key stone = resolver.resolve(new MaterialContext(Key.key("minecraft", "stone")));
+    Key dirt = resolver.resolve(new MaterialContext(Key.key("minecraft", "dirt")));
 
     assertEquals(Key.key("minecraft", "stone"), stone);
     assertEquals(Key.key("minecraft", "dirt"), dirt);
@@ -43,7 +44,14 @@ class KeyResolverTest {
     resolver.addStrategy(MaterialContext.class, context -> Key.key("test", "first"));
     resolver.addStrategy(MaterialContext.class, context -> Key.key("test", "second"));
 
-    Key result = resolver.resolve(new MaterialContext("minecraft:stone"));
+    Key result = resolver.resolve(new MaterialContext(Key.key("minecraft", "stone")));
     assertEquals(Key.key("test", "second"), result);
+  }
+
+  @Test
+  void shippedResolverReturnsArbitraryContextKey() {
+    Key quest = Key.key("myplugin", "quest_complete");
+
+    assertEquals(quest, KeyResolvers.create().resolve(new KeyContext(quest)));
   }
 }

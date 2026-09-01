@@ -15,7 +15,7 @@ import org.jetbrains.annotations.NotNull;
 public interface NonClosableConnection extends Connection {
 
   /** Create. */
-  static NonClosableConnection create(@NotNull Connection delegate) {
+  static @NotNull NonClosableConnection create(@NotNull Connection delegate) {
     return (NonClosableConnection)
         Proxy.newProxyInstance(
             Thread.currentThread().getContextClassLoader(),

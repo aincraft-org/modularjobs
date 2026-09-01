@@ -18,6 +18,7 @@ import net.kyori.adventure.bossbar.BossBar.Color;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -78,18 +79,20 @@ class PreferencesIntegrationTest {
   /** Stub that rejects registration. */
   private static final class FailingStubPreferencesService implements PreferencesService {
     @Override
-    public <T> Preference<T> register(
-        org.bukkit.plugin.Plugin owner, Class<T> type, Consumer<PreferenceBuilder<T>> configure) {
+    public <T> @NotNull Preference<T> register(
+        @NotNull org.bukkit.plugin.Plugin owner,
+        @NotNull Class<T> type,
+        @NotNull Consumer<PreferenceBuilder<T>> configure) {
       throw new IllegalStateException("registration rejected");
     }
 
     @Override
-    public Collection<? extends Preference<?>> all() {
+    public @NotNull Collection<? extends Preference<?>> all() {
       return List.of();
     }
 
     @Override
-    public void unregisterPlugin(org.bukkit.plugin.Plugin plugin) {}
+    public void unregisterPlugin(@NotNull org.bukkit.plugin.Plugin plugin) {}
   }
 
   /** Minimal stub recording registrations; never actually persists. */
@@ -97,8 +100,10 @@ class PreferencesIntegrationTest {
     final List<Preference<?>> registered = new ArrayList<>();
 
     @Override
-    public <T> Preference<T> register(
-        org.bukkit.plugin.Plugin owner, Class<T> type, Consumer<PreferenceBuilder<T>> configure) {
+    public <T> @NotNull Preference<T> register(
+        @NotNull org.bukkit.plugin.Plugin owner,
+        @NotNull Class<T> type,
+        @NotNull Consumer<PreferenceBuilder<T>> configure) {
       PreferenceBuilder<T> builder = new PreferenceBuilder<>("modularjobs", type);
       configure.accept(builder);
       builder.validate();
@@ -108,12 +113,12 @@ class PreferencesIntegrationTest {
     }
 
     @Override
-    public Collection<? extends Preference<?>> all() {
+    public @NotNull Collection<? extends Preference<?>> all() {
       return registered;
     }
 
     @Override
-    public void unregisterPlugin(org.bukkit.plugin.Plugin plugin) {
+    public void unregisterPlugin(@NotNull org.bukkit.plugin.Plugin plugin) {
       registered.clear();
     }
   }
@@ -122,61 +127,61 @@ class PreferencesIntegrationTest {
   private static final class StubPreference<T> implements Preference<T> {
     private final PreferenceBuilder<T> builder;
 
-    StubPreference(PreferenceBuilder<T> builder) {
+    StubPreference(@NotNull PreferenceBuilder<T> builder) {
       this.builder = builder;
     }
 
     @Override
-    public PreferenceKey key() {
+    public @NotNull PreferenceKey key() {
       return builder.key();
     }
 
     @Override
-    public PreferenceScope scope() {
+    public @NotNull PreferenceScope scope() {
       return builder.scope();
     }
 
     @Override
-    public Class<T> type() {
+    public @NotNull Class<T> type() {
       return builder.type();
     }
 
     @Override
-    public net.kyori.adventure.text.Component label() {
+    public @NotNull net.kyori.adventure.text.Component label() {
       return builder.label();
     }
 
     @Override
-    public net.kyori.adventure.text.Component description() {
+    public @NotNull net.kyori.adventure.text.Component description() {
       return builder.description();
     }
 
     @Override
-    public T defaultValue() {
+    public @NotNull T defaultValue() {
       return builder.defaultValue();
     }
 
     @Override
-    public T get(org.bukkit.entity.Player player) {
+    public @NotNull T get(@NotNull org.bukkit.entity.Player player) {
       return builder.defaultValue();
     }
 
     @Override
-    public T getGlobal() {
+    public @NotNull T getGlobal() {
       return builder.defaultValue();
     }
 
     @Override
-    public void set(org.bukkit.entity.Player player, T value) {}
+    public void set(@NotNull org.bukkit.entity.Player player, @NotNull T value) {}
 
     @Override
-    public void setGlobal(T value) {}
+    public void setGlobal(@NotNull T value) {}
 
     @Override
-    public void setGlobal(org.bukkit.entity.Player editor, T value) {}
+    public void setGlobal(@NotNull org.bukkit.entity.Player editor, @NotNull T value) {}
 
     @Override
-    public void reset(org.bukkit.entity.Player player) {}
+    public void reset(@NotNull org.bukkit.entity.Player player) {}
 
     @Override
     public void resetGlobal() {}

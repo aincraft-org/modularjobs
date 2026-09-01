@@ -8,6 +8,9 @@ import com.google.gson.stream.JsonWriter;
 import java.io.IOException;
 import java.time.Instant;
 import net.kyori.adventure.key.Key;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Factory that creates a configured Gson instance for the ModularJobs web editor.
@@ -32,7 +35,8 @@ public final class GsonProvider {
   private GsonProvider() {}
 
   /** Create. */
-  public static Gson create() {
+  @Contract(pure = true)
+  public static @NotNull Gson create() {
     return new GsonBuilder()
         .setPrettyPrinting()
         .registerTypeAdapter(Key.class, new KeyAdapter())
@@ -49,7 +53,7 @@ public final class GsonProvider {
   private static final class KeyAdapter extends TypeAdapter<Key> {
 
     @Override
-    public void write(JsonWriter out, Key value) throws IOException {
+    public void write(@NotNull JsonWriter out, @Nullable Key value) throws IOException {
       if (value == null) {
         out.nullValue();
         return;
@@ -58,7 +62,7 @@ public final class GsonProvider {
     }
 
     @Override
-    public Key read(JsonReader in) throws IOException {
+    public @NotNull Key read(@NotNull JsonReader in) throws IOException {
       String keyString = in.nextString();
       return Key.key(keyString);
     }
@@ -73,7 +77,7 @@ public final class GsonProvider {
   private static final class InstantAdapter extends TypeAdapter<Instant> {
 
     @Override
-    public void write(JsonWriter out, Instant value) throws IOException {
+    public void write(@NotNull JsonWriter out, @Nullable Instant value) throws IOException {
       if (value == null) {
         out.nullValue();
         return;
@@ -82,7 +86,7 @@ public final class GsonProvider {
     }
 
     @Override
-    public Instant read(JsonReader in) throws IOException {
+    public @NotNull Instant read(@NotNull JsonReader in) throws IOException {
       String instantString = in.nextString();
       return Instant.parse(instantString);
     }

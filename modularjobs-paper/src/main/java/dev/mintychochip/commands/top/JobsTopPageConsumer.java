@@ -1,10 +1,11 @@
 package dev.mintychochip.commands.top;
 
-import dev.mintychochip.JobProgression;
+import dev.mintychochip.PlayerJobState;
 import dev.mintychochip.commands.Page;
 import java.util.List;
 import net.kyori.adventure.text.Component;
 import org.bukkit.command.CommandSender;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Renders one page of a job leaderboard to a sender. Implementations define the output medium (chat
@@ -23,9 +24,9 @@ public interface JobsTopPageConsumer {
    * @param allEntries full cached leaderboard used for context (e.g. viewer rank)
    */
   void consume(
-      Component jobName,
-      Page<JobProgression> page,
-      CommandSender sender,
+      @NotNull Component jobName,
+      @NotNull Page<PlayerJobState> page,
+      @NotNull CommandSender sender,
       int maxPages,
-      List<JobProgression> allEntries);
+      @NotNull List<PlayerJobState> allEntries);
 }

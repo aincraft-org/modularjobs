@@ -17,6 +17,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Set;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -94,7 +95,7 @@ class SqlStatementsHikariRepositoryTest {
     assertNull(upgrades.loadPlayerData(PLAYER_ID, JOB_KEY));
   }
 
-  private ConnectionSource openHikari() throws SQLException {
+  private @NotNull ConnectionSource openHikari() throws SQLException {
     MysqlTestSupport.assumeAvailable();
     YamlConfiguration config = new YamlConfiguration();
     config.set("jdbc-url", MysqlTestSupport.jdbcUrl());

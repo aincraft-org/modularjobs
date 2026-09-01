@@ -5,6 +5,7 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import net.kyori.adventure.key.Key;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -25,7 +26,8 @@ public sealed interface NodeEffect
     public static final String TARGET_MONEY = "money";
     public static final String TARGET_ALL = "all";
 
-    public static BoostEffect of(String target, double multiplier) {
+    @Contract(pure = true)
+    public static @NotNull BoostEffect of(@NotNull String target, double multiplier) {
       return new BoostEffect(target, BigDecimal.valueOf(multiplier));
     }
   }
@@ -36,7 +38,7 @@ public sealed interface NodeEffect
 
   /** One or more temporary permissions granted via PermissionAttachment. */
   record PermissionEffect(@NotNull List<String> permissions) implements NodeEffect {
-    public PermissionEffect(String permission) {
+    public PermissionEffect(@NotNull String permission) {
       this(List.of(permission));
     }
   }
@@ -60,7 +62,8 @@ public sealed interface NodeEffect
       implements NodeEffect {}
 
   /** Boost. */
-  static BoostEffect boost(String target, double multiplier) {
+  @Contract(pure = true)
+  static @NotNull BoostEffect boost(@NotNull String target, double multiplier) {
     return BoostEffect.of(target, multiplier);
   }
 }

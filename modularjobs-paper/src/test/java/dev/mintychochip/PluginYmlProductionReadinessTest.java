@@ -35,8 +35,8 @@ class PluginYmlProductionReadinessTest {
       assertEquals("26.2", api, "api-version must be Paper 26.2, got " + api);
 
       assertTrue(
-          yml.getStringList("softdepend").stream().anyMatch(s -> s.equalsIgnoreCase("Mint")),
-          "softdepend must list Mint");
+          yml.getStringList("softdepend").stream().anyMatch(s -> s.equalsIgnoreCase("Mint2")),
+          "softdepend must list Mint2");
       assertTrue(
           yml.getStringList("softdepend").stream()
               .anyMatch(s -> s.equalsIgnoreCase("PlaceholderAPI")),

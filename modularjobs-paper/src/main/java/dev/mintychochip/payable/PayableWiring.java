@@ -1,28 +1,20 @@
 package dev.mintychochip.payable;
 
-import dev.mintychochip.container.Currency;
 import dev.mintychochip.container.EconomyProvider;
 import dev.mintychochip.container.ExperiencePayableHandler.ExperienceBarFormatter;
-import dev.mintychochip.container.PayableAmount;
 import dev.mintychochip.container.PayableHandler;
+import dev.mintychochip.container.PayableRenderer;
 import dev.mintychochip.container.PayableType;
 import dev.mintychochip.gui.PaperSurfaces;
 import dev.mintychochip.registry.Registry;
 import dev.mintychochip.service.JobService;
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.text.NumberFormat;
 import java.util.List;
 import net.kyori.adventure.key.Key;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.minimessage.MiniMessage;
-import net.kyori.adventure.text.minimessage.tag.Tag;
-import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import org.bukkit.NamespacedKey;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
-import org.jspecify.annotations.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 /** Manual composition for payable types and experience bar (replaces Guice PayableModule). */
 public final class PayableWiring {
@@ -32,23 +24,27 @@ public final class PayableWiring {
 
   public final @NotNull EconomyProvider economyProvider;
   public final List<Listener> listeners;
+  public final @NotNull PayableRenderer renderer;
 
   private PayableWiring(
-      @NotNull EconomyProvider economyProvider, List<Listener> listeners) {
+      @NotNull EconomyProvider economyProvider,
+      @NotNull List<Listener> listeners,
+      @NotNull PayableRenderer renderer) {
     this.economyProvider = economyProvider;
     this.listeners = List.copyOf(listeners);
+    this.renderer = renderer;
   }
 
   /**
    * Composes the experience and economy payable handlers, registers the corresponding {@link
    * PayableType}s in {@code payableTypeRegistry}, and resolves the economy provider via {@link
-   * EconomyProviderFactory#createOrFail}. Returns the wiring exposing the chosen provider.
+   * EconomyProviderFactory#createOrFail}. Returns the wiring exposing the provider and renderer.
    */
-  public static PayableWiring create(
-      Plugin plugin,
-      JobService jobService,
-      Registry<PayableType> payableTypeRegistry,
-      PaperSurfaces surfaces,
+  public static @NotNull PayableWiring create(
+      @NotNull Plugin plugin,
+      @NotNull JobService jobService,
+      @NotNull Registry<PayableType> payableTypeRegistry,
+      @NotNull PaperSurfaces surfaces,
       @Nullable ExperienceBarColorPreference experienceBarColorPreference) {
     ExperienceBarColorProvider colorProvider =
         new ExperienceBarColorProvider(experienceBarColorPreference);
@@ -59,79 +55,46 @@ public final class PayableWiring {
 
     EconomyProvider economyProvider = EconomyProviderFactory.createOrFail(plugin);
     PayableHandler economyHandler = economyHandlerFor(economyProvider);
+    PayableRenderer renderer = new PayableRendererImpl();
 
     payableTypeRegistry.register(economyType(economyHandler));
     payableTypeRegistry.register(experienceType(experienceHandler));
 
     List<Listener> listeners = List.of(controller);
-    return new PayableWiring(economyProvider, listeners);
+    return new PayableWiring(economyProvider, listeners, renderer);
   }
 
   /** Delegates economy payables to the selected provider, including the blackhole fallback. */
-  static PayableHandler economyHandlerFor(@NotNull EconomyProvider economyProvider) {
+  static @NotNull PayableHandler economyHandlerFor(@NotNull EconomyProvider economyProvider) {
     return context -> economyProvider.deposit(context.playerId(), context.payable().amount());
   }
 
-  private static PayableType economyType(PayableHandler handler) {
+  private static @NotNull PayableType economyType(@NotNull PayableHandler handler) {
     Key key = NamespacedKey.fromString(ECONOMY_TYPE);
     return new PayableType() {
-      private static final String FORMAT = "<#7ed278><symbol><amount></#7ed278>";
-
       @Override
-      public PayableHandler handler() {
+      public @NotNull PayableHandler handler() {
         return handler;
       }
 
       @Override
-      public Key key() {
+      public @NotNull Key key() {
         return key;
-      }
-
-      @Override
-      public Component render(PayableAmount amount, int places) {
-        String symbol = amount.currency().orElse(Currency.USD).symbol();
-        NumberFormat nf = NumberFormat.getNumberInstance();
-        nf.setMinimumFractionDigits(places);
-        nf.setMaximumFractionDigits(places);
-        BigDecimal value = amount.value().setScale(places, RoundingMode.HALF_UP);
-        return MiniMessage.miniMessage()
-            .deserialize(
-                FORMAT,
-                TagResolver.builder()
-                    .tag("symbol", Tag.inserting(Component.text(symbol)))
-                    .tag("amount", Tag.inserting(Component.text(nf.format(value))))
-                    .build());
       }
     };
   }
 
-  private static PayableType experienceType(PayableHandler handler) {
+  private static @NotNull PayableType experienceType(@NotNull PayableHandler handler) {
     Key key = NamespacedKey.fromString(EXPERIENCE_TYPE);
     return new PayableType() {
-      private static final String FORMAT = "<#dac65c><amount>xp</#dac65c>";
-
       @Override
-      public PayableHandler handler() {
+      public @NotNull PayableHandler handler() {
         return handler;
       }
 
       @Override
-      public Key key() {
+      public @NotNull Key key() {
         return key;
-      }
-
-      @Override
-      public Component render(PayableAmount amount, int places) {
-        NumberFormat nf = NumberFormat.getNumberInstance();
-        nf.setMinimumFractionDigits(places);
-        nf.setMaximumFractionDigits(places);
-        BigDecimal value = amount.value().setScale(places, RoundingMode.HALF_UP);
-        return MiniMessage.miniMessage()
-            .deserialize(
-                FORMAT,
-                TagResolver.builder()
-                    .tag("amount", Tag.inserting(Component.text(nf.format(value))))
-                    .build());
       }
     };
   }

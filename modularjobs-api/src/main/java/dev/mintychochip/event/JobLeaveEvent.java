@@ -1,33 +1,35 @@
 package dev.mintychochip.event;
 
 import dev.mintychochip.Job;
+import dev.mintychochip.PlayerJobState;
 import java.util.Objects;
 import java.util.UUID;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 
 /** Event fired when a player leaves a job. */
 public final class JobLeaveEvent {
 
-  private final UUID playerId;
-  private final Job job;
-  private final int finalLevel;
+  private final PlayerJobState state;
 
-  /** Job leave event. */
-  public JobLeaveEvent(UUID playerId, Job job, int finalLevel) {
-    this.playerId = Objects.requireNonNull(playerId, "playerId");
-    this.job = job;
-    this.finalLevel = finalLevel;
+  /** Creates a leave transition for the player's final job-tree state. */
+  public JobLeaveEvent(@NotNull PlayerJobState state) {
+    this.state = Objects.requireNonNull(state, "state");
   }
 
-  public UUID getPlayerId() {
-    return playerId;
+  @Contract(pure = true)
+  public @NotNull UUID getPlayerId() {
+    return state.playerId();
   }
 
-  public Job getJob() {
-    return job;
+  @Contract(pure = true)
+  public @NotNull Job getJob() {
+    return state.job();
   }
 
-  /** Gets the player's level at time of leaving. */
-  public int getFinalLevel() {
-    return finalLevel;
+  /** Returns the state being archived, including its active specialization node. */
+  @Contract(pure = true)
+  public @NotNull PlayerJobState getPlayerJobState() {
+    return state;
   }
 }

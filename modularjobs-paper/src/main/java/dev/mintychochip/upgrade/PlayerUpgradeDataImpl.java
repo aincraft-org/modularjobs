@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Implementation of PlayerUpgradeData. Mutable for use in services; immutable view exposed via
@@ -16,7 +17,7 @@ public final class PlayerUpgradeDataImpl implements PlayerUpgradeData {
   private SkillTreeState state;
   private final Map<String, Integer> perkLevels;
   private final Map<String, Integer> maxLevels; // perkId -> max achievable level
-  private @org.jetbrains.annotations.Nullable SkillTree skillTree;
+  private @Nullable SkillTree skillTree;
 
   /** Legacy constructor: treats each unlocked node as level 1. */
   public PlayerUpgradeDataImpl(
@@ -35,11 +36,11 @@ public final class PlayerUpgradeDataImpl implements PlayerUpgradeData {
   }
 
   /** Bind the v2 tree so {@link #spentSkillPoints()} uses real level costs. */
-  public void bindSkillTree(@org.jetbrains.annotations.Nullable SkillTree tree) {
+  public void bindSkillTree(@Nullable SkillTree tree) {
     this.skillTree = tree;
   }
 
-  private static SkillTreeState toState(
+  private static @NotNull SkillTreeState toState(
       @NotNull String playerId,
       @NotNull String jobKey,
       int totalSkillPoints,
@@ -52,7 +53,8 @@ public final class PlayerUpgradeDataImpl implements PlayerUpgradeData {
   }
 
   /** Create empty upgrade data for a new player-job combination. */
-  public static PlayerUpgradeDataImpl empty(@NotNull String playerId, @NotNull String jobKey) {
+  public static @NotNull PlayerUpgradeDataImpl empty(
+      @NotNull String playerId, @NotNull String jobKey) {
     return new PlayerUpgradeDataImpl(playerId, jobKey, 0, Set.of());
   }
 

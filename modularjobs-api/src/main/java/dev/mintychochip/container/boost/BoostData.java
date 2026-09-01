@@ -7,6 +7,7 @@ import dev.mintychochip.container.boost.BoostData.SerializableBoostData.PassiveB
 import java.time.Duration;
 import java.util.BitSet;
 import java.util.Optional;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 /** Data describing the source and persistence-related state of a boost. */
@@ -18,6 +19,7 @@ public sealed interface BoostData permits SerializableBoostData {
    * @return the boost source
    */
   @NotNull
+  @Contract(pure = true)
   BoostSource boostSource();
 
   /** Boost data whose state can be serialized. */
@@ -38,8 +40,9 @@ public sealed interface BoostData permits SerializableBoostData {
        *
        * @return the configured duration
        */
+      @Contract(pure = true)
       @Override
-      public Optional<Duration> getDuration() {
+      public @NotNull Optional<Duration> getDuration() {
         return Optional.of(duration);
       }
     }
@@ -63,6 +66,8 @@ public sealed interface BoostData permits SerializableBoostData {
      *
      * @return the boost duration
      */
+    @Contract(pure = true)
+    @NotNull
     Optional<Duration> getDuration();
   }
 }

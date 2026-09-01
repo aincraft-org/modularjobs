@@ -31,8 +31,12 @@ mcmmo = "2.2.004"
 lwc = "2.4.0"
 bolt = "1.1.52"
 placeholderapi = "2.11.6"
-# Mint durable ledger API (aincraft-org/mint; published to sibling ../mint/build/maven-repo)
-mint-api = "1.0.0"
+vault-api = "1.7.1"
+# Mint2 ledger API (sibling ../mint2; included build substitutes these coordinates)
+# dev.mintychochip:mint-api and dev.mintychochip:mint-common are built from source via
+# includeBuild("../mint2") in settings.gradle.kts (see the paper module's compileOnly usage).
+mint2-api = "1.0.0"
+mint2-common = "1.0.0"
 # DataBag primitive storage + condition graph (mintychochip/databag; sibling
 # ../databag/build/maven-repo)
 databag = "0.0.0-SNAPSHOT"
@@ -68,8 +72,10 @@ mcmmo = { module = "com.gmail.nossr50.mcMMO:mcMMO", version.ref = "mcmmo" }
 lwc = { module = "com.griefcraft:lwc", version.ref = "lwc" }
 bolt = { module = "org.popcraft:bolt-bukkit", version.ref = "bolt" }
 placeholderapi = { module = "me.clip:placeholderapi", version.ref = "placeholderapi" }
-# Mint ledger API (compileOnly; Mint ships it at runtime)
-mint-api = { module = "dev.jlo.mint:mint-api", version.ref = "mint-api" }
+vault-api = { module = "com.github.MilkBowl:VaultAPI", version.ref = "vault-api" }
+# Mint2 ledger API (compileOnly; Mint2 ships it at runtime; included build substitutes)
+mint2-api = { module = "dev.mintychochip:mint-api", version.ref = "mint2-api" }
+mint2-common = { module = "dev.mintychochip:mint-common", version.ref = "mint2-common" }
 databag-common = { module = "dev.mintychochip.databag:databag-common", version.ref = "databag" }
 databag-api = { module = "dev.mintychochip.databag:databag-api", version.ref = "databag" }
 databag-paper = { module = "dev.mintychochip.databag:databag-paper", version.ref = "databag" }

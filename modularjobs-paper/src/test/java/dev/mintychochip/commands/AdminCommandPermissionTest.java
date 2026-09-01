@@ -11,6 +11,7 @@ import io.papermc.paper.command.brigadier.CommandSourceStack;
 import java.lang.reflect.Proxy;
 import java.util.function.Predicate;
 import org.bukkit.command.CommandSender;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -79,7 +80,8 @@ class AdminCommandPermissionTest {
     assertTrue(AdminPermissions.isAdmin(sourceWith(allowed)));
   }
 
-  private static void assertRequirement(LiteralArgumentBuilder<CommandSourceStack> builder) {
+  private static void assertRequirement(
+      @NotNull LiteralArgumentBuilder<CommandSourceStack> builder) {
     LiteralCommandNode<CommandSourceStack> node = builder.build();
     Predicate<CommandSourceStack> requirement = node.getRequirement();
 
@@ -92,7 +94,7 @@ class AdminCommandPermissionTest {
     assertTrue(requirement.test(sourceWith(allowed)));
   }
 
-  private static CommandSourceStack sourceWith(CommandSender sender) {
+  private static @NotNull CommandSourceStack sourceWith(@NotNull CommandSender sender) {
     return (CommandSourceStack)
         Proxy.newProxyInstance(
             Thread.currentThread().getContextClassLoader(),

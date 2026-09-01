@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.atomic.AtomicReference;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -114,7 +115,7 @@ class RestSessionClientTest {
     assertEquals(401, unauthorized.statusCode());
   }
 
-  private RestSessionClient client() {
+  private @NotNull RestSessionClient client() {
     return new RestSessionClient(
         new EditorConfig(
             true,
@@ -125,7 +126,7 @@ class RestSessionClientTest {
         new Gson());
   }
 
-  private static EditorPayload payload() {
+  private static @NotNull EditorPayload payload() {
     return EditorPayload.create(
         EditorMetadata.create("2030-01-01T00:00:00Z", "player", "payload-token", "server"),
         Map.of(),
@@ -133,14 +134,15 @@ class RestSessionClientTest {
         List.of("modularjobs:experience"));
   }
 
-  private static RestSessionClient.RestSessionException exceptionFrom(
-      java.util.concurrent.CompletableFuture<?> future) {
+  private static @NotNull RestSessionClient.RestSessionException exceptionFrom(
+      @NotNull java.util.concurrent.CompletableFuture<?> future) {
     CompletionException failure =
         org.junit.jupiter.api.Assertions.assertThrows(CompletionException.class, future::join);
     return assertInstanceOf(RestSessionClient.RestSessionException.class, failure.getCause());
   }
 
-  private static void respond(HttpExchange exchange, int status, String body) throws IOException {
+  private static void respond(@NotNull HttpExchange exchange, int status, @NotNull String body)
+      throws IOException {
     byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
     exchange.getResponseHeaders().set("Content-Type", "application/json");
     exchange.sendResponseHeaders(status, bytes.length);

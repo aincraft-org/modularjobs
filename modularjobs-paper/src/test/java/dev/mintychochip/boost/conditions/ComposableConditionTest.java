@@ -6,6 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import dev.mintychochip.container.BoostContext;
 import dev.mintychochip.container.boost.Condition;
 import dev.mintychochip.container.boost.LogicalOperator;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 
 /** Pure condition composition / negation without requiring a live Player or World. */
@@ -60,11 +62,14 @@ class ComposableConditionTest {
 
   /** Thin access to the production DataBag adapter. */
   private static final class BoostFactoryCompose {
-    static Condition compose(Condition a, Condition b, LogicalOperator op) {
+    @Contract(pure = true)
+    static @NotNull Condition compose(
+        @NotNull Condition a, @NotNull Condition b, @NotNull LogicalOperator op) {
       return dev.mintychochip.boost.BoostFactoryImpl.INSTANCE.compose(a, b, op);
     }
 
-    static Condition negate(Condition c) {
+    @Contract(pure = true)
+    static @NotNull Condition negate(@NotNull Condition c) {
       return dev.mintychochip.boost.BoostFactoryImpl.INSTANCE.negate(c);
     }
   }

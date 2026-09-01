@@ -14,43 +14,58 @@ facade, which is populated when the plugin enables.
 Bridge.bridge() // throws IllegalStateException when plugin is not enabled
 ```
 
-Exposes: `registryContainer()`, `conditionFactory()`, `boostFactory()`,
-`timedBoostDataService()`, `economy(): Optional<EconomyProvider>`,
-`jobService()`, `professionService()`, `recipeService()`, `buffService()`,
-`stationService()`, `nodeHarvestService()`, `eventBus()`.
+Exposes: `registryContainer()`, `actionService()`, `conditionFactory()`,
+`boostFactory()`, `timedBoostDataService()`,
+`economy(): Optional<EconomyProvider>`, `jobService()`,
+`professionService()`, `recipeService()`, `buffService()`, `stationService()`,
+`nodeHarvestService()`, `eventBus()`.
 
 Example:
 
 ```java
-var jobs = Bridge.bridge().jobService().jobs();
-var xp = Bridge.bridge().eventBus();
+var jobs = Bridge.bridge().jobService().getJobs();
+var events = Bridge.bridge().eventBus();
 ```
 
 ## Core models
 
 | Type | What it is |
 | --- | --- |
-| `Job` | Keyed contract: `displayName()`, `getPlainName()`, `description()`, `levelingCurve()`, `payableCurves()`, `maxLevel()`, `upgradeLevel()`, `perkUnlocks()` |
-| `JobTask` | Record: `jobKey`, `actionTypeKey`, `contextKey`, `payables`; `key()` → composite `TaskKey` (`action|context`) |
-| `JobProgressionView` | Read-only: `job()`, `playerId()`, `experience()`, `level()`, `experienceForLevel(int)` |
-| `JobProgression` | Extends view with immutable-snapshot `setExperience(BigDecimal)` / `addExperience(BigDecimal)` |
-| `LevelingCurve` | Pure deterministic `evaluate(Parameters)` — the custom leveling math extension point |
+| `Job` | One complete rooted job tree: `jobKey()`, `rootNode()`, `nodes()`, `node(...)`, `pathTo(...)`, plus tree-wide leveling and payout rules |
+| `JobNode` | One root or specialization definition: owning `jobKey()`, `nodeKey()`, nullable `parentKey()`, and presentation |
+| `JobTask` | Node-owned record: `nodeKey`, `actionTypeKey`, `contextKey`, `payables`; `key()` is the action/context inheritance key |
+| `PlayerJobState` | Immutable player snapshot: complete `job()`, active `currentNode()`, tree-wide experience/level, `withExperience(...)`, and `withCurrentNode(...)` |
+| `LevelingCurve` | Pure deterministic `evaluate(Parameters)` — the tree-wide leveling math extension point |
 | `PayableCurve` | Pure deterministic payout scaling `evaluate(Parameters)` |
 
+`Job` always represents the complete tree, even when `JobService.getJob(...)`
+is called with a specialization key. `JobNode.parentKey()` describes the
+root-to-specialization chain. The root owns `maxLevel()`, `levelingCurve()`,
+and `payableCurves()`.
+
+One `PlayerJobState` exists per player and root job tree. Changing its active
+node with `withCurrentNode(...)` preserves tree-wide XP and level. Tasks inherit
+along `Job.pathTo(...)`: the nearest descendant definition with the same
+action/context key replaces the complete ancestor task; non-conflicting ancestor
+tasks remain visible.
+
+Perk unlocks are Paper configuration data, not public `Job` state. They follow
+the same root-to-active-node path at runtime.
+
 <Callout type="info" title="Purity rules">
-Curves must be deterministic pure functions of their parameters. Progression
-updates return snapshot-style values — treat returned progressions as
-immutable.
+Curves must be deterministic pure functions of their parameters. Player-state
+updates return immutable snapshots; persist the returned `PlayerJobState`.
 </Callout>
 
 ## Payables
 
 | Type | What it is |
 | --- | --- |
-| `Payable` | Record: `type()`, `amount()`, `asComponent()` |
+| `Payable` | Presentation-neutral record: `type()`, `amount()` |
 | `PayableType` | Keyed, registry-backed; `handler()` provides payout logic |
 | `PayableTypes` | Built-ins: `EXPERIENCE`, `ECONOMY` |
 | `PayableHandler` | **Primary payout extension point** — `pay(PayableContext)` |
+| `PayableRenderer` | Presentation boundary — `render(Payable)` returns an Adventure component |
 | `PayableAmount` | Sealed: `value()` + optional `currency()` |
 | `Currency` | `modularjobs:…` namespace presets via `of(identifier, symbol)` |
 | `EconomyProvider` | `isCurrencySupported(Currency)` + `deposit(...)` — the ledger bridge |
@@ -58,16 +73,50 @@ immutable.
 Custom payable types are **registry entries**, not direct interface
 implementations: register a `PayableType` whose handler performs the payout.
 
+`Payable` and `PayableType` contain no rendering behavior. Presentation
+surfaces receive a `PayableRenderer` separately.
+
 ## Actions & contexts
 
 | Type | What it is |
 | --- | --- |
 | `ActionType` | Keyed, `@NonExtendable`; registry-backed |
 | `ActionTypes` | 20+ built-ins: `block_place`, `block_break`, `tnt_break`, `kill`, `dye`, `strip_log`, `craft`, `fish`, `smelt`, `brew`, `enchant`, `repair`, `breed`, `tame`, `shear`, `milk`, `explore`, `eat`, `collect`, `bake`, `bucket`, `brush`, `wax`, `villager_trade` |
-| `Context` | Sealed task-input records: `BlockContext`, `ItemContext`, `EntityContext`, `DyeContext`, `EnchantmentContext`, `PotionContext`, `ChunkContext` (+ deprecated `MaterialContext`) |
+| `ActionService` | Registers custom action types and reports player actions through the normal reward/player-state path |
+| `Context` | Sealed task-input records: `BlockContext`, `ItemContext`, `EntityContext`, `DyeContext`, `EnchantmentContext`, `PotionContext`, `ChunkContext`, and arbitrary `KeyContext` (+ deprecated `MaterialContext`) |
 
 Contexts and actions are sealed/`@NonExtendable` by design — the registry is
 the extension mechanism.
+
+### Custom actions
+
+Register a custom action once while your dependent plugin enables, then keep
+the returned `ActionType` and report each occurrence through the same service:
+
+```java
+ActionService actions = Bridge.bridge().actionService();
+
+ActionType questComplete =
+    actions.register(
+        Key.key("myplugin", "quest_complete"),
+        "Quest Complete");
+
+actions.report(
+    player.getUniqueId(),
+    questComplete,
+    Key.key("myplugin", questId));
+```
+
+The last argument is the context key used to match the job task. Use this
+keyed form for plugin-owned identifiers such as quests or skills. Existing
+typed contexts remain available when the action concerns a block, item,
+entity, enchantment, potion, or chunk.
+
+`ActionService` registration rejects duplicate keys instead of replacing the
+existing action, preventing accidental overwrites through this API.
+Reporting an unregistered action also fails immediately. Reporting runs
+synchronously through the normal curves, boosts, payable handlers, and
+player-state path.
 
 ## Registries
 
@@ -106,6 +155,6 @@ sealed, so prefer composition via `Bridge`.
 | `ProfessionCatalog` | Closed built-in catalog: `tracks()`, `byId()`, `byStorageKey()`, `resolve()`, `isCanonicalTrack()` |
 | `ProfessionDefinition` | `id`, `storageKey`, `category`, `displayName` (normalized lowercase) |
 | `ProfessionCategory` | `GATHERING`, `PROCESSING`, `CRAFTING` |
-| `RecipeDefinition` | `id`, `professionId`, `requiredLevel`, `tier` (validated 1..5) |
+| `RecipeDefinition` | `id`, `professionId`, `requiredLevel`, `tier`, `outputKey`; `craftOutputKey()` exposes the effective crafted-item lookup key |
 
 Use catalog resolution in config/UI — do not extend the closed catalog.

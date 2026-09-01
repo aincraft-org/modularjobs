@@ -3,6 +3,8 @@ package dev.mintychochip.container.boost;
 import dev.mintychochip.container.Boost;
 import dev.mintychochip.container.BoostSource;
 import java.util.List;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * A {@link BoostSource} that resolves its output through a set of {@link Rule rules}. For a given
@@ -16,6 +18,8 @@ public interface RuledBoostSource extends BoostSource {
    *
    * @return the rules of this source
    */
+  @Contract(pure = true)
+  @NotNull
   List<Rule> rules();
 
   /**
@@ -25,5 +29,5 @@ public interface RuledBoostSource extends BoostSource {
    * @param priority ordering weight; higher-priority rules take precedence
    * @param boost the boost to apply when the rule matches
    */
-  record Rule(Condition condition, int priority, Boost boost) {}
+  record Rule(@NotNull Condition condition, int priority, @NotNull Boost boost) {}
 }

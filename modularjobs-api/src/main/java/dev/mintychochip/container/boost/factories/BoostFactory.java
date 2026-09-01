@@ -3,6 +3,7 @@ package dev.mintychochip.container.boost.factories;
 import dev.mintychochip.container.Boost;
 import java.math.BigDecimal;
 import org.jetbrains.annotations.ApiStatus.Internal;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Factory for constructing {@link Boost} instances.
@@ -19,7 +20,8 @@ public interface BoostFactory {
    * @param amount amount added by the boost
    * @return an additive boost
    */
-  Boost additive(BigDecimal amount);
+  @NotNull
+  Boost additive(@NotNull BigDecimal amount);
 
   /**
    * Creates a boost that multiplies by the given amount.
@@ -27,5 +29,6 @@ public interface BoostFactory {
    * @param amount factor the boost multiplies by
    * @return a multiplicative boost
    */
-  Boost multiplicative(BigDecimal amount);
+  @NotNull
+  Boost multiplicative(@NotNull BigDecimal amount);
 }

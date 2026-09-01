@@ -2,26 +2,29 @@ package dev.mintychochip.editor;
 
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 
 /** Configuration for the REST-backed web editor. */
 public record EditorConfig(
     boolean enabled,
-    String sessionApiUrl,
-    String webEditorUrl,
-    String sessionCreateSecret,
+    @NotNull String sessionApiUrl,
+    @NotNull String webEditorUrl,
+    @NotNull String sessionCreateSecret,
     int sessionTtlMinutes) {
   public static final String DEFAULT_SESSION_API_URL = "";
   public static final String DEFAULT_WEB_EDITOR_URL = "";
   public static final int DEFAULT_SESSION_TTL = 24 * 60;
 
   /** Defaults. */
-  public static EditorConfig defaults() {
+  @Contract(pure = true)
+  public static @NotNull EditorConfig defaults() {
     return new EditorConfig(
         false, DEFAULT_SESSION_API_URL, DEFAULT_WEB_EDITOR_URL, "", DEFAULT_SESSION_TTL);
   }
 
   /** From plugin. */
-  public static EditorConfig fromPlugin(JavaPlugin plugin) {
+  public static @NotNull EditorConfig fromPlugin(@NotNull JavaPlugin plugin) {
     FileConfiguration config = plugin.getConfig();
     EditorConfig defaults = defaults();
     return new EditorConfig(
@@ -32,7 +35,9 @@ public record EditorConfig(
         Math.max(1, config.getInt("editor.session-ttl-minutes", defaults.sessionTtlMinutes())));
   }
 
-  private static String string(FileConfiguration config, String path, String fallback) {
+  @Contract(pure = true)
+  private static @NotNull String string(
+      @NotNull FileConfiguration config, @NotNull String path, @NotNull String fallback) {
     String value = config.getString(path);
     return value == null || value.isBlank() ? fallback : value;
   }

@@ -12,7 +12,7 @@ Extensible job progression plugin for PaperMC (**26.2** / Java **25**).
 | Path | Role |
 |------|------|
 | `modularjobs-api` | Pure public contracts (no Paper) |
-| `modularjobs-common` | Shared DTOs (editor payload, …) |
+| `modularjobs-common` | Paper-free shared DTOs, codecs, and default API implementations |
 | `modularjobs-paper` | Paper plugin implementation (shadow jar) |
 | `web` | Docs + session-editor + rest-api |
 
@@ -53,10 +53,10 @@ CI: `.github/workflows/ci.yml` — Java 25 + MySQL 8 (`./gradlew clean check` + 
 
 ### Starter content
 
-The bundled `jobs.yml`, `job_tasks.yml`, `job_tasks.csv`, `fisherman.yml`,
-`boost_sources_default.json`, and `upgrade_trees/*.json` files form a generic
-starter pack. Replace or extend these examples for each server; their values are
-not a fixed progression contract.
+The bundled `jobs.yml`, `boost_sources_default.json`, and
+`upgrade_trees/*.json` files form a generic starter pack. Job task tables start
+empty; create task payables through the editor after configuring MySQL. Tasks are
+then stored only in MySQL.
 
 ### Database (MySQL only)
 
@@ -94,13 +94,16 @@ upgrades:
 ```
 
 Missing tables → plugin **fails at startup**. See `docs/database-schema.md`.
+Existing installations must apply `scripts/migrate-add-currency-symbol.sql`
+before deploying a build that persists currency symbols.
 
 ### Economy
 
-Money payables are optional. When the Mint plugin and service are available,
-ModularJobs uses its reflective ledger bridge. Without a provider, the default
-blackhole policy accepts positive economy payables but discards the currency.
-Install Mint or select the fail policy when real currency rewards are mandatory.
+Money payables are optional. ModularJobs uses Mint2 when it is enabled and otherwise
+uses the economy registered through Vault. Both adapters deposit into the provider's
+default currency; Mint2 always wins when both integrations are installed. Without a
+provider, the default blackhole policy accepts positive economy payables but discards
+the currency.
 
 ```yaml
 # config.yml
@@ -111,12 +114,12 @@ economy:
 
 - `missing-provider: blackhole` (default): keep the server running and discard
   positive money payables when no provider is available.
-- `missing-provider: fail`: fail enable when Mint is unavailable.
+- `missing-provider: fail`: fail enable when neither Mint2 nor Vault is available.
 - `required: true` remains a compatibility shorthand for `fail` when no explicit
   `missing-provider` is set.
 
-Mint deposit failures return false and are logged by the adapter.
-The payment pipeline does not retry after an unknown outcome.
+Mint2 and Vault deposit failures return false and are logged by their adapters.
+The payment pipeline never retries through the other provider after an unknown outcome.
 
 ### Permissions
 
@@ -165,7 +168,7 @@ receive no payment.
 
 ### Integrations and UI
 
-Mint, mcMMO, Bolt, LWC, Choco, and PlaceholderAPI are optional integrations.
+Mint2, Vault, mcMMO, Bolt, LWC, Choco, and PlaceholderAPI are optional integrations.
 ModularJobs uses native Paper inventory screens for browse, info, statistics,
 upgrades, and tree editing, plus native scoreboard sidebars and experience boss
 bars. No external UI library is required. The external Preferences plugin is not

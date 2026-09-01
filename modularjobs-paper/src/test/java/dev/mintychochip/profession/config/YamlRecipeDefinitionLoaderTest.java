@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.logging.Logger;
 import net.kyori.adventure.key.Key;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -130,7 +131,7 @@ class YamlRecipeDefinitionLoaderTest {
   }
 
   @Test
-  void loadFromDataFolderLoadsBundledResource(@TempDir Path dataFolder) throws Exception {
+  void loadFromDataFolderLoadsBundledResource(@NotNull @TempDir Path dataFolder) throws Exception {
     try (InputStream in =
         Thread.currentThread().getContextClassLoader().getResourceAsStream("recipes.yml")) {
       assertNotNull(in, "bundled recipes.yml must be on test classpath");

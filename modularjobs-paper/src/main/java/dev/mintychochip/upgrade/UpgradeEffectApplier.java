@@ -21,19 +21,19 @@ public final class UpgradeEffectApplier implements NodeEffectApplier {
   private final @Nullable RecipeService recipeService;
 
   /** Upgrade effect applier. */
-  public UpgradeEffectApplier(UpgradePermissionManager permissionManager) {
+  public UpgradeEffectApplier(@NotNull UpgradePermissionManager permissionManager) {
     this(permissionManager, null);
   }
 
   /** Upgrade effect applier. */
   public UpgradeEffectApplier(
-      UpgradePermissionManager permissionManager, @Nullable RecipeService recipeService) {
+      @NotNull UpgradePermissionManager permissionManager, @Nullable RecipeService recipeService) {
     this.permissionManager = permissionManager;
     this.recipeService = recipeService;
   }
 
   @Override
-  public @NotNull Set<NodeEffect> derive(SkillTreeState state, SkillTree tree) {
+  public @NotNull Set<NodeEffect> derive(@NotNull SkillTreeState state, @NotNull SkillTree tree) {
     Set<NodeEffect> result = new HashSet<>();
     for (SkillNode node : tree.nodes()) {
       int level = state.levelOf(node.key().value());
@@ -44,15 +44,18 @@ public final class UpgradeEffectApplier implements NodeEffectApplier {
 
   @Override
   public void syncEffects(
-      Player player, SkillTreeState previous, SkillTreeState current, SkillTree tree) {
+      @NotNull Player player,
+      @NotNull SkillTreeState previous,
+      @NotNull SkillTreeState current,
+      @NotNull SkillTree tree) {
     syncEffects(player, Map.of(tree, previous), Map.of(tree, current));
   }
 
   @Override
   public void syncEffects(
-      Player player,
-      Map<SkillTree, SkillTreeState> previousByTree,
-      Map<SkillTree, SkillTreeState> currentByTree) {
+      @NotNull Player player,
+      @NotNull Map<SkillTree, SkillTreeState> previousByTree,
+      @NotNull Map<SkillTree, SkillTreeState> currentByTree) {
     Set<String> oldPermissions = derivePermissions(previousByTree);
     Set<String> newPermissions = derivePermissions(currentByTree);
 
@@ -84,7 +87,7 @@ public final class UpgradeEffectApplier implements NodeEffectApplier {
     }
   }
 
-  private Set<String> derivePermissions(Map<SkillTree, SkillTreeState> byTree) {
+  private @NotNull Set<String> derivePermissions(@NotNull Map<SkillTree, SkillTreeState> byTree) {
     Set<String> permissions = new HashSet<>();
     for (Map.Entry<SkillTree, SkillTreeState> entry : byTree.entrySet()) {
       for (SkillNode node : entry.getKey().nodes()) {
@@ -99,7 +102,7 @@ public final class UpgradeEffectApplier implements NodeEffectApplier {
     return permissions;
   }
 
-  private Set<Key> deriveRecipes(Map<SkillTree, SkillTreeState> byTree) {
+  private @NotNull Set<Key> deriveRecipes(@NotNull Map<SkillTree, SkillTreeState> byTree) {
     Set<Key> recipes = new HashSet<>();
     for (Map.Entry<SkillTree, SkillTreeState> entry : byTree.entrySet()) {
       for (SkillNode node : entry.getKey().nodes()) {
@@ -115,7 +118,8 @@ public final class UpgradeEffectApplier implements NodeEffectApplier {
   }
 
   @Override
-  public void restoreAllForTrees(Player player, Map<SkillTree, SkillTreeState> byTree) {
+  public void restoreAllForTrees(
+      @NotNull Player player, @NotNull Map<SkillTree, SkillTreeState> byTree) {
     Set<NodeEffect> union = new HashSet<>();
     for (Map.Entry<SkillTree, SkillTreeState> entry : byTree.entrySet()) {
       union.addAll(derive(entry.getValue(), entry.getKey()));
@@ -127,13 +131,14 @@ public final class UpgradeEffectApplier implements NodeEffectApplier {
   }
 
   @Override
-  public void unapplyAll(Player player, SkillTreeState state, SkillTree tree) {
+  public void unapplyAll(
+      @NotNull Player player, @NotNull SkillTreeState state, @NotNull SkillTree tree) {
     for (NodeEffect effect : derive(state, tree)) {
       revokeEffect(player, effect);
     }
   }
 
-  private void applyEffect(Player player, NodeEffect effect) {
+  private void applyEffect(@NotNull Player player, @NotNull NodeEffect effect) {
     if (effect instanceof PermissionEffect perm) {
       for (String permission : perm.permissions()) {
         permissionManager.grantPermission(player, permission);
@@ -145,7 +150,7 @@ public final class UpgradeEffectApplier implements NodeEffectApplier {
     }
   }
 
-  private void revokeEffect(Player player, NodeEffect effect) {
+  private void revokeEffect(@NotNull Player player, @NotNull NodeEffect effect) {
     if (effect instanceof PermissionEffect perm) {
       for (String permission : perm.permissions()) {
         permissionManager.revokePermission(player, permission);
@@ -158,7 +163,7 @@ public final class UpgradeEffectApplier implements NodeEffectApplier {
   }
 
   /** Apply node effects. */
-  public void applyNodeEffects(Player player, UpgradeNode node) {
+  public void applyNodeEffects(@NotNull Player player, @NotNull UpgradeNode node) {
     for (UpgradeEffect effect : node.effects()) {
       if (effect instanceof UpgradeEffect.PermissionEffect perm) {
         for (String permission : perm.permissions()) {
@@ -169,7 +174,7 @@ public final class UpgradeEffectApplier implements NodeEffectApplier {
   }
 
   /** Unapply node effects. */
-  public void unapplyNodeEffects(Player player, UpgradeNode node) {
+  public void unapplyNodeEffects(@NotNull Player player, @NotNull UpgradeNode node) {
     for (UpgradeEffect effect : node.effects()) {
       if (effect instanceof UpgradeEffect.PermissionEffect perm) {
         for (String permission : perm.permissions()) {
@@ -180,7 +185,8 @@ public final class UpgradeEffectApplier implements NodeEffectApplier {
   }
 
   /** Restore effects. */
-  public void restoreEffects(Player player, UpgradeTree tree, Set<String> unlockedNodeKeys) {
+  public void restoreEffects(
+      @NotNull Player player, @NotNull UpgradeTree tree, @NotNull Set<String> unlockedNodeKeys) {
     Map<String, UpgradeNode> activeNodes = new HashMap<>();
 
     for (String nodeKey : unlockedNodeKeys) {

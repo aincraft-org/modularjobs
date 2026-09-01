@@ -31,7 +31,7 @@ public final class ModularJobsBootstrap extends JavaPlugin {
     this.context = created;
 
     PluginProvider.set(this);
-    Bridge.register(created.bridge);
+    BridgeRuntime.register(created.bridge);
     Bukkit.getServicesManager().register(Bridge.class, created.bridge, this, ServicePriority.High);
 
     // ProfessionService is the stable integration point for dependent plugins.
@@ -115,7 +115,7 @@ public final class ModularJobsBootstrap extends JavaPlugin {
         }
       }
       // Unregister Bridge holder + Bukkit services registered by this plugin
-      Bridge.unregister();
+      BridgeRuntime.unregister();
       PluginProvider.set(null);
       Bukkit.getServicesManager().unregisterAll(this);
       ctx.shutdown();

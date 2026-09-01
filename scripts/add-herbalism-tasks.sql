@@ -100,8 +100,9 @@ WITH seed(job_key, action_type_key, context_key, experience, economy) AS (
     ('modularjobs:herbalism', 'modularjobs:block_break', 'minecraft:pitcher_plant', 8::numeric, 3::numeric),
     ('modularjobs:herbalism', 'modularjobs:block_break', 'minecraft:pitcher_crop', 8::numeric, 3::numeric)
 )
-INSERT INTO job_task_payables (job_task_id, payable_type_key, amount, currency_identifier)
-SELECT tasks.task_id, payable.payable_type_key, payable.amount, NULL
+INSERT INTO job_task_payables
+  (job_task_id, payable_type_key, amount, currency_identifier, currency_symbol)
+SELECT tasks.task_id, payable.payable_type_key, payable.amount, NULL, NULL
 FROM seed
 JOIN job_tasks tasks
   ON tasks.job_key = seed.job_key

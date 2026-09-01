@@ -20,6 +20,7 @@ import java.util.stream.Collectors;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
 import org.bukkit.command.CommandSender;
+import org.jetbrains.annotations.NotNull;
 
 /** Generic boost source management command. */
 public final class SourceCommand implements JobsCommand {
@@ -29,13 +30,14 @@ public final class SourceCommand implements JobsCommand {
 
   /** Source command. */
   public SourceCommand(
-      Registry<BoostSource> boostSourceRegistry, BoostSourceLoader boostSourceLoader) {
+      @NotNull Registry<BoostSource> boostSourceRegistry,
+      @NotNull BoostSourceLoader boostSourceLoader) {
     this.boostSourceRegistry = boostSourceRegistry;
     this.boostSourceLoader = boostSourceLoader;
   }
 
   @Override
-  public LiteralArgumentBuilder<CommandSourceStack> build() {
+  public @NotNull LiteralArgumentBuilder<CommandSourceStack> build() {
     return Commands.literal("source")
         .then(Commands.literal("list").executes(context -> listBoostSources(context.getSource())))
         .then(
@@ -60,7 +62,7 @@ public final class SourceCommand implements JobsCommand {
                 .executes(context -> reloadBoostSources(context.getSource())));
   }
 
-  private int listBoostSources(CommandSourceStack source) {
+  private int listBoostSources(@NotNull CommandSourceStack source) {
     CommandSender sender = source.getSender();
 
     var sources = boostSourceRegistry.stream().collect(Collectors.toList());
@@ -87,7 +89,7 @@ public final class SourceCommand implements JobsCommand {
     return Command.SINGLE_SUCCESS;
   }
 
-  private int showBoostSourceInfo(CommandSourceStack source, String boostKeyStr) {
+  private int showBoostSourceInfo(@NotNull CommandSourceStack source, @NotNull String boostKeyStr) {
     CommandSender sender = source.getSender();
 
     Key boostKey = Key.key(boostKeyStr);
@@ -118,7 +120,8 @@ public final class SourceCommand implements JobsCommand {
     return Command.SINGLE_SUCCESS;
   }
 
-  private void showRuledBoostSourceDetails(CommandSender sender, RuledBoostSource source) {
+  private void showRuledBoostSourceDetails(
+      @NotNull CommandSender sender, @NotNull RuledBoostSource source) {
     // Rules info
     var rules = source.rules();
     Messages.send(sender, "<neutral>Rules: <secondary>" + rules.size() + " rule(s)");
@@ -150,7 +153,7 @@ public final class SourceCommand implements JobsCommand {
     }
   }
 
-  private String formatBoost(Boost boost) {
+  private @NotNull String formatBoost(@NotNull Boost boost) {
     return switch (boost) {
       case MultiplicativeBoostImpl m -> "×" + m.amount() + " (multiplicative)";
       case AdditiveBoostImpl a -> "+" + a.amount() + " (additive)";
@@ -158,7 +161,7 @@ public final class SourceCommand implements JobsCommand {
     };
   }
 
-  private int reloadBoostSources(CommandSourceStack source) {
+  private int reloadBoostSources(@NotNull CommandSourceStack source) {
     CommandSender sender = source.getSender();
 
     Messages.send(sender, "<secondary>Reloading boost sources...");

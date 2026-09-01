@@ -186,7 +186,7 @@ class RelationalTimedBoostRepositoryIdentityTest {
   private static final class FixedConnectionSource implements ConnectionSource {
     private final Connection connection;
 
-    FixedConnectionSource(Connection connection) {
+    FixedConnectionSource(@NotNull Connection connection) {
       this.connection = connection;
     }
 
@@ -208,7 +208,7 @@ class RelationalTimedBoostRepositoryIdentityTest {
     }
 
     @Override
-    public DatabaseType getType() {
+    public @NotNull DatabaseType getType() {
       return DatabaseType.MYSQL;
     }
 

@@ -2,6 +2,7 @@ package dev.mintychochip.repository;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Supplies database connections and reports the configured database lifecycle.
@@ -15,12 +16,14 @@ public interface ConnectionSource {
   void shutdown() throws SQLException;
 
   /** Returns the type. */
+  @NotNull
   DatabaseType getType();
 
   /** Returns whether closed. */
   boolean isClosed();
 
   /** Returns the connection. */
+  @NotNull
   Connection getConnection() throws SQLException;
 
   /** Returns whether setup. */

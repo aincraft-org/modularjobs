@@ -2,6 +2,8 @@ package dev.mintychochip.registry;
 
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.key.Keyed;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Identifies a typed registry within a {@link RegistryContainer}.
@@ -20,7 +22,8 @@ public sealed interface RegistryKey<T> extends Keyed permits RegistryKeyImpl {
    * @param <T> the element type of the addressed registry
    * @return a registry key wrapping the given key
    */
-  static <T> RegistryKey<T> key(Key key) {
+  @Contract(pure = true)
+  static <T> @NotNull RegistryKey<T> key(@NotNull Key key) {
     return new RegistryKeyImpl<>(key);
   }
 }

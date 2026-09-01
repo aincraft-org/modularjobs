@@ -4,11 +4,10 @@ import dev.mintychochip.registry.Registry;
 import java.util.HashMap;
 import java.util.Map;
 import org.bukkit.entity.Player;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.jetbrains.annotations.NotNull;
 
 /** Restores upgrade permissions on login and cleans up on logout. */
 public final class UpgradePermissionRestoreListener implements Listener {
@@ -19,10 +18,10 @@ public final class UpgradePermissionRestoreListener implements Listener {
 
   /** Upgrade permission restore listener. */
   public UpgradePermissionRestoreListener(
-      UpgradeService upgradeService,
-      UpgradeEffectApplier effectApplier,
-      UpgradePermissionManager permissionManager,
-      Registry<SkillTree> skillTreeRegistry) {
+      @NotNull UpgradeService upgradeService,
+      @NotNull UpgradeEffectApplier effectApplier,
+      @NotNull UpgradePermissionManager permissionManager,
+      @NotNull Registry<SkillTree> skillTreeRegistry) {
     this.upgradeService = upgradeService;
     this.effectApplier = effectApplier;
     this.permissionManager = permissionManager;
@@ -30,8 +29,7 @@ public final class UpgradePermissionRestoreListener implements Listener {
   }
 
   /** Restore all upgrade permissions from all job trees when player joins. */
-  @EventHandler(priority = EventPriority.MONITOR)
-  public void onPlayerJoin(PlayerJoinEvent event) {
+  public void onPlayerJoin(@NotNull PlayerJoinEvent event) {
     Player player = event.getPlayer();
     String playerId = player.getUniqueId().toString();
 
@@ -58,8 +56,7 @@ public final class UpgradePermissionRestoreListener implements Listener {
   }
 
   /** Cleanup all permission attachments when player quits. */
-  @EventHandler(priority = EventPriority.MONITOR)
-  public void onPlayerQuit(PlayerQuitEvent event) {
+  public void onPlayerQuit(@NotNull PlayerQuitEvent event) {
     permissionManager.cleanupPlayer(event.getPlayer().getUniqueId());
   }
 }

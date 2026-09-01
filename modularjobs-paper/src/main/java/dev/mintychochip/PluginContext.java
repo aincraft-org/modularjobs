@@ -1,6 +1,7 @@
 package dev.mintychochip;
 
 import com.google.gson.Gson;
+import dev.mintychochip.action.ActionServiceImpl;
 import dev.mintychochip.boost.BoostDataCodec;
 import dev.mintychochip.boost.BoostFactoryImpl;
 import dev.mintychochip.boost.ConsumableBoostController;
@@ -23,6 +24,7 @@ import dev.mintychochip.commands.StatsCommand;
 import dev.mintychochip.commands.TopCommand;
 import dev.mintychochip.commands.TreeEditorCommand;
 import dev.mintychochip.commands.UpgradesCommand;
+import dev.mintychochip.common.event.EventBusImpl;
 import dev.mintychochip.config.LevelUpCommandsConfig;
 import dev.mintychochip.config.ProgressionLimitsConfig;
 import dev.mintychochip.config.YamlConfiguration;
@@ -42,10 +44,9 @@ import dev.mintychochip.editor.json.GsonProvider;
 import dev.mintychochip.event.EventBus;
 import dev.mintychochip.gui.JobBrowseGui;
 import dev.mintychochip.gui.JobInfoGui;
-import dev.mintychochip.gui.StatsGui;
-import dev.mintychochip.gui.UpgradeTreeGui;
 import dev.mintychochip.gui.PaperSurfaces;
 import dev.mintychochip.gui.PaperUiHost;
+import dev.mintychochip.gui.StatsGui;
 import dev.mintychochip.listener.AutoJoinListener;
 import dev.mintychochip.listener.LevelUpCommandListener;
 import dev.mintychochip.payable.PayableWiring;
@@ -68,6 +69,7 @@ import dev.mintychochip.repository.DatabaseConfigSections;
 import dev.mintychochip.repository.PluginResources;
 import dev.mintychochip.repository.RelationalTimedBoostRepositoryImpl;
 import dev.mintychochip.repository.SharedConnectionSources;
+import dev.mintychochip.service.ActionService;
 import dev.mintychochip.service.ItemBoostDataService;
 import dev.mintychochip.service.JoinGate;
 import dev.mintychochip.service.LevelUpCommandExecutor;
@@ -87,10 +89,11 @@ import dev.mintychochip.upgrade.UpgradeService;
 import dev.mintychochip.upgrade.UpgradeServiceImpl;
 import dev.mintychochip.upgrade.UpgradeTree;
 import dev.mintychochip.upgrade.config.UpgradeTreeLoader;
-import dev.mintychochip.upgrade.editor.TreeEditorExporter;
-import dev.mintychochip.upgrade.editor.TreeEditorGui;
-import dev.mintychochip.upgrade.editor.TreeEditorNodeGui;
-import dev.mintychochip.upgrade.editor.TreeEditorSettingsGui;
+import dev.mintychochip.upgrade.rendering.UpgradeTreeGui;
+import dev.mintychochip.upgrade.rendering.editor.TreeEditorExporter;
+import dev.mintychochip.upgrade.rendering.editor.TreeEditorGui;
+import dev.mintychochip.upgrade.rendering.editor.TreeEditorNodeGui;
+import dev.mintychochip.upgrade.rendering.editor.TreeEditorSettingsGui;
 import dev.mintychochip.util.KeyResolver;
 import dev.mintychochip.util.KeyResolvers;
 import java.sql.SQLException;
@@ -102,6 +105,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /** Manual composition root for ModularJobs (constructor wiring; no DI framework). */
@@ -127,14 +131,14 @@ public final class PluginContext {
   @Nullable public final PlaceholderExpansionHandle placeholderExpansion;
 
   PluginContext(
-      Bridge bridge,
-      ConnectionSource connectionSource,
-      PluginResources resources,
-      PaperUiHost paperUiHost,
-      PaperSurfaces paperSurfaces,
-      UpgradeTreeLoader upgradeTreeLoader,
-      Set<Listener> listeners,
-      Set<JobsCommand> commands,
+      @NotNull Bridge bridge,
+      @NotNull ConnectionSource connectionSource,
+      @NotNull PluginResources resources,
+      @NotNull PaperUiHost paperUiHost,
+      @NotNull PaperSurfaces paperSurfaces,
+      @NotNull UpgradeTreeLoader upgradeTreeLoader,
+      @NotNull Set<Listener> listeners,
+      @NotNull Set<JobsCommand> commands,
       @Nullable PlaceholderExpansionHandle placeholderExpansion) {
     this.bridge = bridge;
     this.connectionSource = connectionSource;
@@ -147,7 +151,6 @@ public final class PluginContext {
     this.placeholderExpansion = placeholderExpansion;
   }
 
-
   /**
    * Flush write-backs and shut down every tracked ConnectionSource. Same path bootstrap uses on
    * disable.
@@ -159,7 +162,7 @@ public final class PluginContext {
   }
 
   /** Create. */
-  public static PluginContext create(JavaPlugin plugin) {
+  public static @NotNull PluginContext create(@NotNull JavaPlugin plugin) {
     PluginResources resources = new PluginResources();
     boolean created = false;
     try {
@@ -177,7 +180,8 @@ public final class PluginContext {
    * Composition body. Sources are tracked on {@code resources} as they open so callers (and {@link
    * #create}) can clean up on failure.
    */
-  static PluginContext createInto(JavaPlugin plugin, PluginResources resources) {
+  static @NotNull PluginContext createInto(
+      @NotNull JavaPlugin plugin, @NotNull PluginResources resources) {
     final YamlConfiguration databaseConfig = YamlConfiguration.create(plugin, "database.yml");
     plugin.getSLF4JLogger().info("Loading database.yml, keys: {}", databaseConfig.getKeys(false));
 
@@ -286,9 +290,8 @@ public final class PluginContext {
     final UpgradeTreeGui upgradeTreeGui = new UpgradeTreeGui(paperUiHost, upgradeService);
     TreeEditorExporter treeEditorExporter = new TreeEditorExporter();
     TreeEditorNodeGui treeEditorNodeGui = new TreeEditorNodeGui(plugin, paperUiHost);
-    TreeEditorSettingsGui treeEditorSettingsGui =
-        new TreeEditorSettingsGui(plugin, paperUiHost);
-    TreeEditorGui treeEditorGui =
+    TreeEditorSettingsGui treeEditorSettingsGui = new TreeEditorSettingsGui(plugin, paperUiHost);
+    final TreeEditorGui treeEditorGui =
         new TreeEditorGui(
             plugin,
             paperUiHost,
@@ -316,6 +319,9 @@ public final class PluginContext {
             professions.recipeService,
             professions.professionService);
 
+    final ActionService actionService =
+        new ActionServiceImpl(actionTypeRegistry, payment.paymentHandler);
+
     LevelUpCommandsConfig levelUpCommands = LevelUpCommandsConfig.fromPlugin(plugin);
     final LevelUpCommandExecutor levelUpCommandExecutor =
         new LevelUpCommandExecutor(
@@ -325,12 +331,17 @@ public final class PluginContext {
 
     JobBrowseGui jobBrowseGui =
         new JobBrowseGui(paperUiHost, domain.jobService, upgradeService, joinGate);
-    StatsGui statsGui = new StatsGui(paperUiHost);
+    final StatsGui statsGui = new StatsGui(paperUiHost);
     final JobTopPageProvider topPageProvider = new JobTopPageProvider(domain.jobService);
 
-    JobInfoGui jobInfoGui = new JobInfoGui(paperUiHost, preferencesService);
+    JobInfoGui jobInfoGui = new JobInfoGui(paperUiHost, preferencesService, payables.renderer);
     InfoCommand infoCommand =
-        new InfoCommand(domain.jobService, domain.jobResolver, preferencesService, jobInfoGui);
+        new InfoCommand(
+            domain.jobService,
+            domain.jobResolver,
+            preferencesService,
+            payables.renderer,
+            jobInfoGui);
 
     Set<JobsCommand> commands = new LinkedHashSet<>();
     commands.add(new JoinCommand(domain.jobService, domain.jobResolver, joinGate));
@@ -366,8 +377,8 @@ public final class PluginContext {
     commands.add(
         new TreeEditorCommand(
             upgradeService, domain.jobResolver, treeEditorGui, upgradeTreeLoader));
-    commands.add(new LevelCommand(domain.jobService, domain.progressionService));
-    commands.add(new ExperienceCommand(domain.jobService, domain.progressionService));
+    commands.add(new LevelCommand(domain.jobService, domain.playerJobStateService));
+    commands.add(new ExperienceCommand(domain.jobService, domain.playerJobStateService));
 
     List<Listener> listenerList = new ArrayList<>();
     listenerList.add(paperUiHost);
@@ -385,10 +396,11 @@ public final class PluginContext {
         new UpgradePermissionRestoreListener(
             upgradeService, effectApplier, permissionManager, skillTreeRegistry));
 
-    EventBus eventBus = new EventBus();
+    EventBus eventBus = new EventBusImpl();
     Bridge bridge =
         new BridgeImpl(
             registryContainer,
+            actionService,
             domain.jobService,
             professions.professionService,
             professions.recipeService,

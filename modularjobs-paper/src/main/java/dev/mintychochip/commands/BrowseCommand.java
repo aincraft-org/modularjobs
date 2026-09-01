@@ -8,6 +8,7 @@ import io.papermc.paper.command.brigadier.CommandSourceStack;
 import io.papermc.paper.command.brigadier.Commands;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.NotNull;
 
 /** Command to open the job browse GUI. Usage: /jobs browse */
 public final class BrowseCommand implements JobsCommand {
@@ -15,12 +16,12 @@ public final class BrowseCommand implements JobsCommand {
   private final JobBrowseGui jobBrowseGui;
 
   /** Browse command. */
-  public BrowseCommand(JobBrowseGui jobBrowseGui) {
+  public BrowseCommand(@NotNull JobBrowseGui jobBrowseGui) {
     this.jobBrowseGui = jobBrowseGui;
   }
 
   @Override
-  public LiteralArgumentBuilder<CommandSourceStack> build() {
+  public @NotNull LiteralArgumentBuilder<CommandSourceStack> build() {
     return Commands.literal("browse")
         .requires(source -> source.getSender().hasPermission("jobs.command.browse"))
         .executes(

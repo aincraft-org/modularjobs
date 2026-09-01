@@ -10,18 +10,19 @@ import dev.mintychochip.common.boost.BoostDataDocument;
 import dev.mintychochip.common.boost.BoostDataDocument.BoostDocument;
 import dev.mintychochip.common.boost.BoostDataDocument.RuleDocument;
 import dev.mintychochip.common.boost.BoostDataDocument.SourceDocument;
-import dev.mintychochip.databag.Condition;
-import dev.mintychochip.databag.ConditionSerializer;
-import dev.mintychochip.databag.Conditions;
-import dev.mintychochip.databag.SneakingCondition;
+import dev.mintychochip.databag.condition.Condition;
+import dev.mintychochip.databag.condition.ConditionSerializer;
+import dev.mintychochip.databag.condition.Conditions;
+import dev.mintychochip.databag.condition.builtin.SneakingCondition;
 import dev.mintychochip.databag.gson.GsonConditionSerializer;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 
 class BoostDataDocumentTest {
 
-  private final ConditionSerializer serializer = GsonConditionSerializer.gson();
+  private final @NotNull ConditionSerializer serializer = GsonConditionSerializer.gson();
 
   @Test
   void roundTripStoresPriorityAndConditionBytes() {

@@ -3,12 +3,15 @@ package dev.mintychochip.placeholders;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import dev.mintychochip.Job;
-import dev.mintychochip.JobProgression;
+import dev.mintychochip.PlayerJobState;
 import dev.mintychochip.service.JobService;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 import net.kyori.adventure.key.Key;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 
 class ModularJobsPlaceholderExpansionTest {
@@ -17,7 +20,7 @@ class ModularJobsPlaceholderExpansionTest {
 
   @Test
   void exposesLevelAndExperiencePerJob() {
-    JobService service = serviceWith(progression("miner", 7, "150"));
+    JobService service = serviceWith(state("miner", 7, "150"));
     ModularJobsPlaceholderExpansion expansion = new ModularJobsPlaceholderExpansion(service);
     assertEquals("7", expansion.onRequest(offlinePlayer(), "level_miner"));
     assertEquals("150", expansion.onRequest(offlinePlayer(), "experience_miner"));
@@ -25,8 +28,7 @@ class ModularJobsPlaceholderExpansionTest {
 
   @Test
   void exposesJoinedJobCountAndJobList() {
-    JobService service =
-        serviceWith(progression("miner", 7, "150"), progression("farmer", 3, "50"));
+    JobService service = serviceWith(state("miner", 7, "150"), state("farmer", 3, "50"));
     ModularJobsPlaceholderExpansion expansion = new ModularJobsPlaceholderExpansion(service);
     assertEquals("2", expansion.onRequest(offlinePlayer(), "joinedjobcount"));
     assertEquals("miner,farmer", expansion.onRequest(offlinePlayer(), "jobs"));
@@ -34,15 +36,14 @@ class ModularJobsPlaceholderExpansionTest {
 
   @Test
   void exposesTotalLevels() {
-    JobService service =
-        serviceWith(progression("miner", 7, "150"), progression("farmer", 3, "50"));
+    JobService service = serviceWith(state("miner", 7, "150"), state("farmer", 3, "50"));
     ModularJobsPlaceholderExpansion expansion = new ModularJobsPlaceholderExpansion(service);
     assertEquals("10", expansion.onRequest(offlinePlayer(), "totallevels"));
   }
 
   @Test
   void exposesJobNameDescriptionAndMaxLevel() {
-    JobService service = serviceWith(progression("miner", 7, "150"));
+    JobService service = serviceWith(state("miner", 7, "150"));
     ModularJobsPlaceholderExpansion expansion = new ModularJobsPlaceholderExpansion(service);
     assertEquals("miner", expansion.onRequest(offlinePlayer(), "name_miner"));
     assertEquals("Mines ores", expansion.onRequest(offlinePlayer(), "description_miner"));
@@ -51,7 +52,7 @@ class ModularJobsPlaceholderExpansionTest {
 
   @Test
   void exposesMaxExperienceForCurrentLevel() {
-    JobService service = serviceWith(progression("miner", 7, "150"));
+    JobService service = serviceWith(state("miner", 7, "150"));
     ModularJobsPlaceholderExpansion expansion = new ModularJobsPlaceholderExpansion(service);
     // experienceForLevel(8) = "800" from the proxy stub
     assertEquals("800", expansion.onRequest(offlinePlayer(), "maxexperience_miner"));
@@ -59,7 +60,7 @@ class ModularJobsPlaceholderExpansionTest {
 
   @Test
   void exposesIsinAndCanjoin() {
-    JobService service = serviceWith(progression("miner", 7, "150"));
+    JobService service = serviceWith(state("miner", 7, "150"));
     ModularJobsPlaceholderExpansion expansion = new ModularJobsPlaceholderExpansion(service);
     assertEquals("true", expansion.onRequest(offlinePlayer(), "isin_miner"));
     assertEquals("false", expansion.onRequest(offlinePlayer(), "isin_farmer"));
@@ -69,8 +70,8 @@ class ModularJobsPlaceholderExpansionTest {
 
   @Test
   void exposesArchivedJobCountAndMaxJobs() {
-    JobService service = serviceWith(progression("miner", 7, "150"));
-    // archivedcount proxy returns 1 via getArchivedProgressions
+    JobService service = serviceWith(state("miner", 7, "150"));
+    // archivedcount proxy returns 1 via getArchivedPlayerJobStates
     ModularJobsPlaceholderExpansion expansion = new ModularJobsPlaceholderExpansion(service);
     assertEquals("1", expansion.onRequest(offlinePlayer(), "archivedjobs"));
     assertEquals("1", expansion.onRequest(offlinePlayer(), "maxjobs"));
@@ -78,7 +79,7 @@ class ModularJobsPlaceholderExpansionTest {
 
   @Test
   void returnsEmptyForUnknownPlaceholder() {
-    JobService service = serviceWith(progression("miner", 7, "150"));
+    JobService service = serviceWith(state("miner", 7, "150"));
     ModularJobsPlaceholderExpansion expansion = new ModularJobsPlaceholderExpansion(service);
     assertEquals("", expansion.onRequest(offlinePlayer(), "bogus_param"));
   }
@@ -90,7 +91,8 @@ class ModularJobsPlaceholderExpansionTest {
     assertEquals("", expansion.onRequest(offlinePlayer(), "level_miner"));
   }
 
-  private static JobService serviceWith(JobProgression... progressions) {
+  @Contract(pure = true)
+  private static @NotNull JobService serviceWith(@NotNull PlayerJobState... states) {
     return (JobService)
         java.lang.reflect.Proxy.newProxyInstance(
             Thread.currentThread().getContextClassLoader(),
@@ -98,17 +100,17 @@ class ModularJobsPlaceholderExpansionTest {
             (proxy, method, args) -> {
               switch (method.getName()) {
                 case "getJobs" -> {
-                  return jobsOf(progressions);
+                  return jobsOf(states);
                 }
-                case "getProgressions" -> {
-                  return List.of(progressions);
+                case "getPlayerJobStates" -> {
+                  return List.of(states);
                 }
-                case "getArchivedProgressions" -> {
-                  return List.of(progressions.length > 0 ? progressions[0] : null);
+                case "getArchivedPlayerJobStates" -> {
+                  return List.of(states.length > 0 ? states[0] : null);
                 }
-                case "getProgression" -> {
+                case "getPlayerJobState" -> {
                   String jobKey = (String) args[1];
-                  for (JobProgression p : progressions) {
+                  for (PlayerJobState p : states) {
                     if (p.job().key().toString().endsWith(jobKey)) {
                       return p;
                     }
@@ -122,20 +124,23 @@ class ModularJobsPlaceholderExpansionTest {
             });
   }
 
-  private static List<Job> jobsOf(JobProgression... progressions) {
+  @Contract(pure = true)
+  private static @NotNull List<Job> jobsOf(@NotNull PlayerJobState... states) {
     java.util.ArrayList<Job> jobs = new java.util.ArrayList<>();
-    for (JobProgression p : progressions) {
+    for (PlayerJobState p : states) {
       jobs.add(p.job());
     }
     return jobs;
   }
 
-  private static JobProgression progression(String name, int level, String exp) {
+  @Contract(pure = true)
+  private static @NotNull PlayerJobState state(
+      @NotNull String name, int level, @NotNull String exp) {
     Job job = job(name);
-    return (JobProgression)
+    return (PlayerJobState)
         java.lang.reflect.Proxy.newProxyInstance(
             Thread.currentThread().getContextClassLoader(),
-            new Class<?>[] {JobProgression.class},
+            new Class<?>[] {PlayerJobState.class},
             (proxy, method, args) -> {
               switch (method.getName()) {
                 case "job" -> {
@@ -157,7 +162,8 @@ class ModularJobsPlaceholderExpansionTest {
             });
   }
 
-  private static Job job(String name) {
+  @Contract(pure = true)
+  private static @NotNull Job job(@NotNull String name) {
     return (Job)
         java.lang.reflect.Proxy.newProxyInstance(
             Thread.currentThread().getContextClassLoader(),
@@ -166,6 +172,9 @@ class ModularJobsPlaceholderExpansionTest {
               switch (method.getName()) {
                 case "getPlainName" -> {
                   return name;
+                }
+                case "jobKey" -> {
+                  return new dev.mintychochip.JobKey(Key.key("modularjobs", name));
                 }
                 case "key" -> {
                   return Key.key("modularjobs", name);
@@ -186,7 +195,8 @@ class ModularJobsPlaceholderExpansionTest {
             });
   }
 
-  private static org.bukkit.OfflinePlayer offlinePlayer() {
+  @Contract(pure = true)
+  private static @NotNull org.bukkit.OfflinePlayer offlinePlayer() {
     return (org.bukkit.OfflinePlayer)
         java.lang.reflect.Proxy.newProxyInstance(
             Thread.currentThread().getContextClassLoader(),
@@ -197,7 +207,8 @@ class ModularJobsPlaceholderExpansionTest {
                     : defaultValue(method.getReturnType()));
   }
 
-  private static Object defaultValue(Class<?> type) {
+  @Contract(pure = true)
+  private static @Nullable Object defaultValue(@NotNull Class<?> type) {
     if (type == boolean.class) {
       return false;
     }

@@ -1,10 +1,12 @@
 package dev.mintychochip.upgrade;
 
+import dev.mintychochip.upgrade.rendering.Position;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.key.Keyed;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -54,19 +56,23 @@ public record SkillNode(
     stateWrites = List.copyOf(stateWrites);
   }
 
+  @Contract(pure = true)
   public boolean isRoot() {
     return kind == SkillNodeKind.ROOT;
   }
 
+  @Contract(pure = true)
   public boolean isSkill() {
     return kind == SkillNodeKind.SKILL;
   }
 
+  @Contract(pure = true)
   public boolean isMajor() {
     return kind == SkillNodeKind.MAJOR;
   }
 
   /** Cost to buy the given level (1-indexed); 0 when out of range. */
+  @Contract(pure = true)
   public int levelCost(int level) {
     if (level < 1 || level > levels.size()) {
       return 0;
@@ -75,6 +81,7 @@ public record SkillNode(
   }
 
   /** Effects active at the given owned level, per {@link #mode}. */
+  @Contract(pure = true)
   public @NotNull List<NodeEffect> activeEffects(int level) {
     if (level <= 0) {
       return List.of();
@@ -94,17 +101,20 @@ public record SkillNode(
   }
 
   /** Whether all configured requirements are satisfied for the given player state. */
+  @Contract(pure = true)
   public @NotNull String getIconForState(boolean unlocked) {
     return unlocked ? unlockedIcon : lockedIcon;
   }
 
   /** API member. */
+  @Contract(pure = true)
   @Nullable
   public String getItemModelForState(boolean unlocked) {
     return unlocked ? unlockedItemModel : lockedItemModel;
   }
 
   /** Precondition satisfied. */
+  @Contract(pure = true)
   public boolean preconditionSatisfied(@NotNull SkillTreeState state) {
     for (Requirement requirement : requirements) {
       if (!requirement.satisfied(state)) {

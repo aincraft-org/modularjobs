@@ -14,7 +14,9 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.Plugin;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Loads place→break anti-farm material durations from {@code exploit-config.yml} under {@code
@@ -100,8 +102,8 @@ public final class PlacedProtectionMaterials {
 
   private PlacedProtectionMaterials() {}
 
-  /** Curated farm materials (for tests and fallbacks). */
-  public static Set<Material> curatedFarmMaterials() {
+  @Contract(pure = true)
+  public static @NotNull Set<Material> curatedFarmMaterials() {
     return EnumSet.copyOf(List.of(CURATED_FARM_MATERIALS));
   }
 
@@ -109,7 +111,8 @@ public final class PlacedProtectionMaterials {
    * Default map: curated farm materials plus every block Material that resolves under the current
    * server/runtime ({@code *} semantics).
    */
-  public static Map<Material, Duration> allBlocks(Duration duration) {
+  @Contract(pure = true)
+  public static @NotNull Map<Material, Duration> allBlocks(@NotNull Duration duration) {
     Map<Material, Duration> map = new EnumMap<>(Material.class);
     for (Material material : Material.values()) {
       if (isProtectableBlock(material)) {
@@ -123,12 +126,13 @@ public final class PlacedProtectionMaterials {
   }
 
   /** Default map: all protectable blocks with the default duration ({@code *} semantics). */
-  public static Map<Material, Duration> defaults() {
+  @Contract(pure = true)
+  public static @NotNull Map<Material, Duration> defaults() {
     return allBlocks(Duration.ofSeconds(DEFAULT_DURATION_SECONDS));
   }
 
   /** Load from plugin's {@code exploit-config.yml} if present; otherwise defaults. */
-  public static Map<Material, Duration> load(@NotNull Plugin plugin) {
+  public static @NotNull Map<Material, Duration> load(@NotNull Plugin plugin) {
     plugin.saveResource("exploit-config.yml", false);
     java.io.File file = new java.io.File(plugin.getDataFolder(), "exploit-config.yml");
     FileConfiguration yaml = YamlConfiguration.loadConfiguration(file);
@@ -139,7 +143,7 @@ public final class PlacedProtectionMaterials {
    * Parse a configuration root that may contain a {@code placed} section. Pure enough for unit
    * tests (pass any {@link FileConfiguration}).
    */
-  public static Map<Material, Duration> fromConfiguration(
+  public static @NotNull Map<Material, Duration> fromConfiguration(
       @NotNull FileConfiguration config, @NotNull Logger logger) {
     ConfigurationSection placed = config.getConfigurationSection("placed");
     long seconds = DEFAULT_DURATION_SECONDS;
@@ -198,7 +202,7 @@ public final class PlacedProtectionMaterials {
   }
 
   /** Safe block check: never throws on incomplete Material metadata (e.g. MockBukkit). */
-  static boolean isProtectableBlock(Material material) {
+  static boolean isProtectableBlock(@Nullable Material material) {
     if (material == null) {
       return false;
     }

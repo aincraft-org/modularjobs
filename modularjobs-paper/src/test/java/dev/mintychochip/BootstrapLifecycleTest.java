@@ -24,6 +24,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import net.kyori.adventure.bossbar.BossBar.Color;
 import net.kyori.adventure.text.Component;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 import org.mockbukkit.mockbukkit.entity.PlayerMock;
 
@@ -34,8 +35,10 @@ class BootstrapLifecycleTest {
   void onDisableUnregistersServicesAndPapiAndDoesNotBusySpin() throws Exception {
     Path bootstrap = locate("ModularJobsBootstrap.java");
     String text = Files.readString(bootstrap, StandardCharsets.UTF_8);
-    assertTrue(text.contains("Bridge.register"), "must register static Bridge holder on enable");
-    assertTrue(text.contains("Bridge.unregister"), "must clear static Bridge holder on disable");
+    assertTrue(
+        text.contains("BridgeRuntime.register"), "must register hidden Bridge holder on enable");
+    assertTrue(
+        text.contains("BridgeRuntime.unregister"), "must clear hidden Bridge holder on disable");
     assertTrue(text.contains("PluginProvider.set"), "must set/clear paper PluginProvider");
     assertTrue(text.contains("unregisterAll"), "must unregister Bukkit services on disable");
     assertTrue(text.contains("unregister()"), "must unregister PlaceholderAPI expansion");
@@ -101,7 +104,8 @@ class BootstrapLifecycleTest {
     assertTrue(
         compact.contains("new BrowseCommand(jobBrowseGui)")
             && compact.contains(
-                "new InfoCommand(domain.jobService, domain.jobResolver, preferencesService, jobInfoGui)")
+                "new InfoCommand( domain.jobService, domain.jobResolver, preferencesService,"
+                    + " payables.renderer, jobInfoGui)")
             && compact.contains("new StatsCommand(domain.jobService, statsGui)")
             && compact.contains(
                 "new UpgradesCommand(upgradeService, domain.jobResolver, upgradeTreeGui)")
@@ -119,12 +123,12 @@ class BootstrapLifecycleTest {
             && scoreboard.contains("surfaces.showScoreboard"),
         "TopCommand and TextScoreboard must use the native surface manager");
 
-    String payable =
-        Files.readString(locate("payable/PayableWiring.java"), StandardCharsets.UTF_8);
+    String payable = Files.readString(locate("payable/PayableWiring.java"), StandardCharsets.UTF_8);
     String payableCompact = payable.replaceAll("\\s+", " ");
     assertTrue(
         compact.contains(
-                "PayableWiring.create( plugin, domain.jobService, payableTypeRegistry, paperSurfaces")
+                "PayableWiring.create( plugin, domain.jobService, payableTypeRegistry,"
+                    + " paperSurfaces")
             && payable.contains("public final List<Listener> listeners;")
             && payableCompact.contains("new ExperienceBarControllerImpl(plugin, surfaces)")
             && payableCompact.contains("List<Listener> listeners = List.of(controller)"),
@@ -156,9 +160,7 @@ class BootstrapLifecycleTest {
     int payableListeners = context.indexOf("listenerList.addAll(payables.listeners)");
     int paymentListeners = context.indexOf("listenerList.addAll(payment.listeners)");
     assertTrue(
-        hostListener >= 0
-            && payableListeners > hostListener
-            && paymentListeners > payableListeners,
+        hostListener >= 0 && payableListeners > hostListener && paymentListeners > payableListeners,
         "native host, payable, and payment listeners must retain registration order");
 
     int hostClose = context.indexOf("paperUiHost.closeAll();");
@@ -175,7 +177,6 @@ class BootstrapLifecycleTest {
         "native UI must close before database resources");
   }
 
-
   @Test
   void pluginContextShutdownClosesNativeStateBeforeResourcesAndOnlyOnce() throws Exception {
     MockBukkitSupport.mockServer();
@@ -190,7 +191,8 @@ class BootstrapLifecycleTest {
       resources.onFlush(
           () -> {
             events.add("resource-flush");
-            assertTrue(mapField(host, "sessions").isEmpty(), "host sessions must close before flush");
+            assertTrue(
+                mapField(host, "sessions").isEmpty(), "host sessions must close before flush");
             assertTrue(
                 mapField(surfaces, "activeScoreboards").isEmpty(),
                 "scoreboards must close before flush");
@@ -210,11 +212,11 @@ class BootstrapLifecycleTest {
               ignored -> {
                 closeCallbacks.incrementAndGet();
                 events.add("ui-close");
-                assertTrue(mapField(host, "sessions").isEmpty(), "host session must be removed first");
+                assertTrue(
+                    mapField(host, "sessions").isEmpty(), "host session must be removed first");
               }));
       surfaces.showScoreboard(player.getUniqueId(), "Lifecycle", List.of("line"));
-      surfaces.showBossBar(
-          player.getUniqueId(), "lifecycle", "Lifecycle", 0.5, Color.BLUE);
+      surfaces.showBossBar(player.getUniqueId(), "lifecycle", "Lifecycle", 0.5, Color.BLUE);
 
       PluginContext context =
           new PluginContext(
@@ -236,7 +238,7 @@ class BootstrapLifecycleTest {
   }
 
   @SuppressWarnings("unchecked")
-  private static Map<?, ?> mapField(Object target, String name) {
+  private static @NotNull Map<?, ?> mapField(@NotNull Object target, @NotNull String name) {
     try {
       Field field = target.getClass().getDeclaredField(name);
       field.setAccessible(true);
@@ -251,7 +253,7 @@ class BootstrapLifecycleTest {
     private boolean closed;
     private int shutdownCalls;
 
-    private RecordingConnectionSource(List<String> events) {
+    private RecordingConnectionSource(@NotNull List<String> events) {
       this.events = events;
     }
 
@@ -263,7 +265,7 @@ class BootstrapLifecycleTest {
     }
 
     @Override
-    public DatabaseType getType() {
+    public @NotNull DatabaseType getType() {
       return DatabaseType.MYSQL;
     }
 
@@ -273,7 +275,7 @@ class BootstrapLifecycleTest {
     }
 
     @Override
-    public Connection getConnection() throws SQLException {
+    public @NotNull Connection getConnection() throws SQLException {
       throw new UnsupportedOperationException("test source has no connections");
     }
 
@@ -283,7 +285,7 @@ class BootstrapLifecycleTest {
     }
   }
 
-  private static int countOccurrences(String text, String needle) {
+  private static int countOccurrences(@NotNull String text, @NotNull String needle) {
     int count = 0;
     int offset = 0;
     while ((offset = text.indexOf(needle, offset)) >= 0) {
@@ -311,7 +313,7 @@ class BootstrapLifecycleTest {
 
   @Test
   void progressionWriteBackFlushPendingUsesSleepNotSpinWait() throws Exception {
-    Path writeBack = locate("domain/WriteBackJobProgressionRepositoryImpl.java");
+    Path writeBack = locate("domain/WriteBackPlayerJobStateRepositoryImpl.java");
     String text = Files.readString(writeBack, StandardCharsets.UTF_8);
     assertTrue(text.contains("Thread.sleep"), "flushPending must sleep while waiting for lock");
     assertFalse(text.contains("onSpinWait"), "flushPending must not busy-spin");
@@ -339,7 +341,7 @@ class BootstrapLifecycleTest {
         "WriteBackRepositoryImpl.flushPending must timeout instead of hang forever");
   }
 
-  private static Path locate(String relativeUnderAincraft) {
+  private static @NotNull Path locate(@NotNull String relativeUnderAincraft) {
     Path root = Path.of("").toAbsolutePath();
     Path candidate =
         root.resolve("modularjobs-paper/src/main/java/dev/mintychochip/" + relativeUnderAincraft);

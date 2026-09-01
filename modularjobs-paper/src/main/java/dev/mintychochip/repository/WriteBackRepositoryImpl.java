@@ -16,6 +16,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /** Write back repository impl. */
@@ -36,13 +37,15 @@ public final class WriteBackRepositoryImpl<K, V> {
   private static final long FLUSH_LOCK_WAIT_MS = 30_000L;
 
   /** Write back repository impl. */
-  public WriteBackRepositoryImpl(RelationalRepositoryImpl<K, V> delegate) {
+  public WriteBackRepositoryImpl(@NotNull RelationalRepositoryImpl<K, V> delegate) {
     this.delegate = delegate;
   }
 
   /** Create. */
-  public static <K, V> WriteBackRepositoryImpl<K, V> create(
-      Plugin plugin, RelationalRepositoryImpl<K, V> delegate, long periodSeconds) {
+  public static <K, V> @NotNull WriteBackRepositoryImpl<K, V> create(
+      @NotNull Plugin plugin,
+      @NotNull RelationalRepositoryImpl<K, V> delegate,
+      long periodSeconds) {
     WriteBackRepositoryImpl<K, V> writeBehindRepository = new WriteBackRepositoryImpl<>(delegate);
     Bukkit.getAsyncScheduler()
         .runAtFixedRate(
@@ -51,7 +54,7 @@ public final class WriteBackRepositoryImpl<K, V> {
   }
 
   /** Load. */
-  public @Nullable V load(K key) {
+  public @Nullable V load(@NotNull K key) {
     if (pendingDeletes.contains(key)) {
       return null;
     }
@@ -63,7 +66,7 @@ public final class WriteBackRepositoryImpl<K, V> {
   }
 
   /** Save. */
-  public boolean save(K key, V value) {
+  public boolean save(@NotNull K key, @NotNull V value) {
     flushLock.lock();
     try {
       pendingDeletes.remove(key);
@@ -76,7 +79,7 @@ public final class WriteBackRepositoryImpl<K, V> {
   }
 
   /** Delete. */
-  public void delete(K key) {
+  public void delete(@NotNull K key) {
     flushLock.lock();
     try {
       pendingUpserts.remove(key);

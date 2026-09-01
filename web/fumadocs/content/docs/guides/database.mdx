@@ -41,16 +41,16 @@ providers are not supported and were removed.
 least privilege, reviewable migrations, backups, and upgrades do not belong in
 `onEnable` or the API request path.
 
-- Source of truth: `paper/src/main/resources/sql/mysql.sql`
+- Source of truth: `modularjobs-paper/src/main/resources/sql/mysql.sql`
 - Apply: `./scripts/apply-mysql-schema.sh`
-- Missing tables → fail-fast at plugin enable / API boot (`SchemaPresence`)
+- Missing schema objects → fail-fast at plugin enable / API boot (`SchemaPresence`)
 
 ## Tables
 
 | Table | Purpose |
 | --- | --- |
-| `job_progression` | Player / job level and experience |
-| `archive_job_progression` | Archived (left) progression |
+| `job_progression` | Active player state: root job key, current node, tree XP |
+| `archive_job_progression` | Archived player job state after leaving |
 | `payable_records` | Task payables by job / action / context / type |
 | `job_tasks` + `job_task_payables` | Task records with DECIMAL payables |
 | `time_boost_identity` + `time_boosts` | Timed boosts (target, source, expiry) |
@@ -93,18 +93,17 @@ schema before starting either process.
 
 1. Open Hikari pool to MySQL.
 2. Verify required tables exist (`job_progression`, `job_tasks`, …).
-3. If any table is missing → **fail enable** pointing at
-   `scripts/apply-mysql-schema.sh`.
+3. Verify migration-sensitive columns, including `current_node_key`, exist.
+4. Missing tables or columns → **fail enable** with the required schema or
+   migration script.
 
-## Task data import
+## Task data ownership
 
-`job_tasks.csv` is the authoritative seed file **when the task table is empty**.
-Startup intentionally skips import when MySQL already contains tasks — changing
-the packaged CSV does not overwrite live task data.
+The plugin does not seed `job_tasks`. An empty task table remains empty until an
+operator creates definitions through the editor/repository path or reviewed SQL.
 
 <Callout type="warn" title="Live task changes">
-Apply task changes through the editor / repository path or an explicit reviewed
-SQL operation. Never clear a live task table without a backup and re-import
-plan. The `fisher` → `fisherman` job-key rename likewise requires an
+MySQL is the only runtime source of task data. Back up live rows before bulk
+edits or deletes. The `fisher` → `fisherman` job-key rename likewise requires an
 operator-managed data update before deploying the renamed catalog.
 </Callout>

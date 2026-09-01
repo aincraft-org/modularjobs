@@ -36,7 +36,7 @@ class BoostSourceConfigSerializerTest {
   void serializeAlwaysAndMultiplicative() {
     Rule rule =
         new Rule(
-            SnapshotCondition.wrap(dev.mintychochip.databag.Conditions.always()),
+            SnapshotCondition.wrap(dev.mintychochip.databag.condition.Conditions.always()),
             10,
             new MultiplicativeBoostImpl(BigDecimal.valueOf(1.25)));
     BoostSource source =

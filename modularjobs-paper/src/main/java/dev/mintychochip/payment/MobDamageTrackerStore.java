@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.function.Supplier;
 import org.bukkit.entity.Entity;
+import org.jetbrains.annotations.NotNull;
 
 /** In-memory, entity-UUID-keyed store of active {@link DamageContribution} tracking. */
 public final class MobDamageTrackerStore {
@@ -18,14 +19,14 @@ public final class MobDamageTrackerStore {
    * Returns the existing contribution for {@code entity} or creates (and stores) one via {@code
    * contributionSupplier}.
    */
-  public DamageContribution getContribution(
-      Entity entity, Supplier<DamageContribution> contributionSupplier) {
+  public @NotNull DamageContribution getContribution(
+      @NotNull Entity entity, @NotNull Supplier<DamageContribution> contributionSupplier) {
     return damageContributions.computeIfAbsent(
         entity.getUniqueId(), ignoredKey -> contributionSupplier.get());
   }
 
   /** Removes and returns the contribution for {@code entity}, or null when not tracked. */
-  public DamageContribution removeContribution(Entity entity) {
+  public @NotNull DamageContribution removeContribution(@NotNull Entity entity) {
     return damageContributions.remove(entity.getUniqueId());
   }
 
@@ -34,7 +35,7 @@ public final class MobDamageTrackerStore {
    *
    * @return true when {@code entity} has an active contribution being tracked
    */
-  public boolean hasContribution(Entity entity) {
+  public boolean hasContribution(@NotNull Entity entity) {
     return damageContributions.containsKey(entity.getUniqueId());
   }
 }

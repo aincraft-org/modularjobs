@@ -2,6 +2,7 @@ package dev.mintychochip;
 
 import java.math.BigDecimal;
 import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * A pure function mapping payout inputs to a reward amount.
@@ -18,8 +19,9 @@ public interface PayableCurve {
    * @return the curve value for {@code parameters}
    */
   @Contract(pure = true)
-  BigDecimal evaluate(Parameters parameters);
+  @NotNull
+  BigDecimal evaluate(@NotNull Parameters parameters);
 
-  /** Inputs to {@link PayableCurve#evaluate(Parameters)}. */
-  record Parameters(BigDecimal base, int level, int jobs) {}
+  /** Inputs available to a payout curve. */
+  record Parameters(@NotNull BigDecimal base, int level, int jobs) {}
 }

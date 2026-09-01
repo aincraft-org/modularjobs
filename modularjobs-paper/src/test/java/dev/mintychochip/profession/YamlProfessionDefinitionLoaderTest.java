@@ -50,7 +50,9 @@ class YamlProfessionDefinitionLoaderTest {
     IllegalArgumentException failure =
         assertThrows(
             IllegalArgumentException.class,
-            () -> YamlProfessionDefinitionLoader.loadFromConfiguration(new YamlConfiguration(), Set.of()));
+            () ->
+                YamlProfessionDefinitionLoader.loadFromConfiguration(
+                    new YamlConfiguration(), Set.of()));
     assertTrue(failure.getMessage().contains("professions.yml: professions"));
   }
 
@@ -141,7 +143,9 @@ class YamlProfessionDefinitionLoaderTest {
     IllegalArgumentException idFailure =
         assertThrows(
             IllegalArgumentException.class,
-            () -> YamlProfessionDefinitionLoader.loadFromConfiguration(yamlWith(badId), Set.of("miner")));
+            () ->
+                YamlProfessionDefinitionLoader.loadFromConfiguration(
+                    yamlWith(badId), Set.of("miner")));
     assertTrue(idFailure.getMessage().contains("professions[0].id"));
     assertTrue(idFailure.getMessage().contains("must match [a-z0-9._/-]+"));
 
@@ -165,9 +169,7 @@ class YamlProfessionDefinitionLoaderTest {
                 YamlProfessionDefinitionLoader.loadFromConfiguration(
                     yamlWith(entry("mining", "miner", "combat", "Mining")), Set.of("miner")));
     assertTrue(
-        failure
-            .getMessage()
-            .contains("must be gathering, processing, or crafting; got 'combat'"));
+        failure.getMessage().contains("must be gathering, processing, or crafting; got 'combat'"));
   }
 
   @Test
@@ -175,8 +177,8 @@ class YamlProfessionDefinitionLoaderTest {
     IllegalArgumentException failure =
         assertThrows(
             IllegalArgumentException.class,
-            ()
-                -> YamlProfessionDefinitionLoader.loadFromConfiguration(
+            () ->
+                YamlProfessionDefinitionLoader.loadFromConfiguration(
                     yamlWith(entry("mining", "miner", "gathering", "Mining")), Set.of("farmer")));
     assertTrue(failure.getMessage().contains("references unknown jobs.yml job"));
   }
@@ -193,7 +195,9 @@ class YamlProfessionDefinitionLoaderTest {
     IllegalArgumentException failure =
         assertThrows(
             IllegalArgumentException.class,
-            () -> YamlProfessionDefinitionLoader.loadFromConfiguration(yaml, Set.of("miner", "deep_miner")));
+            () ->
+                YamlProfessionDefinitionLoader.loadFromConfiguration(
+                    yaml, Set.of("miner", "deep_miner")));
     assertTrue(failure.getMessage().contains("professions.yml"));
     assertTrue(failure.getMessage().contains("mining"));
     assertTrue(failure.getMessage().contains("0"));
@@ -254,7 +258,8 @@ class YamlProfessionDefinitionLoaderTest {
           YamlConfiguration.loadConfiguration(
               new InputStreamReader(professionsIn, StandardCharsets.UTF_8));
       jobs =
-          YamlConfiguration.loadConfiguration(new InputStreamReader(jobsIn, StandardCharsets.UTF_8));
+          YamlConfiguration.loadConfiguration(
+              new InputStreamReader(jobsIn, StandardCharsets.UTF_8));
     }
 
     ProfessionIndex index =

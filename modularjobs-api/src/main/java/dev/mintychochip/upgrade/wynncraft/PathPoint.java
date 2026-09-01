@@ -1,6 +1,6 @@
 package dev.mintychochip.upgrade.wynncraft;
 
-import dev.mintychochip.upgrade.Position;
+import dev.mintychochip.upgrade.rendering.Position;
 import org.jetbrains.annotations.NotNull;
 
 /**

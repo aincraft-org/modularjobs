@@ -4,6 +4,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.ComponentLike;
 import net.kyori.adventure.text.event.HoverEvent;
 import org.bukkit.OfflinePlayer;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -21,7 +22,7 @@ public final class PlayerComponent implements ComponentLike {
    * @param playerId player's UUID string (shown on hover)
    * @param playerName display name (rendered as the component text)
    */
-  public PlayerComponent(String playerId, String playerName) {
+  public PlayerComponent(@NotNull String playerId, @NotNull String playerName) {
     this.playerId = playerId;
     this.playerName = playerName;
   }
@@ -33,13 +34,15 @@ public final class PlayerComponent implements ComponentLike {
    * @param player player to render
    * @return new player component
    */
-  public static PlayerComponent of(OfflinePlayer player) {
+  @Contract(pure = true)
+  public static @NotNull PlayerComponent of(@NotNull OfflinePlayer player) {
     String playerName = player.getName();
     return new PlayerComponent(
         player.getUniqueId().toString(), playerName == null ? "N/A" : playerName);
   }
 
   @Override
+  @Contract(pure = true)
   public @NotNull Component asComponent() {
     return Component.text(playerName).hoverEvent(HoverEvent.showText(Component.text(playerId)));
   }

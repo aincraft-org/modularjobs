@@ -8,12 +8,12 @@ import dev.mintychochip.container.boost.factories.ConditionFactory;
 import dev.mintychochip.upgrade.NodeEffect;
 import dev.mintychochip.upgrade.NodeLevel;
 import dev.mintychochip.upgrade.NodeStateWrite;
-import dev.mintychochip.upgrade.Position;
 import dev.mintychochip.upgrade.Requirement;
 import dev.mintychochip.upgrade.SkillNode;
 import dev.mintychochip.upgrade.SkillNode.LevelEffectMode;
 import dev.mintychochip.upgrade.SkillNodeKind;
 import dev.mintychochip.upgrade.SkillTree;
+import dev.mintychochip.upgrade.rendering.Position;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import net.kyori.adventure.key.Key;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -35,14 +36,14 @@ public final class SkillTreeConfigParser {
   private final SkillTreeEffectParser effectParser;
 
   /** Skill tree config parser. */
-  public SkillTreeConfigParser(BoostFactory boostFactory, ConditionFactory conditionFactory) {
+  public SkillTreeConfigParser(
+      @NotNull BoostFactory boostFactory, @NotNull ConditionFactory conditionFactory) {
     this.requirementParser = new SkillTreeRequirementParser();
     this.effectParser = new SkillTreeEffectParser(boostFactory, conditionFactory);
   }
 
-  /** API member. */
-  @NotNull
-  public SkillTree parse(@NotNull JsonObject root) {
+  @Contract(pure = true)
+  public @NotNull SkillTree parse(@NotNull JsonObject root) {
     if (!root.has("version") || root.get("version").getAsInt() != VERSION) {
       throw new IllegalArgumentException("Skill tree must declare \"version\": 2");
     }
@@ -78,7 +79,8 @@ public final class SkillTreeConfigParser {
         nodes);
   }
 
-  private SkillNode parseNode(String jobKey, String nodeKey, JsonObject obj) {
+  private @NotNull SkillNode parseNode(
+      @NotNull String jobKey, @NotNull String nodeKey, @NotNull JsonObject obj) {
     final SkillNodeKind kind = SkillNodeKind.valueOf(obj.get("kind").getAsString().toUpperCase());
     final String name = obj.get("name").getAsString();
     final String description =
@@ -195,14 +197,15 @@ public final class SkillTreeConfigParser {
         stateWrites);
   }
 
-  private void validateEffect(SkillNodeKind kind, String nodeKey, NodeEffect effect) {
+  private void validateEffect(
+      @NotNull SkillNodeKind kind, @NotNull String nodeKey, @NotNull NodeEffect effect) {
     if (kind != SkillNodeKind.MAJOR && effect instanceof NodeEffect.StateSetEffect) {
       throw new IllegalArgumentException(
           "Only major nodes may define state-setting effects: " + nodeKey);
     }
   }
 
-  private void validateStateWriteConflicts(Map<String, SkillNode> nodes) {
+  private void validateStateWriteConflicts(@NotNull Map<String, SkillNode> nodes) {
     List<SkillNode> majors = nodes.values().stream().filter(SkillNode::isMajor).toList();
     for (int i = 0; i < majors.size(); i++) {
       SkillNode left = majors.get(i);
@@ -228,7 +231,8 @@ public final class SkillTreeConfigParser {
     }
   }
 
-  private void validateReferences(String jobKey, String rootNodeKey, Map<String, SkillNode> nodes) {
+  private void validateReferences(
+      @NotNull String jobKey, @NotNull String rootNodeKey, @NotNull Map<String, SkillNode> nodes) {
     if (!nodes.containsKey(rootNodeKey)) {
       throw new IllegalArgumentException(
           "Root node '" + rootNodeKey + "' not found in tree " + jobKey);
@@ -250,7 +254,7 @@ public final class SkillTreeConfigParser {
     }
   }
 
-  private Set<String> parseStringSet(JsonObject obj, String field) {
+  private @NotNull Set<String> parseStringSet(@NotNull JsonObject obj, @NotNull String field) {
     Set<String> result = new HashSet<>();
     if (obj.has(field)) {
       for (JsonElement el : obj.getAsJsonArray(field)) {
@@ -260,7 +264,7 @@ public final class SkillTreeConfigParser {
     return result;
   }
 
-  private Key parseKey(String raw) {
+  private @NotNull Key parseKey(@NotNull String raw) {
     int separator = raw.indexOf(':');
     if (separator > 0) {
       return Key.key(raw.substring(0, separator), raw.substring(separator + 1));

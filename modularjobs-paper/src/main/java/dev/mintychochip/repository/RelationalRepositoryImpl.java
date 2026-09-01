@@ -7,6 +7,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Duration;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -28,7 +29,8 @@ public final class RelationalRepositoryImpl<K, V> {
 
   /** Relational repository impl. */
   public RelationalRepositoryImpl(
-      ConnectionSource connectionSource, RelationalRepositoryContext<K, V> context) {
+      @NotNull ConnectionSource connectionSource,
+      @NotNull RelationalRepositoryContext<K, V> context) {
     this.connectionSource = connectionSource;
     this.context = context;
   }
@@ -37,8 +39,7 @@ public final class RelationalRepositoryImpl<K, V> {
    * Loads the value for {@code key}, returning {@code null} if no row exists. Results are cached
    * and served from cache on subsequent calls.
    */
-  @Nullable
-  public V load(K key) {
+  public @Nullable V load(@NotNull K key) {
     return readCache.get(
         key,
         ignored -> {
@@ -59,7 +60,7 @@ public final class RelationalRepositoryImpl<K, V> {
    *
    * @return whether a row was updated (row count greater than zero)
    */
-  public boolean save(K key, V value) {
+  public boolean save(@NotNull K key, @NotNull V value) {
     try (Connection connection = connectionSource.getConnection();
         PreparedStatement ps = connection.prepareStatement(context.getSaveQuery())) {
       context.setSaveValues(ps, key, value);
@@ -71,7 +72,7 @@ public final class RelationalRepositoryImpl<K, V> {
   }
 
   /** Removes the row for {@code key} and invalidates it from the cache if the row existed. */
-  public void delete(K key) {
+  public void delete(@NotNull K key) {
     try (Connection connection = connectionSource.getConnection();
         PreparedStatement ps = connection.prepareStatement(context.getDeleteQuery())) {
       context.setKey(ps, key);

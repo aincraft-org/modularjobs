@@ -4,6 +4,7 @@ import dev.mintychochip.payable.ExperienceBarColorPreference;
 import java.util.Objects;
 import java.util.logging.Level;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.jetbrains.annotations.NotNull;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
@@ -23,7 +24,8 @@ public final class PreferencesIntegration {
 
   /** Result of wiring: optional preference handle plus optional disable-path cleanup. */
   public record Wiring(
-      @Nullable ExperienceBarColorPreference experienceBarColor, @Nullable Runnable onDisable) {
+      @Nullable @org.jetbrains.annotations.Nullable ExperienceBarColorPreference experienceBarColor,
+      @Nullable @org.jetbrains.annotations.Nullable Runnable onDisable) {
     // Both fields are intentionally nullable: the absent-service paths construct
     // Wiring(null, null).
   }
@@ -32,7 +34,7 @@ public final class PreferencesIntegration {
    * Loads the external Preferences service and registers ModularJobs' XP bar color preference.
    * Returns a {@link Wiring} with null fields when the service is unavailable.
    */
-  public static Wiring wire(JavaPlugin plugin) {
+  public static @NotNull Wiring wire(@NotNull JavaPlugin plugin) {
     Objects.requireNonNull(plugin, "plugin");
 
     try {

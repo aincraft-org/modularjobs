@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -23,7 +24,8 @@ public interface BuffService {
 
   /** Active buff. */
   record ActiveBuff(@NotNull String buffId, @NotNull BuffSlot slot, @NotNull Instant expiresAt) {
-    public boolean isExpired(Instant now) {
+    @Contract(pure = true)
+    public boolean isExpired(@NotNull Instant now) {
       return !expiresAt.isAfter(now);
     }
   }
@@ -45,6 +47,7 @@ public interface BuffService {
   List<ActiveBuff> activeBuffs(@NotNull UUID playerId);
 
   /** Active in slot. */
+  @NotNull
   Optional<ActiveBuff> activeInSlot(@NotNull UUID playerId, @NotNull BuffSlot slot);
 
   /** Returns whether has buff. */

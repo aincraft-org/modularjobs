@@ -1,4 +1,5 @@
 dependencies {
+    api(project(":modularjobs-api"))
     api(libs.jetbrains.annotations)
     api(libs.gson)
     testImplementation(libs.databag.api)

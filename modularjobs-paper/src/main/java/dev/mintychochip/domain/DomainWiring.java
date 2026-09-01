@@ -5,17 +5,18 @@ import dev.mintychochip.container.ActionType;
 import dev.mintychochip.container.PayableType;
 import dev.mintychochip.domain.MemoryJobRepositoryImpl.YamlRecordLoader;
 import dev.mintychochip.domain.model.JobRecord;
-import dev.mintychochip.domain.repository.JobProgressionRepository;
+import dev.mintychochip.domain.repository.PlayerJobStateRepository;
 import dev.mintychochip.registry.Registry;
 import dev.mintychochip.repository.ConnectionSource;
 import dev.mintychochip.repository.PluginResources;
+import dev.mintychochip.service.JobPerkCatalog;
 import dev.mintychochip.service.JobService;
 import dev.mintychochip.service.JoinGate;
-import dev.mintychochip.service.YamlJobTaskLoader;
 import dev.mintychochip.util.KeyResolver;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import org.bukkit.plugin.Plugin;
+import org.jetbrains.annotations.NotNull;
 
 /** Manual composition for domain-layer services (replaces Guice DomainModule). */
 public final class DomainWiring {
@@ -25,61 +26,64 @@ public final class DomainWiring {
 
   public final MemoryJobRepositoryImpl jobRepository;
   public final RelationalJobTaskRepositoryImpl jobTaskRepository;
-  public final ProgressionService progressionService;
+  public final PlayerJobStateService playerJobStateService;
   public final JobService jobService;
+  public final JobPerkCatalog perkCatalog;
   public final JobResolver jobResolver;
 
   private DomainWiring(
-      MemoryJobRepositoryImpl jobRepository,
-      RelationalJobTaskRepositoryImpl jobTaskRepository,
-      ProgressionService progressionService,
-      JobService jobService,
-      JobResolver jobResolver) {
+      @NotNull MemoryJobRepositoryImpl jobRepository,
+      @NotNull RelationalJobTaskRepositoryImpl jobTaskRepository,
+      @NotNull PlayerJobStateService playerJobStateService,
+      @NotNull JobService jobService,
+      @NotNull JobPerkCatalog perkCatalog,
+      @NotNull JobResolver jobResolver) {
     this.jobRepository = jobRepository;
     this.jobTaskRepository = jobTaskRepository;
-    this.progressionService = progressionService;
+    this.playerJobStateService = playerJobStateService;
     this.jobService = jobService;
+    this.perkCatalog = perkCatalog;
     this.jobResolver = jobResolver;
   }
 
   /**
-   * Composes domain services, loading job definitions and wiring progression write-back stores.
+   * Composes domain services, loading job trees and wiring player-state write-back stores.
    *
    * @param connectionSource shared payable DB source (already tracked by {@code resources})
-   * @param resources registers progression write-back flush hooks for disable
+   * @param resources registers player-state write-back flush hooks for disable
    */
-  public static DomainWiring create(
-      Plugin plugin,
-      ConnectionSource connectionSource,
-      PluginResources resources,
-      Registry<ActionType> actionTypeRegistry,
-      Registry<PayableType> payableTypeRegistry,
-      KeyResolver keyResolver,
-      JoinGate joinGate) {
+  public static @NotNull DomainWiring create(
+      @NotNull Plugin plugin,
+      @NotNull ConnectionSource connectionSource,
+      @NotNull PluginResources resources,
+      @NotNull Registry<ActionType> actionTypeRegistry,
+      @NotNull Registry<PayableType> payableTypeRegistry,
+      @NotNull KeyResolver keyResolver,
+      @NotNull JoinGate joinGate) {
+    YamlConfiguration jobsConfiguration = YamlConfiguration.create(plugin, "jobs.yml");
     YamlRecordLoader loader = new YamlRecordLoader();
-    Map<String, JobRecord> records = loader.load(YamlConfiguration.create(plugin, "jobs.yml"));
+    Map<String, JobRecord> records = loader.load(jobsConfiguration);
     MemoryJobRepositoryImpl jobRepository = new MemoryJobRepositoryImpl(records);
+    final JobPerkCatalog perkCatalog = JobPerkCatalog.load(jobsConfiguration);
 
-    YamlJobTaskLoader taskLoader = new YamlJobTaskLoader(plugin, connectionSource);
-    taskLoader.loadIfEmpty();
     RelationalJobTaskRepositoryImpl jobTaskRepository =
         new RelationalJobTaskRepositoryImpl(connectionSource);
 
-    // Reuse the composition-owned payable ConnectionSource for progression tables
+    // Reuse the composition-owned payable ConnectionSource for player-state tables
     // (same DB section as before; avoids untracked extra pools).
-    WriteBackJobProgressionRepositoryImpl live =
-        WriteBackJobProgressionRepositoryImpl.create(
+    WriteBackPlayerJobStateRepositoryImpl live =
+        WriteBackPlayerJobStateRepositoryImpl.create(
             plugin,
-            RelationalJobProgressionRepositoryImpl.create(
+            RelationalPlayerJobStateRepositoryImpl.create(
                 jobRepository, connectionSource, LIVE_REPOSITORY),
             50,
             50,
             10,
             TimeUnit.SECONDS);
-    WriteBackJobProgressionRepositoryImpl archive =
-        WriteBackJobProgressionRepositoryImpl.create(
+    WriteBackPlayerJobStateRepositoryImpl archive =
+        WriteBackPlayerJobStateRepositoryImpl.create(
             plugin,
-            RelationalJobProgressionRepositoryImpl.create(
+            RelationalPlayerJobStateRepositoryImpl.create(
                 jobRepository, connectionSource, ARCHIVE_REPOSITORY),
             50,
             50,
@@ -88,9 +92,9 @@ public final class DomainWiring {
     resources.onFlush(live::flushPending);
     resources.onFlush(archive::flushPending);
 
-    JobProgressionRepository liveView = live;
-    JobProgressionRepository archiveView = archive;
-    ProgressionService progressionService = new ProgressionService(liveView, archiveView);
+    PlayerJobStateRepository liveView = live;
+    PlayerJobStateRepository archiveView = archive;
+    PlayerJobStateService playerJobStateService = new PlayerJobStateService(liveView, archiveView);
     JobService jobService =
         new JobServiceImpl(
             actionTypeRegistry,
@@ -98,11 +102,16 @@ public final class DomainWiring {
             jobTaskRepository,
             keyResolver,
             jobRepository,
-            progressionService,
+            playerJobStateService,
             joinGate,
             plugin);
     JobResolver jobResolver = new JobResolver(jobService);
     return new DomainWiring(
-        jobRepository, jobTaskRepository, progressionService, jobService, jobResolver);
+        jobRepository,
+        jobTaskRepository,
+        playerJobStateService,
+        jobService,
+        perkCatalog,
+        jobResolver);
   }
 }

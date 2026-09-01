@@ -4,6 +4,7 @@ import dev.mintychochip.action.ActionTypeImpl;
 import dev.mintychochip.container.ActionType;
 import org.bukkit.NamespacedKey;
 import org.bukkit.plugin.Plugin;
+import org.jetbrains.annotations.NotNull;
 
 /** Builds the built-in action-type registry for the plugin namespace. */
 public final class ActionTypeRegistryProvider {
@@ -11,15 +12,16 @@ public final class ActionTypeRegistryProvider {
   private final Plugin plugin;
 
   /** Creates a provider bound to the plugin namespace used for action keys. */
-  public ActionTypeRegistryProvider(Plugin plugin) {
+  public ActionTypeRegistryProvider(@NotNull Plugin plugin) {
     this.plugin = plugin;
   }
 
   /** Creates and populates the built-in action-type registry. */
-  public static Registry<ActionType> create(Plugin plugin) {
+  public static @NotNull Registry<ActionType> create(@NotNull Plugin plugin) {
     return new ActionTypeRegistryProvider(plugin).get();
   }
 
+  @NotNull
   Registry<ActionType> get() {
     SimpleRegistryImpl<ActionType> r = new SimpleRegistryImpl<>();
     r.register(actionType("block_place"));
@@ -49,11 +51,11 @@ public final class ActionTypeRegistryProvider {
     return r;
   }
 
-  private ActionType actionType(String name, String keyString) {
+  private @NotNull ActionType actionType(@NotNull String name, @NotNull String keyString) {
     return new ActionTypeImpl(name, new NamespacedKey(plugin, keyString));
   }
 
-  private ActionType actionType(String keyString) {
+  private @NotNull ActionType actionType(@NotNull String keyString) {
     StringBuilder sb = new StringBuilder(keyString.length());
     boolean capitalNext = true;
     for (char c : keyString.toCharArray()) {

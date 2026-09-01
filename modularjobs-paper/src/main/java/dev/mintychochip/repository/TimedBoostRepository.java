@@ -3,6 +3,7 @@ package dev.mintychochip.repository;
 import dev.mintychochip.container.boost.TimedBoostDataService.ActiveBoostData;
 import java.util.List;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Persistence operations for timed (active) boosts, keyed by target identifier and source
@@ -16,14 +17,15 @@ public interface TimedBoostRepository {
 
   /** Returns all active boosts targeting the given identifier. */
   @NotNull
-  List<ActiveBoostData> findAllBoosts(String targetIdentifier);
+  List<ActiveBoostData> findAllBoosts(@NotNull String targetIdentifier);
 
   /** Find boost. */
-  ActiveBoostData findBoost(String targetIdentifier, String sourceIdentifier);
+  @Nullable
+  ActiveBoostData findBoost(@NotNull String targetIdentifier, @NotNull String sourceIdentifier);
 
   /** Delete. */
-  void delete(String targetIdentifier, String sourceIdentifier);
+  void delete(@NotNull String targetIdentifier, @NotNull String sourceIdentifier);
 
   /** Add boost. */
-  void addBoost(ActiveBoostData boost);
+  void addBoost(@NotNull ActiveBoostData boost);
 }

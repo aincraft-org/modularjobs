@@ -1,12 +1,12 @@
 package dev.mintychochip.container;
 
 import net.kyori.adventure.key.Keyed;
-import net.kyori.adventure.text.Component;
 import org.jetbrains.annotations.ApiStatus.NonExtendable;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 
 /**
- * Describes the kind of a {@link Payable}: what handler pays it out and how it is rendered to the
- * player.
+ * Describes a keyed kind of {@link Payable} and the handler that pays it out.
  *
  * <p>Extends {@link Keyed}, giving each payable type a unique {@link net.kyori.adventure.key.Key}.
  * Instances are non-extendable and are resolved from the payable-type registry via {@link
@@ -20,14 +20,7 @@ public interface PayableType extends Keyed {
    *
    * @return the handler for this payable type
    */
+  @Contract(pure = true)
+  @NotNull
   PayableHandler handler();
-
-  /**
-   * Renders the given amount as a text component using this type's presentation.
-   *
-   * @param amount the amount to render
-   * @param places number of decimal places to display
-   * @return the component representation of the amount
-   */
-  Component render(PayableAmount amount, int places);
 }

@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import dev.mintychochip.PlayerJobState;
 import dev.mintychochip.container.Currency;
 import dev.mintychochip.container.EconomyProvider;
 import dev.mintychochip.container.Payable;
@@ -15,11 +16,15 @@ import dev.mintychochip.container.PayableHandler;
 import dev.mintychochip.container.PayableHandler.PayableContext;
 import dev.mintychochip.container.PayableType;
 import dev.mintychochip.test.MockBukkitSupport;
+import java.lang.reflect.Proxy;
 import java.math.BigDecimal;
 import java.util.UUID;
 import net.kyori.adventure.key.Key;
+import net.milkbowl.vault.economy.Economy;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.plugin.ServicePriority;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -27,7 +32,7 @@ import org.mockbukkit.mockbukkit.MockBukkit;
 
 /**
  * Drives shipped {@link EconomyProviderFactory} and {@link PayableWiring#economyHandlerFor}
- * selection and payment behavior without a live Mint server.
+ * selection and payment behavior without live provider plugins.
  */
 class EconomyProviderFactoryTest {
 
@@ -47,6 +52,32 @@ class EconomyProviderFactoryTest {
   @Test
   void tryCreateReturnsNullWithoutMint() {
     assertNull(EconomyProviderFactory.tryCreate(plugin));
+  }
+
+  @Test
+  void tryCreateSelectsMint2BeforeItsServiceRegisters() {
+    Plugin mint2 = MockBukkit.createMockPlugin("Mint2");
+    MockBukkit.getMock().getPluginManager().enablePlugin(mint2);
+
+    EconomyProvider provider = EconomyProviderFactory.tryCreate(plugin);
+    assertInstanceOf(MintEconomyProvider.class, provider);
+    assertFalse(provider.isCurrencySupported());
+  }
+
+  @Test
+  void tryCreateSelectsVaultWhenMint2IsAbsent() {
+    registerVaultEconomy();
+
+    assertInstanceOf(VaultEconomyProvider.class, EconomyProviderFactory.tryCreate(plugin));
+  }
+
+  @Test
+  void tryCreatePrefersMint2WhenVaultIsAlsoAvailable() {
+    registerVaultEconomy();
+    Plugin mint2 = MockBukkit.createMockPlugin("Mint2");
+    MockBukkit.getMock().getPluginManager().enablePlugin(mint2);
+
+    assertInstanceOf(MintEconomyProvider.class, EconomyProviderFactory.tryCreate(plugin));
   }
 
   @Test
@@ -115,7 +146,7 @@ class EconomyProviderFactoryTest {
           }
 
           @Override
-          public boolean deposit(UUID playerId, PayableAmount payableAmount) {
+          public boolean deposit(@NotNull UUID playerId, @NotNull PayableAmount payableAmount) {
             deposited[0] = true;
             return true;
           }
@@ -134,25 +165,51 @@ class EconomyProviderFactoryTest {
     assertFalse(EconomyProviderFactory.isRequired(fresh));
   }
 
-  private static PayableContext contextFor(PayableHandler handler, OfflinePlayer player) {
+  @SuppressWarnings("PMD.CompareObjectsWithEquals")
+  private void registerVaultEconomy() {
+    Plugin vault = MockBukkit.createMockPlugin("Vault");
+    MockBukkit.getMock().getPluginManager().enablePlugin(vault);
+    Economy economy =
+        (Economy)
+            Proxy.newProxyInstance(
+                Thread.currentThread().getContextClassLoader(),
+                new Class<?>[] {Economy.class},
+                (proxy, method, arguments) ->
+                    switch (method.getName()) {
+                      case "isEnabled" -> true;
+                      case "toString" -> "FactoryVaultEconomy";
+                      case "hashCode" -> System.identityHashCode(proxy);
+                      case "equals" -> proxy == arguments[0];
+                      default -> throw new UnsupportedOperationException(method.toString());
+                    });
+    MockBukkit.getMock()
+        .getServicesManager()
+        .register(Economy.class, economy, vault, ServicePriority.Normal);
+  }
+
+  private static @NotNull PayableContext contextFor(
+      @NotNull PayableHandler handler, @NotNull OfflinePlayer player) {
     PayableType type =
         new PayableType() {
           @Override
-          public PayableHandler handler() {
+          public @NotNull PayableHandler handler() {
             return handler;
           }
 
           @Override
-          public Key key() {
+          public @NotNull Key key() {
             return Key.key("modularjobs", "economy");
-          }
-
-          @Override
-          public net.kyori.adventure.text.Component render(PayableAmount amount, int places) {
-            return net.kyori.adventure.text.Component.empty();
           }
         };
     Payable payable = new Payable(type, PayableAmount.create(BigDecimal.TEN, Currency.USD));
-    return new PayableContext(player.getUniqueId(), payable, null);
+    PlayerJobState state =
+        (PlayerJobState)
+            Proxy.newProxyInstance(
+                Thread.currentThread().getContextClassLoader(),
+                new Class<?>[] {PlayerJobState.class},
+                (proxy, method, arguments) -> {
+                  throw new UnsupportedOperationException(method.toString());
+                });
+    return new PayableContext(player.getUniqueId(), payable, state);
   }
 }

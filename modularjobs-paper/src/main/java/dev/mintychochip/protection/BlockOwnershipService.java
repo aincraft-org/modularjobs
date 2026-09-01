@@ -25,7 +25,7 @@ public final class BlockOwnershipService {
    * Returns the owning {@link OfflinePlayer} of the block, or empty when no adapter is present or
    * the block has no recorded owner.
    */
-  public @NotNull Optional<OfflinePlayer> getOwner(Block block) {
+  public @NotNull Optional<OfflinePlayer> getOwner(@NotNull Block block) {
     if (protectionAdapter == null) {
       return Optional.empty();
     }

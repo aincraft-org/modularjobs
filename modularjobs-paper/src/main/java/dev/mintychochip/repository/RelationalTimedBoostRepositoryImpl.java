@@ -2,7 +2,6 @@ package dev.mintychochip.repository;
 
 import dev.mintychochip.boost.BoostDataCodec;
 import dev.mintychochip.container.BoostSource;
-import dev.mintychochip.container.boost.BoostData.SerializableBoostData.ConsumableBoostData;
 import dev.mintychochip.container.boost.TimedBoostDataService.ActiveBoostData;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -47,12 +46,16 @@ public final class RelationalTimedBoostRepositoryImpl implements TimedBoostRepos
 
   /** Relational timed boost repository impl. */
   public RelationalTimedBoostRepositoryImpl(
-      Plugin plugin, ConnectionSource connectionSource, BoostDataCodec codec) {
+      @NotNull Plugin plugin,
+      @NotNull ConnectionSource connectionSource,
+      @NotNull BoostDataCodec codec) {
     this(connectionSource, codec, plugin);
   }
 
   private RelationalTimedBoostRepositoryImpl(
-      ConnectionSource connectionSource, BoostDataCodec codec, @Nullable Plugin plugin) {
+      @NotNull ConnectionSource connectionSource,
+      @NotNull BoostDataCodec codec,
+      @Nullable Plugin plugin) {
     this.connectionSource = connectionSource;
     TimedBoostRelationalContext context = new TimedBoostRelationalContext(codec);
     this.relational = new RelationalRepositoryImpl<>(connectionSource, context);
@@ -67,12 +70,12 @@ public final class RelationalTimedBoostRepositoryImpl implements TimedBoostRepos
    * Synchronous construction (no Bukkit write-back scheduler) for unit tests. Still uses the
    * production SQL context.
    */
-  static RelationalTimedBoostRepositoryImpl createSynchronous(
-      ConnectionSource connectionSource, BoostDataCodec codec) {
+  static @NotNull RelationalTimedBoostRepositoryImpl createSynchronous(
+      @NotNull ConnectionSource connectionSource, @NotNull BoostDataCodec codec) {
     return new RelationalTimedBoostRepositoryImpl(connectionSource, codec, null);
   }
 
-  static String toCacheKey(String targetId, String sourceId) {
+  static @NotNull String toCacheKey(@NotNull String targetId, @NotNull String sourceId) {
     if (targetId.indexOf(KEY_SEP) >= 0 || sourceId.indexOf(KEY_SEP) >= 0) {
       throw new IllegalArgumentException(
           "target/source identifier must not contain unit separator");
@@ -80,7 +83,7 @@ public final class RelationalTimedBoostRepositoryImpl implements TimedBoostRepos
     return targetId + KEY_SEP + sourceId;
   }
 
-  static String targetFromCacheKey(String cacheKey) {
+  static @NotNull String targetFromCacheKey(@NotNull String cacheKey) {
     int i = cacheKey.indexOf(KEY_SEP);
     if (i < 0) {
       throw new IllegalArgumentException("invalid timed-boost cache key: " + cacheKey);
@@ -88,7 +91,7 @@ public final class RelationalTimedBoostRepositoryImpl implements TimedBoostRepos
     return cacheKey.substring(0, i);
   }
 
-  static String sourceFromCacheKey(String cacheKey) {
+  static @NotNull String sourceFromCacheKey(@NotNull String cacheKey) {
     int i = cacheKey.indexOf(KEY_SEP);
     if (i < 0) {
       throw new IllegalArgumentException("invalid timed-boost cache key: " + cacheKey);
@@ -97,7 +100,7 @@ public final class RelationalTimedBoostRepositoryImpl implements TimedBoostRepos
   }
 
   @Override
-  public @NotNull List<ActiveBoostData> findAllBoosts(String targetIdentifier) {
+  public @NotNull List<ActiveBoostData> findAllBoosts(@NotNull String targetIdentifier) {
     Set<String> sourceIds = new HashSet<>();
 
     // Get source IDs from database by pure target_id
@@ -132,12 +135,13 @@ public final class RelationalTimedBoostRepositoryImpl implements TimedBoostRepos
   }
 
   @Override
-  public ActiveBoostData findBoost(String targetIdentifier, String sourceIdentifier) {
+  public @Nullable ActiveBoostData findBoost(
+      @NotNull String targetIdentifier, @NotNull String sourceIdentifier) {
     return load(toCacheKey(targetIdentifier, sourceIdentifier));
   }
 
   @Override
-  public void delete(String targetIdentifier, String sourceIdentifier) {
+  public void delete(@NotNull String targetIdentifier, @NotNull String sourceIdentifier) {
     deleteKey(toCacheKey(targetIdentifier, sourceIdentifier));
     Set<String> keys = knownBoostKeys.get(targetIdentifier);
     if (keys != null) {
@@ -146,7 +150,7 @@ public final class RelationalTimedBoostRepositoryImpl implements TimedBoostRepos
   }
 
   @Override
-  public void addBoost(ActiveBoostData boost) {
+  public void addBoost(@NotNull ActiveBoostData boost) {
     String cacheKey = toCacheKey(boost.targetIdentifier(), boost.sourceIdentifier());
     save(cacheKey, boost);
     knownBoostKeys
@@ -154,14 +158,14 @@ public final class RelationalTimedBoostRepositoryImpl implements TimedBoostRepos
         .add(boost.sourceIdentifier());
   }
 
-  private ActiveBoostData load(String cacheKey) {
+  private @Nullable ActiveBoostData load(@NotNull String cacheKey) {
     if (writeBack != null) {
       return writeBack.load(cacheKey);
     }
     return relational.load(cacheKey);
   }
 
-  private void save(String cacheKey, ActiveBoostData boost) {
+  private void save(@NotNull String cacheKey, @NotNull ActiveBoostData boost) {
     if (writeBack != null) {
       writeBack.save(cacheKey, boost);
     } else {
@@ -169,7 +173,7 @@ public final class RelationalTimedBoostRepositoryImpl implements TimedBoostRepos
     }
   }
 
-  private void deleteKey(String cacheKey) {
+  private void deleteKey(@NotNull String cacheKey) {
     if (writeBack != null) {
       writeBack.delete(cacheKey);
     } else {
@@ -193,33 +197,35 @@ public final class RelationalTimedBoostRepositoryImpl implements TimedBoostRepos
 
     private final BoostDataCodec codec;
 
-    TimedBoostRelationalContext(BoostDataCodec codec) {
+    TimedBoostRelationalContext(@NotNull BoostDataCodec codec) {
       this.codec = codec;
     }
 
     @Override
-    public String getSelectQuery() {
+    public @NotNull String getSelectQuery() {
       return SELECT_BOOST;
     }
 
     @Override
-    public String getSaveQuery() {
+    public @NotNull String getSaveQuery() {
       return SAVE_BOOST;
     }
 
     @Override
-    public String getDeleteQuery() {
+    public @NotNull String getDeleteQuery() {
       return DELETE_BOOST;
     }
 
     @Override
-    public void setKey(PreparedStatement ps, String cacheKey) throws SQLException {
+    public void setKey(@NotNull PreparedStatement ps, @NotNull String cacheKey)
+        throws SQLException {
       ps.setString(1, targetFromCacheKey(cacheKey));
       ps.setString(2, sourceFromCacheKey(cacheKey));
     }
 
     @Override
-    public void setSaveValues(PreparedStatement ps, String cacheKey, ActiveBoostData value)
+    public void setSaveValues(
+        @NotNull PreparedStatement ps, @NotNull String cacheKey, @NotNull ActiveBoostData value)
         throws SQLException {
       // Always persist pure identifiers from the value — never the composite cache key
       ps.setString(1, value.targetIdentifier());
@@ -233,12 +239,12 @@ public final class RelationalTimedBoostRepositoryImpl implements TimedBoostRepos
         ps.setNull(4, Types.BLOB);
       }
 
-      Duration encodedDuration = duration == null ? Duration.ZERO : duration;
-      ps.setBytes(5, codec.write(new ConsumableBoostData(value.boostSource(), encodedDuration)));
+      ps.setBytes(5, codec.writeSource(value.boostSource()));
     }
 
     @Override
-    public ActiveBoostData mapResult(ResultSet rs, String cacheKey) throws SQLException {
+    public @NotNull ActiveBoostData mapResult(@NotNull ResultSet rs, @NotNull String cacheKey)
+        throws SQLException {
       String targetId = targetFromCacheKey(cacheKey);
       String sourceId = rs.getString("source_id");
       long millis = rs.getLong("epoch_millis");

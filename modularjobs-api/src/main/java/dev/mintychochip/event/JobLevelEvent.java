@@ -1,9 +1,12 @@
 package dev.mintychochip.event;
 
 import dev.mintychochip.Job;
-import dev.mintychochip.JobProgression;
+import dev.mintychochip.PlayerJobState;
 import java.util.Objects;
 import java.util.UUID;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /** Fired when a player's job level changes. */
 public final class JobLevelEvent {
@@ -15,41 +18,33 @@ public final class JobLevelEvent {
     OTHER
   }
 
-  private final UUID playerId;
-  private final Job job;
+  private final PlayerJobState state;
   private final int oldLevel;
   private final int newLevel;
-  private final JobProgression progression;
   private final Reason reason;
 
-  /** Job level event. */
-  public JobLevelEvent(
-      UUID playerId, Job job, int oldLevel, int newLevel, JobProgression progression) {
-    this(playerId, job, oldLevel, newLevel, progression, Reason.EXPERIENCE);
+  /** Creates an experience-driven level transition. */
+  public JobLevelEvent(@NotNull PlayerJobState state, int oldLevel, int newLevel) {
+    this(state, oldLevel, newLevel, Reason.EXPERIENCE);
   }
 
-  /** Job level event. */
+  /** Creates a level transition for the supplied player state. */
   public JobLevelEvent(
-      UUID playerId,
-      Job job,
-      int oldLevel,
-      int newLevel,
-      JobProgression progression,
-      Reason reason) {
-    this.playerId = Objects.requireNonNull(playerId, "playerId");
-    this.job = job;
+      @NotNull PlayerJobState state, int oldLevel, int newLevel, @Nullable Reason reason) {
+    this.state = Objects.requireNonNull(state, "state");
     this.oldLevel = oldLevel;
     this.newLevel = newLevel;
-    this.progression = progression;
     this.reason = reason == null ? Reason.OTHER : reason;
   }
 
-  public UUID getPlayerId() {
-    return playerId;
+  @Contract(pure = true)
+  public @NotNull UUID getPlayerId() {
+    return state.playerId();
   }
 
-  public Job getJob() {
-    return job;
+  @Contract(pure = true)
+  public @NotNull Job getJob() {
+    return state.job();
   }
 
   public int getOldLevel() {
@@ -60,21 +55,13 @@ public final class JobLevelEvent {
     return newLevel;
   }
 
-  /**
-   * Returns the new level.
-   *
-   * @deprecated Use {@link #getNewLevel()} instead.
-   */
-  @Deprecated
-  public int getLevel() {
-    return newLevel;
+  @Contract(pure = true)
+  public @NotNull PlayerJobState getPlayerJobState() {
+    return state;
   }
 
-  public JobProgression getProgression() {
-    return progression;
-  }
-
-  public Reason getReason() {
+  @Contract(pure = true)
+  public @NotNull Reason getReason() {
     return reason;
   }
 }

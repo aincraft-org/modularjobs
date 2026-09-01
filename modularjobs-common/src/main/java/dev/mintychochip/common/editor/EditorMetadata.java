@@ -1,6 +1,7 @@
 package dev.mintychochip.common.editor;
 
 import com.google.gson.annotations.SerializedName;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -28,7 +29,8 @@ public record EditorMetadata(
    * @param serverName optional server identifier
    * @return new metadata instance
    */
-  public static EditorMetadata create(
+  @Contract(pure = true)
+  public static @NotNull EditorMetadata create(
       @NotNull String exportedAt,
       @NotNull String exportedBy,
       @NotNull String sessionToken,

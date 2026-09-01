@@ -2,6 +2,8 @@ package dev.mintychochip.container.boost;
 
 import java.math.BigDecimal;
 import java.util.function.BiPredicate;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * A numeric comparison operator applied to two {@link BigDecimal} operands.
@@ -25,7 +27,8 @@ public enum RelationalOperator implements BiPredicate<BigDecimal, BigDecimal> {
   }
 
   @Override
-  public boolean test(BigDecimal a, BigDecimal b) {
+  @Contract(pure = true)
+  public boolean test(@NotNull BigDecimal a, @NotNull BigDecimal b) {
     return predicate.test(a, b);
   }
 }

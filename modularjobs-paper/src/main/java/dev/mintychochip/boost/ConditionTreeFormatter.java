@@ -2,33 +2,34 @@ package dev.mintychochip.boost;
 
 import dev.mintychochip.boost.conditions.SnapshotCondition;
 import dev.mintychochip.container.boost.Condition;
-import dev.mintychochip.databag.AllOfCondition;
-import dev.mintychochip.databag.AlwaysCondition;
-import dev.mintychochip.databag.AnyOfCondition;
-import dev.mintychochip.databag.BabyCondition;
-import dev.mintychochip.databag.BiomeCondition;
-import dev.mintychochip.databag.BlockIdCondition;
-import dev.mintychochip.databag.BlockPropertyCondition;
-import dev.mintychochip.databag.EntityTypeCondition;
-import dev.mintychochip.databag.FluidCondition;
-import dev.mintychochip.databag.FlyingCondition;
-import dev.mintychochip.databag.GameModeCondition;
-import dev.mintychochip.databag.GlidingCondition;
-import dev.mintychochip.databag.InvertedCondition;
-import dev.mintychochip.databag.JobCondition;
-import dev.mintychochip.databag.OnFireCondition;
-import dev.mintychochip.databag.OnGroundCondition;
-import dev.mintychochip.databag.PlayerResourceCondition;
-import dev.mintychochip.databag.PotionAmplifierCondition;
-import dev.mintychochip.databag.PotionDurationCondition;
-import dev.mintychochip.databag.PotionPresentCondition;
-import dev.mintychochip.databag.SneakingCondition;
-import dev.mintychochip.databag.SprintingCondition;
-import dev.mintychochip.databag.SwimmingCondition;
-import dev.mintychochip.databag.WeatherCondition;
-import dev.mintychochip.databag.WorldCondition;
+import dev.mintychochip.databag.condition.builtin.AllOfCondition;
+import dev.mintychochip.databag.condition.builtin.AlwaysCondition;
+import dev.mintychochip.databag.condition.builtin.AnyOfCondition;
+import dev.mintychochip.databag.condition.builtin.BabyCondition;
+import dev.mintychochip.databag.condition.builtin.BiomeCondition;
+import dev.mintychochip.databag.condition.builtin.BlockIdCondition;
+import dev.mintychochip.databag.condition.builtin.BlockPropertyCondition;
+import dev.mintychochip.databag.condition.builtin.EntityTypeCondition;
+import dev.mintychochip.databag.condition.builtin.FluidCondition;
+import dev.mintychochip.databag.condition.builtin.FlyingCondition;
+import dev.mintychochip.databag.condition.builtin.GameModeCondition;
+import dev.mintychochip.databag.condition.builtin.GlidingCondition;
+import dev.mintychochip.databag.condition.builtin.InvertedCondition;
+import dev.mintychochip.databag.condition.builtin.JobCondition;
+import dev.mintychochip.databag.condition.builtin.OnFireCondition;
+import dev.mintychochip.databag.condition.builtin.OnGroundCondition;
+import dev.mintychochip.databag.condition.builtin.PlayerResourceCondition;
+import dev.mintychochip.databag.condition.builtin.PotionAmplifierCondition;
+import dev.mintychochip.databag.condition.builtin.PotionDurationCondition;
+import dev.mintychochip.databag.condition.builtin.PotionPresentCondition;
+import dev.mintychochip.databag.condition.builtin.SneakingCondition;
+import dev.mintychochip.databag.condition.builtin.SprintingCondition;
+import dev.mintychochip.databag.condition.builtin.SwimmingCondition;
+import dev.mintychochip.databag.condition.builtin.WeatherCondition;
+import dev.mintychochip.databag.condition.builtin.WorldCondition;
 import java.util.ArrayList;
 import java.util.List;
+import org.jetbrains.annotations.NotNull;
 
 /** Formats a boost condition tree for admin command output. */
 public final class ConditionTreeFormatter {
@@ -36,14 +37,18 @@ public final class ConditionTreeFormatter {
   private ConditionTreeFormatter() {}
 
   /** Format. */
-  public static List<String> format(Condition condition, String indent) {
+  public static @NotNull List<String> format(@NotNull Condition condition, @NotNull String indent) {
     List<String> lines = new ArrayList<>();
     formatBoost(condition, indent, "", true, lines);
     return lines;
   }
 
   private static void formatBoost(
-      Condition condition, String baseIndent, String prefix, boolean isLast, List<String> lines) {
+      @NotNull Condition condition,
+      @NotNull String baseIndent,
+      @NotNull String prefix,
+      boolean isLast,
+      @NotNull List<String> lines) {
     if (condition instanceof SnapshotCondition snapshot) {
       formatApi(snapshot.delegate(), baseIndent, prefix, isLast, lines);
       return;
@@ -57,11 +62,11 @@ public final class ConditionTreeFormatter {
   }
 
   private static void formatApi(
-      dev.mintychochip.databag.Condition condition,
-      String baseIndent,
-      String prefix,
+      @NotNull dev.mintychochip.databag.condition.Condition condition,
+      @NotNull String baseIndent,
+      @NotNull String prefix,
       boolean isLast,
-      List<String> lines) {
+      @NotNull List<String> lines) {
     String connector = isLast ? "└── " : "├── ";
     String childPrefix = isLast ? "    " : "│   ";
     switch (condition) {

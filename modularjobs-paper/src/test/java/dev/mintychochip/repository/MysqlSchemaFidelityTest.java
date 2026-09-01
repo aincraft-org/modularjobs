@@ -3,18 +3,25 @@ package dev.mintychochip.repository;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
+import dev.mintychochip.domain.RelationalJobTaskRepositoryImpl;
+import dev.mintychochip.domain.model.JobTaskRecord;
 import java.math.BigDecimal;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Arrays;
+import java.util.List;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -100,9 +107,52 @@ class MysqlSchemaFidelityTest {
   }
 
   @Test
-  void jobTaskPayableRoundTripPreservesKeysAndPreciseAmount() throws SQLException {
+  void currentNodeMigrationHandlesLegacyAndCurrentSchemasAndIsIdempotent() throws Exception {
     requireMysql();
-    // Insert task
+    String suffix = Long.toUnsignedString(System.nanoTime());
+    String currentTable = "mj_current_state_" + suffix;
+    String legacyTable = "mj_legacy_state_" + suffix;
+    try {
+      try (Statement st = connection.createStatement()) {
+        st.execute(
+            "CREATE TABLE "
+                + currentTable
+                + " (player_id VARCHAR(191) NOT NULL, job_key VARCHAR(191) NOT NULL,"
+                + " current_node_key VARCHAR(191) NOT NULL, experience DECIMAL(38, 10) NOT NULL,"
+                + " PRIMARY KEY (player_id, job_key))");
+        st.execute(
+            "INSERT INTO "
+                + currentTable
+                + " VALUES ('current-player', 'modularjobs:miner',"
+                + " 'modularjobs:prospector', 25)");
+        st.execute(
+            "CREATE TABLE "
+                + legacyTable
+                + " (player_id VARCHAR(191) NOT NULL, job_key VARCHAR(191) NOT NULL,"
+                + " experience DECIMAL(38, 10) NOT NULL,"
+                + " PRIMARY KEY (player_id, job_key))");
+        st.execute(
+            "INSERT INTO " + legacyTable + " VALUES ('legacy-player', 'modularjobs:miner', 10)");
+      }
+
+      executeCurrentNodeMigration(currentTable, legacyTable);
+      executeCurrentNodeMigration(currentTable, legacyTable);
+
+      assertStateRow(currentTable, "current-player", "modularjobs:miner", "modularjobs:prospector");
+      assertStateRow(legacyTable, "legacy-player", "modularjobs:miner", "modularjobs:miner");
+      assertCurrentNodeRequired(currentTable);
+      assertCurrentNodeRequired(legacyTable);
+    } finally {
+      try (Statement st = connection.createStatement()) {
+        st.execute("DROP TABLE IF EXISTS " + currentTable);
+        st.execute("DROP TABLE IF EXISTS " + legacyTable);
+      }
+    }
+  }
+
+  @Test
+  void jobTaskPayableRoundTripPreservesCurrencyMetadataAndPreciseAmount() throws SQLException {
+    requireMysql();
     int taskId;
     try (PreparedStatement ps =
         connection.prepareStatement(
@@ -124,12 +174,12 @@ class MysqlSchemaFidelityTest {
     try (PreparedStatement ps =
         connection.prepareStatement(
             "INSERT INTO job_task_payables (job_task_id, payable_type_key, amount,"
-                + " currency_identifier) "
-                + "VALUES (?, ?, ?, ?)")) {
+                + " currency_identifier, currency_symbol) VALUES (?, ?, ?, ?, ?)")) {
       ps.setInt(1, taskId);
-      ps.setString(2, "modularjobs:experience");
+      ps.setString(2, "modularjobs:economy");
       ps.setBigDecimal(3, amount);
-      ps.setString(4, null); // nullable currency
+      ps.setString(4, "TOKENS");
+      ps.setString(5, "✦");
       assertEquals(1, ps.executeUpdate());
     }
 
@@ -137,7 +187,7 @@ class MysqlSchemaFidelityTest {
         connection.prepareStatement(
             """
             SELECT t.job_key, t.action_type_key, t.context_key,
-                   p.payable_type_key, p.amount, p.currency_identifier
+                   p.payable_type_key, p.amount, p.currency_identifier, p.currency_symbol
             FROM job_tasks t
             JOIN job_task_payables p ON p.job_task_id = t.task_id
             WHERE t.task_id = ?
@@ -149,7 +199,7 @@ class MysqlSchemaFidelityTest {
         assertEquals("modularjobs:miner", rs.getString("job_key"));
         assertEquals("modularjobs:block_break", rs.getString("action_type_key"));
         assertEquals("minecraft:diamond_ore", rs.getString("context_key"));
-        assertEquals("modularjobs:experience", rs.getString("payable_type_key"));
+        assertEquals("modularjobs:economy", rs.getString("payable_type_key"));
         BigDecimal readAmount = rs.getBigDecimal("amount");
         assertNotNull(readAmount);
         assertEquals(
@@ -159,10 +209,37 @@ class MysqlSchemaFidelityTest {
                 + amount
                 + " got "
                 + readAmount);
-        assertNull(rs.getString("currency_identifier"));
+        assertEquals("TOKENS", rs.getString("currency_identifier"));
+        assertEquals("✦", rs.getString("currency_symbol"));
         boolean hasExtraRow = rs.next();
         assertFalse(hasExtraRow);
       }
+    }
+  }
+
+  @Test
+  void taskRepositoryLoadsExplicitTaskWithNoPayables() throws SQLException {
+    requireMysql();
+    try (Connection shared = NonClosableConnection.create(connection)) {
+      ConnectionSource source = new FixedConnectionSource(shared);
+      JobTaskRecord emptyOverride =
+          new JobTaskRecord(
+              "modularjobs:prospector",
+              "modularjobs:block_break",
+              "minecraft:diamond_ore",
+              List.of());
+
+      assertTrue(new RelationalJobTaskRepositoryImpl(source).save(emptyOverride));
+      JobTaskRecord restored =
+          new RelationalJobTaskRepositoryImpl(source)
+              .load(
+                  emptyOverride.nodeKey(),
+                  emptyOverride.actionTypeKey(),
+                  emptyOverride.contextKey());
+
+      assertNotNull(restored);
+      assertEquals(emptyOverride, restored);
+      assertTrue(restored.payables().isEmpty());
     }
   }
 
@@ -206,32 +283,93 @@ class MysqlSchemaFidelityTest {
   }
 
   @Test
-  void progressionExperienceRoundTrip() throws SQLException {
+  void playerJobStateIdentityAndExperienceRoundTrip() throws SQLException {
     requireMysql();
     BigDecimal exp = new BigDecimal("5000.2500000000");
     try (PreparedStatement ps =
         connection.prepareStatement(
-            "INSERT INTO job_progression (player_id, job_key, experience) VALUES (?, ?, ?)")) {
+            "INSERT INTO job_progression"
+                + " (player_id, job_key, current_node_key, experience) VALUES (?, ?, ?, ?)")) {
       ps.setString(1, "11111111-2222-3333-4444-555555555555");
       ps.setString(2, "modularjobs:miner");
-      ps.setBigDecimal(3, exp);
+      ps.setString(3, "modularjobs:prospector");
+      ps.setBigDecimal(4, exp);
       assertEquals(1, ps.executeUpdate());
     }
 
     try (PreparedStatement ps =
         connection.prepareStatement(
-            "SELECT experience FROM job_progression WHERE player_id = ? AND job_key = ?")) {
+            "SELECT current_node_key, experience FROM job_progression"
+                + " WHERE player_id = ? AND job_key = ?")) {
       ps.setString(1, "11111111-2222-3333-4444-555555555555");
       ps.setString(2, "modularjobs:miner");
       try (ResultSet rs = ps.executeQuery()) {
         boolean hasRow = rs.next();
         assertTrue(hasRow);
+        assertEquals("modularjobs:prospector", rs.getString("current_node_key"));
         assertEquals(0, exp.compareTo(rs.getBigDecimal("experience")));
       }
     }
   }
 
-  private static void applyShippedSchema(Connection connection) throws SQLException {
+  private void executeCurrentNodeMigration(
+      @NotNull String currentTable, @NotNull String legacyTable) throws Exception {
+    String migration =
+        Files.readString(locateCurrentNodeMigration())
+            .replace("archive_job_progression", legacyTable)
+            .replace("job_progression", currentTable);
+    try (Statement st = connection.createStatement()) {
+      for (String statement : DatabaseType.splitStatements(migration)) {
+        st.execute(statement);
+      }
+    }
+  }
+
+  private static @NotNull Path locateCurrentNodeMigration() {
+    Path directory = Path.of("").toAbsolutePath();
+    while (directory != null) {
+      Path candidate = directory.resolve("scripts/migrate-add-current-node-key.sql");
+      if (Files.isRegularFile(candidate)) {
+        return candidate;
+      }
+      directory = directory.getParent();
+    }
+    return fail("Cannot locate scripts/migrate-add-current-node-key.sql");
+  }
+
+  private void assertStateRow(
+      @NotNull String table,
+      @NotNull String playerId,
+      @NotNull String expectedJobKey,
+      @NotNull String expectedNodeKey)
+      throws SQLException {
+    try (PreparedStatement ps =
+        connection.prepareStatement(
+            "SELECT job_key, current_node_key FROM " + table + " WHERE player_id = ?")) {
+      ps.setString(1, playerId);
+      try (ResultSet rs = ps.executeQuery()) {
+        boolean found = rs.next();
+        assertTrue(found);
+        assertEquals(expectedJobKey, rs.getString("job_key"));
+        assertEquals(expectedNodeKey, rs.getString("current_node_key"));
+        boolean hasExtraRow = rs.next();
+        assertFalse(hasExtraRow);
+      }
+    }
+  }
+
+  private void assertCurrentNodeRequired(@NotNull String table) throws SQLException {
+    try (ResultSet columns =
+        connection
+            .getMetaData()
+            .getColumns(connection.getCatalog(), null, table, "current_node_key")) {
+      boolean found = columns.next();
+      assertTrue(found);
+      assertEquals(DatabaseMetaData.columnNoNulls, columns.getInt("NULLABLE"));
+    }
+  }
+
+  private static void applyShippedSchema(@NotNull Connection connection) throws SQLException {
     String[] tables = DatabaseType.MYSQL.getSqlTables();
     assertNotNull(tables);
     assertTrue(tables.length > 0);
@@ -242,7 +380,7 @@ class MysqlSchemaFidelityTest {
     }
   }
 
-  private static void cleanTables(Connection connection) throws SQLException {
+  private static void cleanTables(@NotNull Connection connection) throws SQLException {
     try (Statement st = connection.createStatement()) {
       // order matters for FKs
       for (String table :
@@ -261,7 +399,38 @@ class MysqlSchemaFidelityTest {
     }
   }
 
-  private static String envOr(String key, String defaultValue) {
+  /** Reuses one physical connection while repository try-with-resources closes wrappers. */
+  private record FixedConnectionSource(@NotNull Connection connection) implements ConnectionSource {
+
+    @Override
+    public @NotNull Connection getConnection() {
+      return connection;
+    }
+
+    @Override
+    public void shutdown() {}
+
+    @Override
+    public boolean isClosed() {
+      try {
+        return connection.isClosed();
+      } catch (SQLException e) {
+        return true;
+      }
+    }
+
+    @Override
+    public @NotNull DatabaseType getType() {
+      return DatabaseType.MYSQL;
+    }
+
+    @Override
+    public boolean isSetup() {
+      return true;
+    }
+  }
+
+  private static @NotNull String envOr(@NotNull String key, @NotNull String defaultValue) {
     String v = System.getenv(key);
     return v == null || v.isBlank() ? defaultValue : v;
   }

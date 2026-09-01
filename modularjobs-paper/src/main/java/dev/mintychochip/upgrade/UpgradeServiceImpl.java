@@ -1,6 +1,6 @@
 package dev.mintychochip.upgrade;
 
-import dev.mintychochip.JobProgression;
+import dev.mintychochip.PlayerJobState;
 import dev.mintychochip.registry.Registry;
 import dev.mintychochip.service.JobService;
 import java.util.ArrayList;
@@ -36,11 +36,11 @@ public final class UpgradeServiceImpl implements UpgradeService {
 
   /** Upgrade service impl. */
   public UpgradeServiceImpl(
-      Registry<UpgradeTree> treeRegistry,
-      Registry<SkillTree> skillTreeRegistry,
-      PlayerUpgradeRepository repository,
-      JobService jobService,
-      UpgradeEffectApplier effectApplier) {
+      @NotNull Registry<UpgradeTree> treeRegistry,
+      @NotNull Registry<SkillTree> skillTreeRegistry,
+      @NotNull PlayerUpgradeRepository repository,
+      @NotNull JobService jobService,
+      @NotNull UpgradeEffectApplier effectApplier) {
     this.treeRegistry = treeRegistry;
     this.skillTreeRegistry = skillTreeRegistry;
     this.repository = repository;
@@ -447,7 +447,10 @@ public final class UpgradeServiceImpl implements UpgradeService {
    * active tree is never revoked. Unmocked servers (tests) and offline players are no-ops.
    */
   private void syncEffectsFor(
-      String playerId, SkillTree tree, SkillTreeState previous, SkillTreeState current) {
+      @NotNull String playerId,
+      @NotNull SkillTree tree,
+      @NotNull SkillTreeState previous,
+      @NotNull SkillTreeState current) {
     // Bukkit.getPlayer requires a registered server; without one (standalone
     // tests, startup) there is nothing to sync.
     Player player;
@@ -484,7 +487,8 @@ public final class UpgradeServiceImpl implements UpgradeService {
     }
   }
 
-  private SkillTreeState loadOrCreateState(String playerId, String jobKey) {
+  private @NotNull SkillTreeState loadOrCreateState(
+      @NotNull String playerId, @NotNull String jobKey) {
     SkillTreeState loaded = repository.loadState(playerId, jobKey);
     if (loaded != null) {
       // Repository state carries default hooks; rebind runtime job level and
@@ -520,8 +524,11 @@ public final class UpgradeServiceImpl implements UpgradeService {
    * {@code efficiency_2} -> {@code efficiency} at the max seen). Keys already known to the v2 tree
    * pass through; unknown keys are left untouched for diagnostics.
    */
-  private SkillTreeState remapLegacyNodeKeys(
-      String playerId, String jobKey, SkillTreeState state, SkillTree tree) {
+  private @NotNull SkillTreeState remapLegacyNodeKeys(
+      @NotNull String playerId,
+      @NotNull String jobKey,
+      @NotNull SkillTreeState state,
+      @NotNull SkillTree tree) {
     Optional<UpgradeTree> legacyOpt = getTree(jobKey);
     if (legacyOpt.isEmpty()) {
       return state; // Pure v2 tree; nothing aliases.
@@ -564,7 +571,8 @@ public final class UpgradeServiceImpl implements UpgradeService {
         state.permissionCheck());
   }
 
-  private SkillTreeState bindRuntimeHooks(String playerId, String jobKey, SkillTreeState state) {
+  private @NotNull SkillTreeState bindRuntimeHooks(
+      @NotNull String playerId, @NotNull String jobKey, @NotNull SkillTreeState state) {
     return new SkillTreeState(
         state.playerId(),
         state.jobKey(),
@@ -576,14 +584,14 @@ public final class UpgradeServiceImpl implements UpgradeService {
   }
 
   /**
-   * Runtime job-level supplier backed by JobService progression. Resolves to 0 when the player has
-   * no progression or the job service cannot answer, so offline callers and tests stay safe.
+   * Runtime job-level supplier backed by JobService player state. Resolves to 0 when the player has
+   * no state or the job service cannot answer, so offline callers and tests stay safe.
    */
-  private IntSupplier currentJobLevel(String playerId, String jobKey) {
+  private @NotNull IntSupplier currentJobLevel(@NotNull String playerId, @NotNull String jobKey) {
     return () -> {
       try {
-        JobProgression progression = jobService.getProgression(playerId, jobKey);
-        return progression == null ? 0 : progression.level();
+        PlayerJobState state = jobService.getPlayerJobState(playerId, jobKey);
+        return state == null ? 0 : state.level();
       } catch (IllegalArgumentException | IllegalStateException e) {
         return 0;
       }
@@ -594,7 +602,7 @@ public final class UpgradeServiceImpl implements UpgradeService {
    * Runtime permission check against the online Bukkit player. Offline players and non-UUID callers
    * (tests) resolve to false.
    */
-  private Predicate<String> permissionCheck(String playerId) {
+  private @NotNull Predicate<String> permissionCheck(@NotNull String playerId) {
     return permission -> {
       try {
         Player player = Bukkit.getPlayer(UUID.fromString(playerId));
@@ -605,7 +613,7 @@ public final class UpgradeServiceImpl implements UpgradeService {
     };
   }
 
-  private Optional<SkillTree> skillTreeFor(String jobKey) {
+  private @NotNull Optional<SkillTree> skillTreeFor(@NotNull String jobKey) {
     String plainJobKey = jobKey;
     if (jobKey.contains(":")) {
       plainJobKey = jobKey.substring(jobKey.indexOf(':') + 1);
@@ -616,7 +624,8 @@ public final class UpgradeServiceImpl implements UpgradeService {
         .findFirst();
   }
 
-  private Set<String> unmetRequirements(SkillNode node, SkillTreeState state) {
+  private @NotNull Set<String> unmetRequirements(
+      @NotNull SkillNode node, @NotNull SkillTreeState state) {
     Set<String> unmet = new HashSet<>();
     for (Requirement requirement : node.requirements()) {
       if (!requirement.satisfied(state)) {
@@ -626,7 +635,8 @@ public final class UpgradeServiceImpl implements UpgradeService {
     return Set.copyOf(unmet);
   }
 
-  private Set<String> missingPrerequisites(SkillNode node, SkillTreeState state) {
+  private @NotNull Set<String> missingPrerequisites(
+      @NotNull SkillNode node, @NotNull SkillTreeState state) {
     Set<String> missing = new HashSet<>();
     for (String prereq : node.prerequisites()) {
       if (!state.hasUnlocked(prereq)) {
@@ -636,7 +646,8 @@ public final class UpgradeServiceImpl implements UpgradeService {
     return Set.copyOf(missing);
   }
 
-  private Set<String> conflictingExcludes(SkillTree tree, SkillNode node, SkillTreeState state) {
+  private @NotNull Set<String> conflictingExcludes(
+      @NotNull SkillTree tree, @NotNull SkillNode node, @NotNull SkillTreeState state) {
     Set<String> conflicting = new HashSet<>();
     for (String excluded : node.excludes()) {
       if (state.hasUnlocked(excluded)) {
@@ -653,7 +664,7 @@ public final class UpgradeServiceImpl implements UpgradeService {
   }
 
   /** Legacy node view for v2 unlock results (name only; effects are synced in Task 7). */
-  private @NotNull UpgradeNode legacyNode(String nodeKey, String nodeName) {
+  private @NotNull UpgradeNode legacyNode(@NotNull String nodeKey, @NotNull String nodeName) {
     return new UpgradeNode(
         Key.key("modularjobs", nodeKey),
         nodeName,
@@ -674,13 +685,15 @@ public final class UpgradeServiceImpl implements UpgradeService {
         0);
   }
 
-  private PlayerUpgradeDataImpl getOrLoadData(String playerId, String jobKey) {
+  private @NotNull PlayerUpgradeDataImpl getOrLoadData(
+      @NotNull String playerId, @NotNull String jobKey) {
     return cache
         .computeIfAbsent(playerId, k -> new HashMap<>())
         .computeIfAbsent(jobKey, k -> loadOrCreate(playerId, jobKey));
   }
 
-  private PlayerUpgradeDataImpl loadOrCreate(String playerId, String jobKey) {
+  private @NotNull PlayerUpgradeDataImpl loadOrCreate(
+      @NotNull String playerId, @NotNull String jobKey) {
     PlayerUpgradeDataImpl loaded = repository.loadPlayerData(playerId, jobKey);
     if (loaded != null) {
       skillTreeFor(jobKey).ifPresent(loaded::bindSkillTree);
@@ -709,7 +722,7 @@ public final class UpgradeServiceImpl implements UpgradeService {
    * Calculate how many skill points a player should have based on their current job level. This is
    * used for retroactive skill point calculation when the upgrade system is first accessed.
    */
-  private int calculateRetroactiveSkillPoints(String playerId, String jobKey) {
+  private int calculateRetroactiveSkillPoints(@NotNull String playerId, @NotNull String jobKey) {
     // Check if this job has an upgrade tree
     Optional<UpgradeTree> treeOpt = getTree(jobKey);
     if (treeOpt.isEmpty()) {
@@ -719,14 +732,14 @@ public final class UpgradeServiceImpl implements UpgradeService {
     UpgradeTree tree = treeOpt.get();
     int skillPointsPerLevel = tree.skillPointsPerLevel();
 
-    // Get player's current job progression
+    // Get the player's current job state
     try {
-      JobProgression progression = jobService.getProgression(playerId, jobKey);
-      if (progression == null) {
+      PlayerJobState state = jobService.getPlayerJobState(playerId, jobKey);
+      if (state == null) {
         return 0;
       }
 
-      int currentLevel = progression.level();
+      int currentLevel = state.level();
 
       // Players start at level 1 with 0 XP, so they get skill points starting from level 1
       // If they're level 5, they should have: 5 * skillPointsPerLevel

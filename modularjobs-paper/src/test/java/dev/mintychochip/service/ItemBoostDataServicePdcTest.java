@@ -26,6 +26,7 @@ import net.kyori.adventure.key.Key;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -99,7 +100,7 @@ class ItemBoostDataServicePdcTest {
     assertArrayEquals(json, codec.write(roundTrip.get()));
   }
 
-  private static SerializableBoostData sampleData() {
+  private static @NotNull SerializableBoostData sampleData() {
     return new PassiveBoostData(
         new RuledBoostSourceImpl(
             List.of(

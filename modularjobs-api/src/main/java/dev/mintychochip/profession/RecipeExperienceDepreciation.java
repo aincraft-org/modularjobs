@@ -2,6 +2,9 @@ package dev.mintychochip.profession;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Pure recipe experience scaling: lower-tier recipes credit less (or no) profession experience once
@@ -21,8 +24,11 @@ public final class RecipeExperienceDepreciation {
    * windowLevels > 0}, credit linearly falls to zero over the next {@code windowLevels}. When
    * {@code windowLevels == 0}, credit drops to zero immediately after the grace band.
    */
-  public static BigDecimal experienceMultiplier(
-      RecipeExperienceDepreciationPolicy policy, int professionLevel, int recipeRequiredLevel) {
+  @Contract(value = "null -> !null", pure = true)
+  public static @NotNull BigDecimal experienceMultiplier(
+      @Nullable RecipeExperienceDepreciationPolicy policy,
+      int professionLevel,
+      int recipeRequiredLevel) {
     if (policy == null || !policy.enabled()) {
       return BigDecimal.ONE;
     }

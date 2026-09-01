@@ -10,6 +10,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.UUID;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -85,26 +86,26 @@ class MemoryBuffServiceTest {
   static final class MutableClock extends Clock {
     private Instant instant;
 
-    MutableClock(Instant instant) {
+    MutableClock(@NotNull Instant instant) {
       this.instant = instant;
     }
 
-    void advance(Duration d) {
+    void advance(@NotNull Duration d) {
       instant = instant.plus(d);
     }
 
     @Override
-    public ZoneOffset getZone() {
+    public @NotNull ZoneOffset getZone() {
       return ZoneOffset.UTC;
     }
 
     @Override
-    public Clock withZone(java.time.ZoneId zone) {
+    public @NotNull Clock withZone(@NotNull java.time.ZoneId zone) {
       return this;
     }
 
     @Override
-    public Instant instant() {
+    public @NotNull Instant instant() {
       return instant;
     }
   }

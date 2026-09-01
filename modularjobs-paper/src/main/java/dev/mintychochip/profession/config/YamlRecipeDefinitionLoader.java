@@ -135,7 +135,8 @@ public final class YamlRecipeDefinitionLoader {
     return new RecipeDefinition(id, professionId, requiredLevel, tier, outputKey);
   }
 
-  private static @NotNull String requiredString(ConfigurationSection entry, String field) {
+  private static @NotNull String requiredString(
+      @NotNull ConfigurationSection entry, @NotNull String field) {
     String value = entry.getString(field);
     if (value == null || value.isBlank()) {
       throw new IllegalArgumentException("missing " + field);
@@ -143,7 +144,7 @@ public final class YamlRecipeDefinitionLoader {
     return value.trim();
   }
 
-  private static @NotNull Key parseKey(String raw, String label) {
+  private static @NotNull Key parseKey(@NotNull String raw, @NotNull String label) {
     String normalized = raw.trim().toLowerCase(Locale.ROOT);
     try {
       return Key.key(normalized);

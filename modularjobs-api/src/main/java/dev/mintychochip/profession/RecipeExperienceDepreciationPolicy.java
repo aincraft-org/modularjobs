@@ -1,5 +1,8 @@
 package dev.mintychochip.profession;
 
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
+
 /**
  * Controls how crafting experience tapers when a player's profession level exceeds a recipe's
  * required level (MMO-style recipe depreciation).
@@ -25,13 +28,15 @@ public record RecipeExperienceDepreciationPolicy(
   }
 
   /** Default policy: enabled with a ten-level linear taper after required level. */
-  public static RecipeExperienceDepreciationPolicy defaults() {
+  @Contract(pure = true)
+  public static @NotNull RecipeExperienceDepreciationPolicy defaults() {
     return new RecipeExperienceDepreciationPolicy(
         true, DEFAULT_GRACE_LEVELS, DEFAULT_WINDOW_LEVELS);
   }
 
   /** Explicitly disables recipe experience depreciation. */
-  public static RecipeExperienceDepreciationPolicy disabled() {
+  @Contract(pure = true)
+  public static @NotNull RecipeExperienceDepreciationPolicy disabled() {
     return new RecipeExperienceDepreciationPolicy(
         false, DEFAULT_GRACE_LEVELS, DEFAULT_WINDOW_LEVELS);
   }

@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import net.kyori.adventure.key.Key;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -100,7 +101,7 @@ class TimedBoostLifecycleTest {
     private final Map<String, Map<String, ActiveBoostData>> byTarget = new ConcurrentHashMap<>();
 
     @Override
-    public @NotNull List<ActiveBoostData> findAllBoosts(String targetIdentifier) {
+    public @NotNull List<ActiveBoostData> findAllBoosts(@NotNull String targetIdentifier) {
       Map<String, ActiveBoostData> map = byTarget.get(targetIdentifier);
       if (map == null) {
         return new ArrayList<>();
@@ -109,13 +110,14 @@ class TimedBoostLifecycleTest {
     }
 
     @Override
-    public ActiveBoostData findBoost(String targetIdentifier, String sourceIdentifier) {
+    public @Nullable ActiveBoostData findBoost(
+        @NotNull String targetIdentifier, @NotNull String sourceIdentifier) {
       Map<String, ActiveBoostData> map = byTarget.get(targetIdentifier);
       return map == null ? null : map.get(sourceIdentifier);
     }
 
     @Override
-    public void delete(String targetIdentifier, String sourceIdentifier) {
+    public void delete(@NotNull String targetIdentifier, @NotNull String sourceIdentifier) {
       Map<String, ActiveBoostData> map = byTarget.get(targetIdentifier);
       if (map != null) {
         map.remove(sourceIdentifier);
@@ -123,7 +125,7 @@ class TimedBoostLifecycleTest {
     }
 
     @Override
-    public void addBoost(ActiveBoostData boost) {
+    public void addBoost(@NotNull ActiveBoostData boost) {
       byTarget
           .computeIfAbsent(boost.targetIdentifier(), k -> new ConcurrentHashMap<>())
           .put(boost.sourceIdentifier(), boost);

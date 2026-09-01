@@ -5,12 +5,12 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import dev.mintychochip.Job;
 import dev.mintychochip.domain.JobResolver;
-import dev.mintychochip.gui.UpgradeTreeGui;
 import dev.mintychochip.upgrade.PlayerUpgradeData;
 import dev.mintychochip.upgrade.UpgradeNode;
 import dev.mintychochip.upgrade.UpgradeService;
 import dev.mintychochip.upgrade.UpgradeService.UnlockResult;
 import dev.mintychochip.upgrade.UpgradeTree;
+import dev.mintychochip.upgrade.rendering.UpgradeTreeGui;
 import dev.mintychochip.util.Messages;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import io.papermc.paper.command.brigadier.Commands;
@@ -18,6 +18,8 @@ import java.util.Optional;
 import org.bukkit.Sound;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Command for viewing and managing job upgrades.
@@ -35,14 +37,16 @@ public class UpgradesCommand implements JobsCommand {
 
   /** Upgrades command. */
   public UpgradesCommand(
-      UpgradeService upgradeService, JobResolver jobResolver, UpgradeTreeGui upgradeTreeGui) {
+      @NotNull UpgradeService upgradeService,
+      @NotNull JobResolver jobResolver,
+      @NotNull UpgradeTreeGui upgradeTreeGui) {
     this.upgradeService = upgradeService;
     this.jobResolver = jobResolver;
     this.upgradeTreeGui = upgradeTreeGui;
   }
 
   @Override
-  public LiteralArgumentBuilder<CommandSourceStack> build() {
+  public @NotNull LiteralArgumentBuilder<CommandSourceStack> build() {
     return Commands.literal("upgrade")
         .then(
             Commands.argument("job", StringArgumentType.string())
@@ -95,7 +99,7 @@ public class UpgradesCommand implements JobsCommand {
                                     context.getArgument("job", String.class)))));
   }
 
-  private int executeView(CommandSourceStack source, String jobName) {
+  private int executeView(@NotNull CommandSourceStack source, @NotNull String jobName) {
     CommandSender sender = source.getSender();
 
     if (!(sender instanceof Player player)) {
@@ -123,12 +127,14 @@ public class UpgradesCommand implements JobsCommand {
     return Command.SINGLE_SUCCESS;
   }
 
-  static boolean hasTreeForJob(UpgradeService upgradeService, String jobKey) {
+  @Contract(pure = true)
+  static boolean hasTreeForJob(@NotNull UpgradeService upgradeService, @NotNull String jobKey) {
     return upgradeService.getTree(jobKey).isPresent()
         || upgradeService.getSkillTree(jobKey).isPresent();
   }
 
-  private int executeUnlock(CommandSourceStack source, String jobName, String nodeKey) {
+  private int executeUnlock(
+      @NotNull CommandSourceStack source, @NotNull String jobName, @NotNull String nodeKey) {
     CommandSender sender = source.getSender();
 
     if (!(sender instanceof Player player)) {
@@ -194,7 +200,7 @@ public class UpgradesCommand implements JobsCommand {
     return Command.SINGLE_SUCCESS;
   }
 
-  private int executeReset(CommandSourceStack source, String jobName) {
+  private int executeReset(@NotNull CommandSourceStack source, @NotNull String jobName) {
     CommandSender sender = source.getSender();
 
     if (!(sender instanceof Player player)) {
@@ -230,7 +236,8 @@ public class UpgradesCommand implements JobsCommand {
     return Command.SINGLE_SUCCESS;
   }
 
-  private String getShortKey(UpgradeNode node) {
+  @Contract(pure = true)
+  private @NotNull String getShortKey(@NotNull UpgradeNode node) {
     String full = node.key().asString();
     int colonIndex = full.indexOf(':');
     return colonIndex >= 0 ? full.substring(colonIndex + 1) : full;

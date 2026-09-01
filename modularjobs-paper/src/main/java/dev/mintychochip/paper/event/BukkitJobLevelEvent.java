@@ -1,7 +1,7 @@
 package dev.mintychochip.paper.event;
 
 import dev.mintychochip.Job;
-import dev.mintychochip.JobProgression;
+import dev.mintychochip.PlayerJobState;
 import dev.mintychochip.event.JobLevelEvent;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
@@ -31,7 +31,7 @@ public final class BukkitJobLevelEvent extends Event {
     return pure;
   }
 
-  public Job getJob() {
+  public @NotNull Job getJob() {
     return pure.getJob();
   }
 
@@ -43,21 +43,11 @@ public final class BukkitJobLevelEvent extends Event {
     return pure.getNewLevel();
   }
 
-  /**
-   * Returns the legacy level value; use {@link #getNewLevel()} instead.
-   *
-   * @deprecated Use {@link #getNewLevel()} instead
-   */
-  @Deprecated
-  public int getLevel() {
-    return pure.getLevel();
+  public @NotNull PlayerJobState getPlayerJobState() {
+    return pure.getPlayerJobState();
   }
 
-  public JobProgression getProgression() {
-    return pure.getProgression();
-  }
-
-  public JobLevelEvent.Reason getReason() {
+  public @NotNull JobLevelEvent.Reason getReason() {
     return pure.getReason();
   }
 
@@ -66,7 +56,7 @@ public final class BukkitJobLevelEvent extends Event {
     return HANDLERS;
   }
 
-  public static HandlerList getHandlerList() {
+  public static @NotNull HandlerList getHandlerList() {
     return HANDLERS;
   }
 }

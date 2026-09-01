@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- Complete rooted job trees from flat `jobs.yml` nodes, with missing-parent/cycle validation and root-owned leveling/payout rules.
 - Startup cross-validation between craft job tasks and `recipes.yml` (`content-validation.craft-recipes`).
 - Recipe experience depreciation for registered craft recipes (config: `recipe-experience-depreciation`).
 - Shipped `recipes.yml` registers starter profession recipe metadata at startup (craft gates + depreciation).
@@ -10,17 +11,49 @@
   `maxexperience_<job>`, `maxlevel_<job>`, `name_<job>`, `description_<job>`,
   `isin_<job>`, `canjoin_<job>`, `joinedjobcount`, `jobs`, `totallevels`, `maxjobs`,
   `archivedjobs`).
-- Progression join limits: `progression-limits.max-jobs`, per-job `jobs.join.<job>`
-  permission (checked by `/jobs join` and the browse GUI), world join restriction
-  (reject joining while in a payout disabled-world), and `auto-join-jobs` on login.
+- Player-state join limits: `progression-limits.max-jobs`, per-job
+  `jobs.join.<job>` permission, world join restriction, and login auto-join.
 - Config-driven level-up commands (`level-up-commands` in `config.yml`) with
   `{player}` / `{level}` / `{job}` placeholders and `min-level` gating.
+- Public `ActionService` for fail-fast custom action registration and synchronous
+  reward/player-state reporting, including arbitrary `Context.KeyContext` task keys.
+- Vault economy fallback with deterministic Mint2-first provider selection.
 
 ### Changed
 
-
+- `Job` now represents one complete tree through typed `JobKey`, `JobNodeKey`,
+  `rootNode()`, `nodes()`, and `pathTo(...)`. `PlayerJobState` separately stores
+  the player's active node and tree-wide XP/level as an immutable snapshot.
+- Job tasks are owned by nodes. Resolution inherits root-to-active-node; the
+  nearest matching action/context task replaces the whole ancestor definition.
+- Job perk lookup follows the same active-node path.
+- Moved the synchronous event bus implementation out of `modularjobs-api`;
+  API consumers retain the contract while `modularjobs-common` supplies the
+  Paper-free default.
+- Hid API-local currency/payable value implementations and exposed
+  `RecipeDefinition.craftOutputKey()` as a public contract.
+- Split payable presentation from the domain model: `Payable` and
+  `PayableType` are render-free, while `PayableRenderer` owns UI formatting.
+- Preserved job-task currency symbols across database round trips. Existing
+  installations add the nullable column with `scripts/migrate-add-currency-symbol.sql`;
+  legacy rows fall back to their currency identifier.
+- Player job-state rows now persist root `job_key` plus `current_node_key`.
+  Existing MySQL installations apply the idempotent
+  `scripts/migrate-add-current-node-key.sql` migration and map old child rows to
+  their owning roots before restart.
 - Migrated Java domain package from `net.aincraft` to `dev.mintychochip` (`api`, `common`, `paper`).
 
+### Removed
+
+- Removed the legacy `Store` / `StoreFactory` API and their common in-memory
+  implementations. McMMO active-ability tracking now uses `java.util.Map`
+  directly. This is an immediate breaking cutover with no deprecation shim.
+- Removed `JobProgression` and `JobProgressionView`; use `PlayerJobState`.
+- Removed bundled `job_tasks.csv`, `job_tasks.yml`, and `fisherman.yml` seeding
+  plus the startup task loader. Empty MySQL task tables now remain empty until
+  the editor/repository path writes definitions.
+- Removed the old progression repository/service names in favor of
+  `PlayerJobStateRepository` and `PlayerJobStateService`.
 
 ## 26.8.11.1 — ModularJobs API and Azoth gathering gates
 

@@ -17,13 +17,14 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
+import org.jetbrains.annotations.NotNull;
 
 /** Native Paper inventory host for ModularJobs screens. */
 public final class PaperUiHost implements Listener {
   private final Map<UUID, Session> sessions = new HashMap<>();
 
   /** Opens a screen for a player. */
-  public void open(Player player, ScreenView view) {
+  public void open(@NotNull Player player, @NotNull ScreenView view) {
     close(player);
     Holder holder = new Holder(player.getUniqueId(), view.id(), view);
     Inventory inventory = createInventory(holder, view);
@@ -33,7 +34,7 @@ public final class PaperUiHost implements Listener {
   }
 
   /** Replaces a player's screen while retaining the screen holder identity. */
-  public void refresh(Player player, ScreenView view) {
+  public void refresh(@NotNull Player player, @NotNull ScreenView view) {
     Session session = sessions.get(player.getUniqueId());
     if (session == null) {
       open(player, view);
@@ -48,7 +49,7 @@ public final class PaperUiHost implements Listener {
   }
 
   /** Closes a player's hosted screen and invokes its callback once. */
-  public void close(Player player) {
+  public void close(@NotNull Player player) {
     Session session = sessions.remove(player.getUniqueId());
     if (session == null) {
       return;
@@ -68,7 +69,7 @@ public final class PaperUiHost implements Listener {
   }
 
   @EventHandler
-  public void onInventoryClick(InventoryClickEvent event) {
+  public void onInventoryClick(@NotNull InventoryClickEvent event) {
     if (!(event.getView().getTopInventory().getHolder() instanceof Holder holder)) {
       return;
     }
@@ -92,7 +93,7 @@ public final class PaperUiHost implements Listener {
   }
 
   @EventHandler
-  public void onInventoryDrag(InventoryDragEvent event) {
+  public void onInventoryDrag(@NotNull InventoryDragEvent event) {
     if (!(event.getView().getTopInventory().getHolder() instanceof Holder holder)) {
       return;
     }
@@ -107,7 +108,7 @@ public final class PaperUiHost implements Listener {
   }
 
   @EventHandler
-  public void onInventoryClose(InventoryCloseEvent event) {
+  public void onInventoryClose(@NotNull InventoryCloseEvent event) {
     if (!(event.getInventory().getHolder() instanceof Holder holder)) {
       return;
     }
@@ -125,14 +126,15 @@ public final class PaperUiHost implements Listener {
   }
 
   @EventHandler
-  public void onPlayerQuit(PlayerQuitEvent event) {
+  public void onPlayerQuit(@NotNull PlayerQuitEvent event) {
     Session session = sessions.remove(event.getPlayer().getUniqueId());
     if (session != null) {
       session.holder.view().onClose().accept(event.getPlayer());
     }
   }
 
-  private static Inventory createInventory(Holder holder, ScreenView view) {
+  private static @NotNull Inventory createInventory(
+      @NotNull Holder holder, @NotNull ScreenView view) {
     Inventory inventory = Bukkit.createInventory(holder, view.rows() * 9, view.title());
     for (Map.Entry<Integer, ItemStack> entry : view.items().entrySet()) {
       inventory.setItem(entry.getKey(), entry.getValue());
@@ -146,7 +148,7 @@ public final class PaperUiHost implements Listener {
     private final Holder holder;
     private Inventory inventory;
 
-    private Session(Player player, Holder holder, Inventory inventory) {
+    private Session(@NotNull Player player, @NotNull Holder holder, @NotNull Inventory inventory) {
       this.player = player;
       this.holder = holder;
       this.inventory = inventory;
@@ -159,43 +161,43 @@ public final class PaperUiHost implements Listener {
     private ScreenView view;
     private Inventory inventory;
 
-    private Holder(UUID viewerId, String screenId, ScreenView view) {
+    private Holder(@NotNull UUID viewerId, @NotNull String screenId, @NotNull ScreenView view) {
       this.viewerId = viewerId;
       this.screenId = screenId;
       this.view = view;
     }
 
-    private UUID viewerId() {
+    private @NotNull UUID viewerId() {
       return viewerId;
     }
 
-    private ScreenView view() {
+    private @NotNull ScreenView view() {
       return view;
     }
 
-    private void update(ScreenView next) {
+    private void update(@NotNull ScreenView next) {
       screenId = next.id();
       view = next;
     }
 
-    private void setInventory(Inventory next) {
+    private void setInventory(@NotNull Inventory next) {
       inventory = next;
     }
 
     @Override
-    public Inventory getInventory() {
+    public @NotNull Inventory getInventory() {
       return inventory;
     }
   }
 
   /** Immutable description of a hosted screen. */
   public record ScreenView(
-      String id,
+      @NotNull String id,
       int rows,
-      Component title,
-      Map<Integer, ItemStack> items,
-      Map<Integer, SlotAction> actions,
-      Consumer<Player> onClose) {
+      @NotNull Component title,
+      @NotNull Map<Integer, ItemStack> items,
+      @NotNull Map<Integer, SlotAction> actions,
+      @NotNull Consumer<Player> onClose) {
     public ScreenView {
       if (id == null || title == null || onClose == null) {
         throw new NullPointerException("screen id, title, and close callback are required");
@@ -207,7 +209,8 @@ public final class PaperUiHost implements Listener {
       actions = copySlots(actions, rows, "actions");
     }
 
-    private static <T> Map<Integer, T> copySlots(Map<Integer, T> source, int rows, String name) {
+    private static <T> @NotNull Map<Integer, T> copySlots(
+        @NotNull Map<Integer, T> source, int rows, @NotNull String name) {
       if (source == null) {
         throw new NullPointerException(name + " are required");
       }
@@ -230,6 +233,6 @@ public final class PaperUiHost implements Listener {
   /** Action invoked for an owned top-inventory slot click. */
   @FunctionalInterface
   public interface SlotAction {
-    void execute(Player player, InventoryClickEvent event);
+    void execute(@NotNull Player player, @NotNull InventoryClickEvent event);
   }
 }

@@ -24,6 +24,7 @@ import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.Plugin;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /** Manual composition for payment / exploit / damage tracking (replaces Guice PaymentModule). */
@@ -36,11 +37,11 @@ public final class PaymentWiring {
   public final List<Listener> listeners;
 
   private PaymentWiring(
-      BoostEngine boostEngine,
-      JobsPaymentHandler paymentHandler,
-      ExploitService exploitService,
-      PaymentSettings paymentSettings,
-      List<Listener> listeners) {
+      @NotNull BoostEngine boostEngine,
+      @NotNull JobsPaymentHandler paymentHandler,
+      @NotNull ExploitService exploitService,
+      @NotNull PaymentSettings paymentSettings,
+      @NotNull List<Listener> listeners) {
     this.boostEngine = boostEngine;
     this.paymentHandler = paymentHandler;
     this.exploitService = exploitService;
@@ -52,13 +53,13 @@ public final class PaymentWiring {
    * Composes the payment object graph (settings, boost engine, damage tracking, exploit
    * protections, and all payment listeners) without optional recipe/profession gating.
    */
-  public static PaymentWiring create(
-      Plugin plugin,
-      JobService jobService,
-      ItemBoostDataService itemBoostDataService,
-      TimedBoostDataService timedBoostDataService,
-      UpgradeBoostDataService upgradeBoostDataService,
-      BlockOwnershipService blockOwnershipService) {
+  public static @NotNull PaymentWiring create(
+      @NotNull Plugin plugin,
+      @NotNull JobService jobService,
+      @NotNull ItemBoostDataService itemBoostDataService,
+      @NotNull TimedBoostDataService timedBoostDataService,
+      @NotNull UpgradeBoostDataService upgradeBoostDataService,
+      @NotNull BlockOwnershipService blockOwnershipService) {
     return create(
         plugin,
         jobService,
@@ -75,13 +76,13 @@ public final class PaymentWiring {
    * protections, and all payment listeners). When both recipe and profession services are supplied,
    * a {@link CraftRecipeGateListener} is also wired in.
    */
-  public static PaymentWiring create(
-      Plugin plugin,
-      JobService jobService,
-      ItemBoostDataService itemBoostDataService,
-      TimedBoostDataService timedBoostDataService,
-      UpgradeBoostDataService upgradeBoostDataService,
-      BlockOwnershipService blockOwnershipService,
+  public static @NotNull PaymentWiring create(
+      @NotNull Plugin plugin,
+      @NotNull JobService jobService,
+      @NotNull ItemBoostDataService itemBoostDataService,
+      @NotNull TimedBoostDataService timedBoostDataService,
+      @NotNull UpgradeBoostDataService upgradeBoostDataService,
+      @NotNull BlockOwnershipService blockOwnershipService,
       @Nullable RecipeService recipeService,
       @Nullable ProfessionService professionService) {
     PaymentSettings paymentSettings = PaymentSettings.fromPlugin(plugin);
@@ -132,19 +133,21 @@ public final class PaymentWiring {
         boostEngine, paymentHandler, exploitService, paymentSettings, List.copyOf(listeners));
   }
 
-  static ExploitService createExploitService(Plugin plugin) {
+  static @NotNull ExploitService createExploitService(@NotNull Plugin plugin) {
     Map<Material, Duration> placedMaterials = PlacedProtectionMaterials.load(plugin);
     ExploitProtectionSettings settings = ExploitProtectionSettings.load(plugin);
     return createExploitService(placedMaterials, settings);
   }
 
   /** Package-visible for tests: build exploit service with an explicit placed material map. */
-  static ExploitService createExploitService(Map<Material, Duration> placedMaterials) {
+  static @NotNull ExploitService createExploitService(
+      @NotNull Map<Material, Duration> placedMaterials) {
     return createExploitService(placedMaterials, ExploitProtectionSettings.defaults());
   }
 
-  static ExploitService createExploitService(
-      Map<Material, Duration> placedMaterials, ExploitProtectionSettings settings) {
+  static @NotNull ExploitService createExploitService(
+      @NotNull Map<Material, Duration> placedMaterials,
+      @NotNull ExploitProtectionSettings settings) {
     Map<Key, ExploitProtectionStore<?>> providers = new HashMap<>();
     providers.put(
         ExploitProtectionType.WAX.key(),
@@ -190,7 +193,8 @@ public final class PaymentWiring {
     return new ExploitService(providers, settings);
   }
 
-  private static <K> Map<K, java.time.temporal.TemporalAmount> toTemporal(Map<K, Duration> source) {
+  private static @NotNull <K> Map<K, java.time.temporal.TemporalAmount> toTemporal(
+      @NotNull Map<K, Duration> source) {
     return new HashMap<>(source);
   }
 }

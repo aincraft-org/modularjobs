@@ -94,7 +94,7 @@ public final class UpgradeBoostDataServiceImpl implements UpgradeBoostDataServic
     return List.copyOf(result);
   }
 
-  private List<BoostSource> buildLegacyBoostSources(
+  private @NotNull List<BoostSource> buildLegacyBoostSources(
       @NotNull String playerIdStr, @NotNull String jobKeyStr, @NotNull Key jobKey) {
     PlayerUpgradeDataImpl playerData = upgradeRepository.loadPlayerData(playerIdStr, jobKeyStr);
     if (playerData == null) {
@@ -151,9 +151,11 @@ public final class UpgradeBoostDataServiceImpl implements UpgradeBoostDataServic
     return result;
   }
 
-  @Nullable
-  private static BoostSource buildBoostSource(
-      SkillNode node, NodeEffect effect, String jobKey, int effectIndex) {
+  private static @Nullable BoostSource buildBoostSource(
+      @NotNull SkillNode node,
+      @NotNull NodeEffect effect,
+      @NotNull String jobKey,
+      int effectIndex) {
     if (effect instanceof NodeEffect.RuledBoostEffect ruled) {
       // Use the full BoostSource from the effect - already has conditions/rules
       return ruled.boostSource();
@@ -176,8 +178,8 @@ public final class UpgradeBoostDataServiceImpl implements UpgradeBoostDataServic
     return null;
   }
 
-  @Nullable
-  private BoostSource buildBoostSource(UpgradeNode node, UpgradeEffect effect, Key jobKey) {
+  private @Nullable BoostSource buildBoostSource(
+      @NotNull UpgradeNode node, @NotNull UpgradeEffect effect, @NotNull Key jobKey) {
     if (effect instanceof UpgradeEffect.RuledBoostEffect ruled) {
       // Use the full BoostSource from the effect - already has conditions/rules
       return ruled.boostSource();
@@ -199,7 +201,11 @@ public final class UpgradeBoostDataServiceImpl implements UpgradeBoostDataServic
    * Simple BoostSource wrapper for legacy BoostEffect. Applies boost if the payable target matches.
    */
   private record SimpleUpgradeBoostSource(
-      Key key, String target, BigDecimal multiplier, String nodeName) implements BoostSource {
+      @NotNull Key key,
+      @NotNull String target,
+      @NotNull BigDecimal multiplier,
+      @NotNull String nodeName)
+      implements BoostSource {
 
     @Override
     public @NotNull Key key() {
@@ -207,7 +213,7 @@ public final class UpgradeBoostDataServiceImpl implements UpgradeBoostDataServic
     }
 
     @Override
-    public @NotNull List<Boost> evaluate(BoostContext context) {
+    public @NotNull List<Boost> evaluate(@NotNull BoostContext context) {
       if (!appliesToPayable(context.payable())) {
         return List.of();
       }
@@ -219,7 +225,7 @@ public final class UpgradeBoostDataServiceImpl implements UpgradeBoostDataServic
       return nodeName + " upgrade";
     }
 
-    private boolean appliesToPayable(Payable payable) {
+    private boolean appliesToPayable(@NotNull Payable payable) {
       if (UpgradeEffect.BoostEffect.TARGET_ALL.equals(target)) {
         return true;
       }

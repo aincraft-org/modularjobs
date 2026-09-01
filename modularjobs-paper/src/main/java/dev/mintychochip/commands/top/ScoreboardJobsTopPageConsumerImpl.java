@@ -1,6 +1,6 @@
 package dev.mintychochip.commands.top;
 
-import dev.mintychochip.JobProgression;
+import dev.mintychochip.PlayerJobState;
 import dev.mintychochip.commands.Page;
 import dev.mintychochip.commands.TextScoreboard;
 import dev.mintychochip.commands.components.PlayerComponent;
@@ -13,6 +13,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Renders leaderboard entries onto a player's side scoreboard. Only renders when the sender is a
@@ -29,26 +30,26 @@ public final class ScoreboardJobsTopPageConsumerImpl implements JobsTopPageConsu
    *
    * @param scoreBoard scoreboard surface the rows are written to
    */
-  public ScoreboardJobsTopPageConsumerImpl(TextScoreboard scoreBoard) {
+  public ScoreboardJobsTopPageConsumerImpl(@NotNull TextScoreboard scoreBoard) {
     this.scoreBoard = scoreBoard;
   }
 
   @Override
   public void consume(
-      Component jobName,
-      Page<JobProgression> page,
-      CommandSender sender,
+      @NotNull Component jobName,
+      @NotNull Page<PlayerJobState> page,
+      @NotNull CommandSender sender,
       int maxPages,
-      List<JobProgression> allEntries) {
+      @NotNull List<PlayerJobState> allEntries) {
     if (!(sender instanceof Player player)) {
       return;
     }
-    List<JobProgression> data = page.data();
+    List<PlayerJobState> data = page.data();
     int pageNumber = page.pageNumber();
     int pageSize = page.size();
     for (int i = 0; i < data.size(); i++) {
-      JobProgression progression = data.get(i);
-      OfflinePlayer progressionPlayer = Bukkit.getOfflinePlayer(progression.playerId());
+      PlayerJobState state = data.get(i);
+      OfflinePlayer statePlayer = Bukkit.getOfflinePlayer(state.playerId());
       Component row =
           MiniMessage.miniMessage()
               .deserialize(
@@ -57,8 +58,8 @@ public final class ScoreboardJobsTopPageConsumerImpl implements JobsTopPageConsu
                       .tag(
                           "rank",
                           Tag.inserting(Component.text(i + 1 + (pageNumber - 1) * pageSize)))
-                      .tag("player", Tag.inserting(PlayerComponent.of(progressionPlayer)))
-                      .tag("level", Tag.inserting(LevelComponent.of(progression)))
+                      .tag("player", Tag.inserting(PlayerComponent.of(statePlayer)))
+                      .tag("level", Tag.inserting(LevelComponent.of(state)))
                       .build());
       scoreBoard.setLine(i, row, Component.empty());
     }

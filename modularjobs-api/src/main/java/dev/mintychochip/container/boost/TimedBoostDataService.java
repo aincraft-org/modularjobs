@@ -9,6 +9,8 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /** Timed boost data service. */
@@ -21,7 +23,7 @@ public interface TimedBoostDataService {
     record GlobalTarget() implements Target {}
 
     /** Player target. */
-    record PlayerTarget(UUID playerId) implements Target {}
+    record PlayerTarget(@NotNull UUID playerId) implements Target {}
   }
 
   /**
@@ -29,17 +31,19 @@ public interface TimedBoostDataService {
    * rows are deleted by {@link TimedBoostDataService#findApplicableBoosts(Target)}.
    */
   record ActiveBoostData(
-      String targetIdentifier,
-      String sourceIdentifier,
-      Instant started,
+      @NotNull String targetIdentifier,
+      @NotNull String sourceIdentifier,
+      @NotNull Instant started,
       @Nullable Duration duration,
-      BoostSource boostSource) {
+      @NotNull BoostSource boostSource) {
 
+    @Contract(pure = true)
     public boolean isExpired() {
       return isExpired(System.currentTimeMillis());
     }
 
     /** Expiry check against an explicit clock (for tests / deterministic cleanup). */
+    @Contract(pure = true)
     public boolean isExpired(long nowMillis) {
       if (duration == null) {
         return false; // Permanent boost
@@ -50,13 +54,16 @@ public interface TimedBoostDataService {
   }
 
   /** Find applicable boosts. */
-  List<ActiveBoostData> findApplicableBoosts(Target target);
+  @NotNull
+  List<ActiveBoostData> findApplicableBoosts(@NotNull Target target);
 
   /** Find boosts. */
-  List<ActiveBoostData> findBoosts(Target target);
+  @NotNull
+  List<ActiveBoostData> findBoosts(@NotNull Target target);
 
   /** Add data. */
-  <T extends TimedBoostData & SerializableBoostData> void addData(T data, Target target);
+  <T extends TimedBoostData & SerializableBoostData> void addData(
+      @NotNull T data, @NotNull Target target);
 
   /**
    * Remove a timed boost from a target.
@@ -65,5 +72,5 @@ public interface TimedBoostDataService {
    * @param sourceIdentifier the boost source key string
    * @return true if a boost was removed, false otherwise
    */
-  boolean removeBoost(Target target, String sourceIdentifier);
+  boolean removeBoost(@NotNull Target target, @NotNull String sourceIdentifier);
 }

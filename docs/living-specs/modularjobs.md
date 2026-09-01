@@ -116,6 +116,7 @@ Related one-shot docs: `docs/superpowers/specs/2026-08-06-module-layout-design.m
 | 2026-08 | MySQL 8 only, connect-only schema | Multi-instance, least privilege, reviewable migrations |
 | 2026-08 | Secure editor via REST + MySQL, not Bytebin | Token ownership, shared durable store |
 | 2026-08-10 | Optional reflective Mint adapter + blackhole default | Base Paper builds stay independent of Mint while currency-required servers can fail fast |
+| 2026-08-31 | Typed Mint2 integration preferred over Vault fallback | Preserve Mint2 as the authoritative ledger while supporting standard economies |
 | 2026-08-21 | Rename Java packages to `dev.mintychochip` | Align plugin bootstrap, shadow jar, and published API coordinates |
 | 2026-08-21 | Align with server-development-skills except MySQL connect-only and `YY.M.D.REVISION` | Skills win on pins/CI/style/docs gate; AGENTS.md wins on schema ownership and CalVer |
 

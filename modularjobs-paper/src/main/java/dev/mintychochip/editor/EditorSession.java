@@ -2,6 +2,8 @@ package dev.mintychochip.editor;
 
 import java.time.Instant;
 import java.util.UUID;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Paper-local handoff for a REST editor session.
@@ -13,9 +15,14 @@ import java.util.UUID;
  * @param expiresAt REST session expiry time
  */
 public record EditorSession(
-    String sessionCode, String token, UUID playerId, Instant createdAt, Instant expiresAt) {
+    @NotNull String sessionCode,
+    @NotNull String token,
+    @NotNull UUID playerId,
+    @NotNull Instant createdAt,
+    @NotNull Instant expiresAt) {
   /** Returns whether expired. */
-  public boolean isExpired(Instant now) {
+  @Contract(pure = true)
+  public boolean isExpired(@NotNull Instant now) {
     return !expiresAt.isAfter(now);
   }
 }

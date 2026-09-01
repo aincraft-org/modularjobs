@@ -54,6 +54,44 @@ upgrades:
 
 Identical `jdbc-url` + `username` sections share one Hikari pool.
 
+## Upgrade existing installations
+
+Back up MySQL and stop every ModularJobs instance before applying migrations.
+Neither the game process nor REST API runs DDL.
+
+### Player job state trees
+
+Existing `job_progression` and `archive_job_progression` tables need the active
+node column:
+
+```bash
+mysql --host=host --port=3306 --user=user --password modularjobs \
+  < scripts/migrate-add-current-node-key.sql
+```
+
+This migration is idempotent. It adds `current_node_key` when absent, initializes
+legacy rows to their previous `job_key`, and enforces `NOT NULL`. On an already
+current schema it preserves existing active-node values.
+
+The SQL cannot infer `jobs.yml` parent chains. If an old `job_key` is now a child
+node, consolidate that player's duplicate root/child rows according to your
+server's policy, change `job_key` to the owning root, and keep the selected child
+in `current_node_key`. Complete this data mapping before starting the new plugin.
+One row must remain per `(player_id, root job_key)`.
+
+### Currency symbols
+
+Installations created before currency-symbol persistence also run:
+
+```bash
+mysql --host=host --port=3306 --user=user --password modularjobs \
+  < scripts/migrate-add-currency-symbol.sql
+```
+
+That migration adds `job_task_payables.currency_symbol` and intentionally fails
+if applied twice. Legacy rows keep a `NULL` symbol because the original symbol
+cannot be recovered; ModularJobs renders the stored currency identifier.
+
 ## Shared editor session database
 
 The Paper plugin and `web/rest-api` must point at the same MySQL database. The
@@ -67,22 +105,23 @@ process.
 
 ## Startup behavior
 
-1. Open Hikari pool to MySQL.
-2. Verify required tables exist (`job_progression`, `job_tasks`, …).
-3. If any table is missing → **fail enable** with a message pointing at
-   `scripts/apply-mysql-schema.sh`.
+1. Open the shared Hikari pool to MySQL.
+2. Verify required tables exist (`job_progression`, `archive_job_progression`,
+   `job_tasks`, …).
+3. Verify migration-sensitive columns exist, including both
+   `current_node_key` columns.
+4. Missing tables or columns → **fail enable** with the applicable schema or
+   migration script; runtime performs no DDL.
 
-## Job and task configuration updates
+## Job task updates
 
-The bundled `job_tasks.csv` is the authoritative seed file when the task table is
-empty. Startup intentionally skips import when MySQL already contains tasks.
-Changing the packaged CSV does not overwrite live task data. Operators must back up
-and apply task changes through the existing editor/repository path or an explicit
-reviewed SQL operation. Do not clear a live task table without a backup and reimport
-plan.
+The plugin does not seed an empty `job_tasks` table. Operators create and update
+task payables through the editor/repository path or an explicit reviewed SQL
+operation; MySQL is the only runtime source of task data. Back up live task data
+before bulk edits or deletes.
 
 The `fisher` → `fisherman` job-key rename likewise requires an operator-managed data
-update for existing progression, upgrade, task, and payable rows before deploying the
-renamed catalog.
+update for existing player-state, upgrade, task, and payable rows before deploying
+the renamed catalog.
 
 SQLite, PostgreSQL, and MariaDB are **not supported**.

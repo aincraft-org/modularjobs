@@ -1,8 +1,7 @@
 package dev.mintychochip.payable;
 
 import dev.mintychochip.Bridge;
-import dev.mintychochip.Job;
-import dev.mintychochip.JobProgression;
+import dev.mintychochip.PlayerJobState;
 import dev.mintychochip.container.ExperiencePayableHandler;
 import dev.mintychochip.container.Payable;
 import dev.mintychochip.container.PayableAmount;
@@ -15,11 +14,12 @@ import java.util.UUID;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Experience payable handler that buffers the award through the shared job {@link JobService}.
  * Fires a cancelable {@link JobExperienceGainEvent} before the award (allowing the amount to be
- * modified), skips already-capped progressions, persists the accumulated experience, fires a {@link
+ * modified), skips already-capped states, persists the accumulated experience, fires a {@link
  * JobLevelEvent} on level-up, and updates the on-screen experience bar only for online players
  * whose update was persisted.
  */
@@ -34,28 +34,29 @@ final class BufferedExperienceHandlerImpl implements ExperiencePayableHandler {
    * service.
    */
   BufferedExperienceHandlerImpl(
-      ExperienceBarController controller, ExperienceBarFormatter formatter, JobService jobService) {
+      @NotNull ExperienceBarController controller,
+      @NotNull ExperienceBarFormatter formatter,
+      @NotNull JobService jobService) {
     this.controller = controller;
     this.formatter = formatter;
     this.jobService = jobService;
   }
 
   @Override
-  public void pay(PayableContext context) {
+  public void pay(@NotNull PayableContext context) {
     UUID playerId = context.playerId();
     OfflinePlayer player = Bukkit.getOfflinePlayer(playerId);
     Player onlinePlayer = player.isOnline() ? player.getPlayer() : null;
-    JobProgression progression = context.jobProgression();
+    PlayerJobState state = context.jobState();
     Payable payable = context.payable();
     PayableAmount amount = payable.amount();
     BigDecimal amountDecimal = amount.value();
     PaperEventBridge events = new PaperEventBridge(Bridge.bridge().eventBus());
 
     // Fire experience gain event (pre-calculation); pure + Bukkit dual-fire
-    Job job = progression.job();
     JobExperienceGainEvent expEvent =
         events.publishExperienceGain(
-            new JobExperienceGainEvent(playerId, job, progression, amountDecimal), onlinePlayer);
+            new JobExperienceGainEvent(state, amountDecimal), onlinePlayer);
 
     if (expEvent.isCancelled()) {
       return;
@@ -64,28 +65,26 @@ final class BufferedExperienceHandlerImpl implements ExperiencePayableHandler {
     // Use potentially modified experience amount from event
     amountDecimal = expEvent.getExperienceGained();
 
-    int oldLevel = progression.level();
-    int maxLevel = progression.job().maxLevel();
+    int oldLevel = state.level();
+    int maxLevel = state.job().maxLevel();
 
     // Don't add experience if already at max level
     if (oldLevel >= maxLevel) {
       return;
     }
 
-    JobProgression calculatedProgression = progression.addExperience(amountDecimal);
-    int newLevel = calculatedProgression.level();
+    PlayerJobState updatedState = state.addExperience(amountDecimal);
+    int newLevel = updatedState.level();
 
-    if (jobService.update(calculatedProgression)) {
+    if (jobService.update(updatedState)) {
       // Fire level up event if level changed
       if (newLevel > oldLevel) {
-        events.publishLevel(
-            new JobLevelEvent(playerId, job, oldLevel, newLevel, calculatedProgression),
-            onlinePlayer);
+        events.publishLevel(new JobLevelEvent(updatedState, oldLevel, newLevel), onlinePlayer);
       }
 
       if (onlinePlayer != null) {
         controller.display(
-            new ExperienceBarContext(calculatedProgression, playerId, amountDecimal), formatter);
+            new ExperienceBarContext(updatedState, playerId, amountDecimal), formatter);
       }
     }
   }

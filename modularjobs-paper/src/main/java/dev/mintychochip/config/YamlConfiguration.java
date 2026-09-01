@@ -20,8 +20,7 @@ public interface YamlConfiguration extends ConfigurationSection {
   void save();
 
   /** API member. */
-  @NotNull
-  static YamlConfiguration create(Plugin plugin, String path) {
+  static @NotNull YamlConfiguration create(@NotNull Plugin plugin, @NotNull String path) {
     return YamlFileBackedConfigurationImpl.create(plugin, path);
   }
 }

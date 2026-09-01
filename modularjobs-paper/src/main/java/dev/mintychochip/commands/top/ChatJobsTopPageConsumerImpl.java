@@ -1,6 +1,6 @@
 package dev.mintychochip.commands.top;
 
-import dev.mintychochip.JobProgression;
+import dev.mintychochip.PlayerJobState;
 import dev.mintychochip.commands.Page;
 import dev.mintychochip.commands.components.PlayerComponent;
 import dev.mintychochip.util.Messages;
@@ -16,6 +16,8 @@ import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Renders leaderboard entries as chat messages, including the viewer's rank, highlighted rows for
@@ -27,11 +29,11 @@ public final class ChatJobsTopPageConsumerImpl implements JobsTopPageConsumer {
 
   @Override
   public void consume(
-      Component jobName,
-      Page<JobProgression> page,
-      CommandSender sender,
+      @NotNull Component jobName,
+      @NotNull Page<PlayerJobState> page,
+      @NotNull CommandSender sender,
       int maxPages,
-      List<JobProgression> allEntries) {
+      @NotNull List<PlayerJobState> allEntries) {
     String jobNameText = PlainTextComponentSerializer.plainText().serialize(jobName);
     int pageNumber = page.pageNumber();
 
@@ -55,13 +57,13 @@ public final class ChatJobsTopPageConsumerImpl implements JobsTopPageConsumer {
     Messages.send(sender, "");
 
     Component body = Component.empty();
-    List<JobProgression> data = page.data();
+    List<PlayerJobState> data = page.data();
     int pageSize = page.size();
     for (int i = 0; i < data.size(); i++) {
-      JobProgression progression = data.get(i);
-      OfflinePlayer progressionPlayer = Bukkit.getOfflinePlayer(progression.playerId());
+      PlayerJobState state = data.get(i);
+      OfflinePlayer statePlayer = Bukkit.getOfflinePlayer(state.playerId());
       boolean isViewer =
-          sender instanceof Player player && progression.playerId().equals(player.getUniqueId());
+          sender instanceof Player player && state.playerId().equals(player.getUniqueId());
 
       Component row =
           MiniMessage.miniMessage()
@@ -71,8 +73,8 @@ public final class ChatJobsTopPageConsumerImpl implements JobsTopPageConsumer {
                       .tag(
                           "rank",
                           Tag.inserting(Component.text(i + 1 + (pageNumber - 1) * pageSize)))
-                      .tag("player", Tag.inserting(PlayerComponent.of(progressionPlayer)))
-                      .tag("level", Tag.inserting(LevelComponent.of(progression)))
+                      .tag("player", Tag.inserting(PlayerComponent.of(statePlayer)))
+                      .tag("level", Tag.inserting(LevelComponent.of(state)))
                       .build());
 
       if (isViewer) {
@@ -90,7 +92,9 @@ public final class ChatJobsTopPageConsumerImpl implements JobsTopPageConsumer {
     Messages.send(sender, "");
   }
 
-  private Component buildNavigation(String jobName, int currentPage, int maxPages) {
+  @Contract(pure = true)
+  private @NotNull Component buildNavigation(
+      @NotNull String jobName, int currentPage, int maxPages) {
     Component nav = Component.empty();
 
     if (currentPage > 1) {
@@ -120,7 +124,8 @@ public final class ChatJobsTopPageConsumerImpl implements JobsTopPageConsumer {
     return nav;
   }
 
-  private int findPlayerRank(Player player, List<JobProgression> allEntries) {
+  @Contract(pure = true)
+  private int findPlayerRank(@NotNull Player player, @NotNull List<PlayerJobState> allEntries) {
     for (int i = 0; i < allEntries.size(); i++) {
       if (allEntries.get(i).playerId().equals(player.getUniqueId())) {
         return i + 1;

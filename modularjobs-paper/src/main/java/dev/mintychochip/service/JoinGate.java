@@ -1,7 +1,7 @@
 package dev.mintychochip.service;
 
 import dev.mintychochip.Job;
-import dev.mintychochip.JobProgression;
+import dev.mintychochip.PlayerJobState;
 import dev.mintychochip.config.ProgressionLimitsConfig;
 import java.util.List;
 import java.util.Locale;
@@ -49,11 +49,11 @@ public final class JoinGate {
    *
    * @param player the joining player
    * @param job the job being joined
-   * @param current the player's current (non-archived) progressions
+   * @param current the player's current (non-archived) job states
    * @return the first violated rule, or {@link JoinResult#ALLOWED}
    */
   public @NotNull JoinResult canJoin(
-      @NotNull Player player, @NotNull Job job, @NotNull List<JobProgression> current) {
+      @NotNull Player player, @NotNull Job job, @NotNull List<PlayerJobState> current) {
     if (config.maxJobs() > 0 && current.size() >= config.maxJobs()) {
       return JoinResult.MAX_JOBS;
     }

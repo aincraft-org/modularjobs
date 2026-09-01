@@ -22,7 +22,8 @@ class PaperItemFactoryTest {
 
   @Test
   void ofCreatesMaterialAmountAndComponentMetadataInOrder() {
-    ItemStack item = PaperItemFactory.of(Material.BOOK, "Job title", List.of("line one", "line two"));
+    ItemStack item =
+        PaperItemFactory.of(Material.BOOK, "Job title", List.of("line one", "line two"));
 
     assertEquals(Material.BOOK, item.getType());
     assertEquals(1, item.getAmount());

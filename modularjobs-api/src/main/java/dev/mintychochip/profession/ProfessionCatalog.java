@@ -7,13 +7,15 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Built-in profession tracks plus legacy ModularJobs job-key aliases.
  *
  * <p>Canonical ids use stable profession names; each {@link ProfessionDefinition#storageKey()}
- * points at the jobs.yml / progression key ModularJobs actually uses today.
+ * points at the {@code jobs.yml} node used for player-state and task resolution.
  */
 public final class ProfessionCatalog {
 
@@ -64,24 +66,31 @@ public final class ProfessionCatalog {
 
   private ProfessionCatalog() {}
 
-  private static ProfessionDefinition def(
-      String id, String storageKey, ProfessionCategory category, String displayName) {
+  @Contract(pure = true)
+  private static @NotNull ProfessionDefinition def(
+      @NotNull String id,
+      @NotNull String storageKey,
+      @NotNull ProfessionCategory category,
+      @NotNull String displayName) {
     return new ProfessionDefinition(id, storageKey, category, displayName);
   }
 
   /** All §8.1 tracks in catalog order. */
+  @Contract(pure = true)
   public static @NotNull List<ProfessionDefinition> tracks() {
     return TRACKS;
   }
 
   /** Tracks by category. */
+  @Contract(pure = true)
   public static @NotNull Collection<ProfessionDefinition> tracksByCategory(
-      ProfessionCategory category) {
+      @NotNull ProfessionCategory category) {
     return TRACKS.stream().filter(t -> t.category() == category).toList();
   }
 
   /** By id. */
-  public static Optional<ProfessionDefinition> byId(String id) {
+  @Contract(pure = true)
+  public static @NotNull Optional<ProfessionDefinition> byId(@Nullable String id) {
     if (id == null || id.isBlank()) {
       return Optional.empty();
     }
@@ -89,7 +98,8 @@ public final class ProfessionCatalog {
   }
 
   /** By storage key. */
-  public static Optional<ProfessionDefinition> byStorageKey(String storageKey) {
+  @Contract(pure = true)
+  public static @NotNull Optional<ProfessionDefinition> byStorageKey(@Nullable String storageKey) {
     if (storageKey == null || storageKey.isBlank()) {
       return Optional.empty();
     }
@@ -97,7 +107,8 @@ public final class ProfessionCatalog {
   }
 
   /** Resolve a canonical id, storage key, or legacy alias to a profession definition. */
-  public static Optional<ProfessionDefinition> resolve(String idOrAlias) {
+  @Contract(pure = true)
+  public static @NotNull Optional<ProfessionDefinition> resolve(@Nullable String idOrAlias) {
     if (idOrAlias == null || idOrAlias.isBlank()) {
       return Optional.empty();
     }
@@ -123,7 +134,8 @@ public final class ProfessionCatalog {
   }
 
   /** Returns whether canonical track. */
-  public static boolean isCanonicalTrack(String idOrAlias) {
+  @Contract(pure = true)
+  public static boolean isCanonicalTrack(@Nullable String idOrAlias) {
     return resolve(idOrAlias).isPresent();
   }
 }

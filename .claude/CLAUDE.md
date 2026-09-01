@@ -42,7 +42,8 @@ This codebase is for ModularJobs - an extensible job progression system plugin f
 ### api
 - Pure public contracts (no Paper dependency)
 - `ActionTypes.java` - Predefined action types
-- `Job.java`, `JobTask.java` - Core abstractions
+- `Job.java`, `JobNode.java`, `JobTask.java` - Complete tree and node contracts
+- `PlayerJobState.java` - Immutable per-player tree state
 - `Payable.java` - Reward abstraction
 - `Boost.java` - Boost system abstraction
 - `Bridge.java` - Plugin interface
@@ -51,12 +52,12 @@ This codebase is for ModularJobs - an extensible job progression system plugin f
 - Shared DTOs (editor payload, session contract types, …)
 
 ### paper
-- **Domain Layer**: Job/JobProgression/JobTask/Payable services with mappers
+- **Domain Layer**: Complete Job trees, JobNode/JobTask inheritance, PlayerJobState persistence
 - **Payment**: `BoostEngineImpl`, `TimedBoostDataService` - boost calculation
 - **Repository**: Data persistence with repository pattern
-  - `JobRepository`, `JobProgressionRepository`, `TimedBoostRepository`
+  - `MemoryJobRepositoryImpl`, `PlayerJobStateRepository`, `TimedBoostRepository`
   - `ConnectionSourceFactory`, `HikariConfigProvider` - DB config
-- **Service Layer**: `JobService`, `ProgressionService`
+- **Service Layer**: `JobService`, `PlayerJobStateService`
 - **Config**: Yaml configuration under plugin resources
 - **Serialization**: `BinaryInImpl`, `BinaryOutImpl`, Kryo codecs
 - **Commands**: Command framework with Paper/Brigadier

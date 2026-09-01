@@ -12,13 +12,16 @@ import net.kyori.adventure.key.Key;
 import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Stores and reads boost data on {@link ItemStack}s via the Bukkit persistent data container.
  *
  * <p>The PDC tag is a Kryo {@link DataBag} {@code BYTE_ARRAY}. Boost JSON lives in the bag as
  * formatted bytes ({@link #BOOST_PAYLOAD_FORMAT}) so later encodings can migrate. Condition graphs
- * stay {@link dev.mintychochip.databag.ConditionSerializer} bytes, not Kryo condition classes.
+ * stay {@link dev.mintychochip.databag.condition.ConditionSerializer} bytes, not Kryo condition
+ * classes.
  */
 public final class ItemBoostDataService {
 
@@ -34,7 +37,7 @@ public final class ItemBoostDataService {
   private final BoostDataCodec codec;
 
   /** Item boost data service. */
-  public ItemBoostDataService(BoostDataCodec codec) {
+  public ItemBoostDataService(@NotNull BoostDataCodec codec) {
     this.codec = codec;
   }
 
@@ -44,7 +47,7 @@ public final class ItemBoostDataService {
    * @param data boost data to attach
    * @param stack item to attach the data to
    */
-  public void addData(SerializableBoostData data, ItemStack stack) {
+  public void addData(@NotNull SerializableBoostData data, @NotNull ItemStack stack) {
     DataBag bag = DataBag.create().set(BoostPayloadHandler.INSTANCE, codec.write(data));
     PersistentBags.write(stack, ITEM_BOOST_DATA_KEY, bag);
   }
@@ -55,7 +58,7 @@ public final class ItemBoostDataService {
    * @param stack item to inspect
    * @return the decoded boost data, or empty if the item carries none
    */
-  public Optional<SerializableBoostData> getData(ItemStack stack) {
+  public @NotNull Optional<SerializableBoostData> getData(@NotNull ItemStack stack) {
     var pdc = stack.getPersistentDataContainer();
     if (!pdc.has(ITEM_BOOST_DATA_KEY, PersistentDataType.BYTE_ARRAY)) {
       return Optional.empty();
@@ -85,7 +88,7 @@ public final class ItemBoostDataService {
     return readRawJson(blob);
   }
 
-  private Optional<SerializableBoostData> readRawJson(byte[] blob) {
+  private @NotNull Optional<SerializableBoostData> readRawJson(@NotNull byte[] blob) {
     try {
       return Optional.of(codec.read(blob));
     } catch (IllegalArgumentException
@@ -95,7 +98,8 @@ public final class ItemBoostDataService {
     }
   }
 
-  private static boolean looksLikeJson(byte[] blob) {
+  @Contract(pure = true)
+  private static boolean looksLikeJson(@NotNull byte[] blob) {
     for (byte value : blob) {
       if (!Character.isWhitespace(value)) {
         return value == '{' || value == '[';
@@ -104,7 +108,7 @@ public final class ItemBoostDataService {
     return false;
   }
 
-  private Optional<SerializableBoostData> readBagPayload(DataBag bag) {
+  private @NotNull Optional<SerializableBoostData> readBagPayload(@NotNull DataBag bag) {
     Optional<byte[]> handled = bag.get(BoostPayloadHandler.INSTANCE);
     if (handled.isPresent()) {
       return Optional.of(codec.read(handled.get()));

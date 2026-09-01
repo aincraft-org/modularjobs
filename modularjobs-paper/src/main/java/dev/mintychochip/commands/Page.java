@@ -1,6 +1,7 @@
 package dev.mintychochip.commands;
 
 import java.util.List;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * One page of a paginated list (e.g. job leaderboard entries).
@@ -9,4 +10,4 @@ import java.util.List;
  * @param pageNumber 1-based page number (clamped to valid range)
  * @param size maximum entries per page
  */
-public record Page<T>(List<T> data, int pageNumber, int size) {}
+public record Page<T>(@NotNull List<T> data, int pageNumber, int size) {}

@@ -42,7 +42,7 @@ public final class SharedConnectionSources {
     return byIdentity.size();
   }
 
-  static String poolIdentity(@NotNull ConfigurationSection section) {
+  static @NotNull String poolIdentity(@NotNull ConfigurationSection section) {
     String jdbc = section.getString("jdbc-url", "");
     String user = section.getString("username", "");
     return (jdbc + "\0" + user).toLowerCase(Locale.ROOT);

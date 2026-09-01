@@ -1,8 +1,9 @@
 package dev.mintychochip.upgrade.wynncraft;
 
-import dev.mintychochip.upgrade.Position;
+import dev.mintychochip.upgrade.rendering.Position;
 import java.util.List;
 import java.util.Optional;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -25,7 +26,8 @@ public record LayoutItem(
     @Nullable String archetypeRef,
     @Nullable List<String> family) {
   /** Get the ability metadata if this is an ability node. */
-  public Optional<AbilityMeta> abilityMeta() {
+  @Contract(pure = true)
+  public @NotNull Optional<AbilityMeta> abilityMeta() {
     return meta instanceof AbilityMeta am ? Optional.of(am) : Optional.empty();
   }
 
@@ -36,7 +38,8 @@ public record LayoutItem(
    *     instead.
    */
   @Deprecated(since = "1.0", forRemoval = true)
-  public Optional<ConnectorMeta> connectorMeta() {
+  @Contract(pure = true)
+  public @NotNull Optional<ConnectorMeta> connectorMeta() {
     return meta instanceof ConnectorMeta cm ? Optional.of(cm) : Optional.empty();
   }
 }

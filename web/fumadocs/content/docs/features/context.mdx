@@ -4,8 +4,8 @@ description: How ModularJobs identifies action targets in task definitions.
 ---
 
 Task contexts identify the Minecraft object or state associated with an action.
-They are serialized as namespaced keys so YAML, JSON, CSV, and editor payloads
-can use the same task contract.
+They are serialized as namespaced keys in MySQL records and editor payloads so
+both use the same task contract.
 
 ## Examples
 
@@ -16,7 +16,10 @@ can use the same task contract.
 | Item material | `minecraft:diamond` |
 | World | `minecraft:the_nether` |
 | Biome | `minecraft:plains` |
+| Plugin-owned target | `myplugin:first_quest` |
 
-Use the action type and context keys accepted by the current Paper release when
-adding task records. Unknown keys are rejected or ignored according to the
-loader for that action type.
+Built-in actions use the action and context keys accepted by the current Paper
+release. A dependent plugin can register a custom action and report an arbitrary
+plugin-owned context key through `ActionService`; the reported key must exactly
+match the task record. See the [API contracts](/docs/develop/api#custom-actions)
+for the registration and reporting flow.

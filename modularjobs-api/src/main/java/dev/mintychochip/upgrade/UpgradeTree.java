@@ -1,5 +1,6 @@
 package dev.mintychochip.upgrade;
 
+import dev.mintychochip.upgrade.rendering.Position;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -10,6 +11,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.key.Keyed;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -18,15 +20,14 @@ import org.jetbrains.annotations.Nullable;
  * methods.
  */
 public final class UpgradeTree implements Keyed {
-
-  private final Key key;
-  private final String jobKey;
-  private final String description;
-  private final String rootNodeKey;
+  private final @NotNull Key key;
+  private final @NotNull String jobKey;
+  private final @Nullable String description;
+  private final @NotNull String rootNodeKey;
   private final int skillPointsPerLevel;
-  private final Map<String, UpgradeNode> nodes;
-  private final Map<String, PerkPolicy> perkPolicies;
-  private final Set<Position> paths;
+  private final @NotNull Map<String, UpgradeNode> nodes;
+  private final @NotNull Map<String, PerkPolicy> perkPolicies;
+  private final @NotNull Set<Position> paths;
 
   /** Upgrade tree. */
   public UpgradeTree(
@@ -78,26 +79,31 @@ public final class UpgradeTree implements Keyed {
   }
 
   @Override
+  @Contract(pure = true)
   public @NotNull Key key() {
     return key;
   }
 
   /** The job this upgrade tree belongs to. */
+  @Contract(pure = true)
   public @NotNull String jobKey() {
     return jobKey;
   }
 
   /** The description of this upgrade tree. */
+  @Contract(pure = true)
   public @Nullable String description() {
     return description;
   }
 
   /** The root node key where the tree starts. */
+  @Contract(pure = true)
   public @NotNull String rootNodeKey() {
     return rootNodeKey;
   }
 
   /** How many skill points are earned per level-up. */
+  @Contract(pure = true)
   public int skillPointsPerLevel() {
     return skillPointsPerLevel;
   }
@@ -106,6 +112,7 @@ public final class UpgradeTree implements Keyed {
    * Get all perk policies for this tree. Maps perkId -> policy for how multiple levels are applied.
    */
   @NotNull
+  @Contract(pure = true)
   public Map<String, PerkPolicy> perkPolicies() {
     return Collections.unmodifiableMap(perkPolicies);
   }
@@ -116,6 +123,7 @@ public final class UpgradeTree implements Keyed {
    * @return the policy, or MAX if not specified (default behavior)
    */
   @NotNull
+  @Contract(pure = true)
   public PerkPolicy getPerkPolicy(@NotNull String perkId) {
     return perkPolicies.getOrDefault(perkId, PerkPolicy.MAX);
   }
@@ -124,26 +132,31 @@ public final class UpgradeTree implements Keyed {
    * Get all path coordinates for this tree. These are the walkable connection points between nodes.
    */
   @NotNull
+  @Contract(pure = true)
   public Set<Position> paths() {
     return paths;
   }
 
   /** Get the root node of this tree. */
+  @Contract(pure = true)
   public @NotNull Optional<UpgradeNode> rootNode() {
     return Optional.ofNullable(nodes.get(rootNodeKey));
   }
 
   /** Get a node by its key (short key, not full namespaced). */
+  @Contract(pure = true)
   public @NotNull Optional<UpgradeNode> getNode(@NotNull String nodeKey) {
     return Optional.ofNullable(nodes.get(nodeKey));
   }
 
   /** Get all nodes in this tree. */
+  @Contract(pure = true)
   public @NotNull Collection<UpgradeNode> allNodes() {
     return Collections.unmodifiableCollection(nodes.values());
   }
 
   /** Get the children nodes of a given node. */
+  @Contract(pure = true)
   public @NotNull Collection<UpgradeNode> getChildren(@NotNull UpgradeNode node) {
     return node.children().stream()
         .map(nodes::get)
@@ -160,6 +173,7 @@ public final class UpgradeTree implements Keyed {
    *     prerequisite checking
    */
   @Deprecated
+  @Contract(pure = true)
   public @NotNull Set<UpgradeNode> getAvailableNodes(@NotNull Set<String> unlockedNodeKeys) {
     return getAvailableNodes(unlockedNodeKeys, null);
   }
@@ -172,6 +186,7 @@ public final class UpgradeTree implements Keyed {
    * @param playerData player's upgrade data (null = skip maxed prerequisite checks)
    * @return nodes that can be unlocked next
    */
+  @Contract(pure = true)
   public @NotNull Set<UpgradeNode> getAvailableNodes(
       @NotNull Set<String> unlockedNodeKeys, @Nullable PlayerUpgradeData playerData) {
     Set<UpgradeNode> available = new HashSet<>();
@@ -222,6 +237,7 @@ public final class UpgradeTree implements Keyed {
    *     prerequisite checking
    */
   @Deprecated
+  @Contract(pure = true)
   public boolean canUnlock(
       @NotNull String nodeKey, @NotNull Set<String> unlockedNodeKeys, int availablePoints) {
     return canUnlock(nodeKey, unlockedNodeKeys, availablePoints, null);
@@ -236,6 +252,7 @@ public final class UpgradeTree implements Keyed {
    * @param playerData player's upgrade data (null = skip maxed prerequisite checks)
    * @return true if the node can be unlocked
    */
+  @Contract(pure = true)
   public boolean canUnlock(
       @NotNull String nodeKey,
       @NotNull Set<String> unlockedNodeKeys,
@@ -276,7 +293,8 @@ public final class UpgradeTree implements Keyed {
                 .allMatch(prereqKey -> playerData.isMaxLevel(prereqKey)));
   }
 
-  private String getShortKey(UpgradeNode node) {
+  @Contract(pure = true)
+  private @NotNull String getShortKey(@NotNull UpgradeNode node) {
     String full = node.key().asString();
     int colonIndex = full.indexOf(':');
     return colonIndex >= 0 ? full.substring(colonIndex + 1) : full;

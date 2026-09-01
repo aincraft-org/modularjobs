@@ -2,7 +2,7 @@ package dev.mintychochip.payable;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import dev.mintychochip.JobProgressionView;
+import dev.mintychochip.PlayerJobState;
 import dev.mintychochip.container.ExperiencePayableHandler.ExperienceBarContext;
 import dev.mintychochip.container.ExperiencePayableHandler.ExperienceBarController;
 import dev.mintychochip.container.ExperiencePayableHandler.ExperienceBarFormatter;
@@ -25,6 +25,7 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
+import org.jetbrains.annotations.NotNull;
 
 /** XP boss bars rendered through the native Paper surface manager. */
 final class ExperienceBarControllerImpl implements ExperienceBarController, Listener {
@@ -37,23 +38,24 @@ final class ExperienceBarControllerImpl implements ExperienceBarController, List
   private final Plugin plugin;
   private final PaperSurfaces surfaces;
 
-  ExperienceBarControllerImpl(Plugin plugin, PaperSurfaces surfaces) {
+  ExperienceBarControllerImpl(@NotNull Plugin plugin, @NotNull PaperSurfaces surfaces) {
     this.plugin = plugin;
     this.surfaces = surfaces;
   }
 
   @Override
-  public void display(ExperienceBarContext context, ExperienceBarFormatter formatter) {
+  public void display(
+      @NotNull ExperienceBarContext context, @NotNull ExperienceBarFormatter formatter) {
     Player player = Bukkit.getPlayer(context.playerId());
     if (player == null) {
       return;
     }
-    JobProgressionView progression = context.progression();
-    PlayerJobCompositeKey compositeKey = PlayerJobCompositeKey.create(player, progression.job());
+    PlayerJobState state = context.jobState();
+    PlayerJobCompositeKey compositeKey = PlayerJobCompositeKey.create(player, state.job());
 
     BigDecimal merged = bufferedAmounts.merge(compositeKey, context.amount(), BigDecimal::add);
     ExperienceBarContext mergedContext =
-        new ExperienceBarContext(progression, context.playerId(), merged);
+        new ExperienceBarContext(state, context.playerId(), merged);
 
     BossBar scratch =
         formatScratch.get(
@@ -87,7 +89,7 @@ final class ExperienceBarControllerImpl implements ExperienceBarController, List
   }
 
   @EventHandler
-  void onPlayerQuit(PlayerQuitEvent event) {
+  void onPlayerQuit(@NotNull PlayerQuitEvent event) {
     UUID playerId = event.getPlayer().getUniqueId();
     surfaces.hideAllBossBars(playerId);
     formatScratch

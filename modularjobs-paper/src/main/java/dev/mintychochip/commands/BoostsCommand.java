@@ -2,7 +2,7 @@ package dev.mintychochip.commands;
 
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
-import dev.mintychochip.JobProgression;
+import dev.mintychochip.PlayerJobState;
 import dev.mintychochip.boost.AdditiveBoostImpl;
 import dev.mintychochip.boost.MultiplicativeBoostImpl;
 import dev.mintychochip.container.Boost;
@@ -30,6 +30,8 @@ import java.util.stream.Collectors;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * {@code /jobs boosts} command: displays the invoking player's active timed boosts, passive
@@ -44,13 +46,13 @@ public class BoostsCommand implements JobsCommand {
 
   /**
    * Creates the boosts command with the services that supply timed, item-passive, upgrade, and
-   * job-progression data.
+   * player-job-state data.
    */
   public BoostsCommand(
-      ItemBoostDataService itemBoostDataService,
-      TimedBoostDataService timedBoostDataService,
-      UpgradeBoostDataService upgradeBoostDataService,
-      JobService jobService) {
+      @NotNull ItemBoostDataService itemBoostDataService,
+      @NotNull TimedBoostDataService timedBoostDataService,
+      @NotNull UpgradeBoostDataService upgradeBoostDataService,
+      @NotNull JobService jobService) {
     this.itemBoostDataService = itemBoostDataService;
     this.timedBoostDataService = timedBoostDataService;
     this.upgradeBoostDataService = upgradeBoostDataService;
@@ -58,7 +60,7 @@ public class BoostsCommand implements JobsCommand {
   }
 
   @Override
-  public LiteralArgumentBuilder<CommandSourceStack> build() {
+  public @NotNull LiteralArgumentBuilder<CommandSourceStack> build() {
     return Commands.literal("boosts")
         .executes(
             context -> {
@@ -113,13 +115,13 @@ public class BoostsCommand implements JobsCommand {
               }
 
               // Upgrade Tree Boosts (now uses the same BoostSource API)
-              List<JobProgression> progressions = jobService.getProgressions(player.getUniqueId());
+              List<PlayerJobState> states = jobService.getPlayerJobStates(player.getUniqueId());
               boolean hasUpgradeBoosts = false;
 
-              for (JobProgression progression : progressions) {
+              for (PlayerJobState state : states) {
                 List<BoostSource> upgradeBoosts =
                     upgradeBoostDataService.getBoostSources(
-                        player.getUniqueId(), progression.job().key());
+                        player.getUniqueId(), state.job().key());
 
                 if (!upgradeBoosts.isEmpty()) {
                   if (!hasUpgradeBoosts) {
@@ -127,7 +129,7 @@ public class BoostsCommand implements JobsCommand {
                     hasUpgradeBoosts = true;
                   }
 
-                  String jobName = progression.job().key().value();
+                  String jobName = state.job().key().value();
                   for (BoostSource upgradeSource : upgradeBoosts) {
                     String boostEffects = formatBoostEffects(upgradeSource);
                     String desc =
@@ -167,7 +169,7 @@ public class BoostsCommand implements JobsCommand {
    * Formats the remaining lifetime of an active timed boost into a compact human-readable duration,
    * or {@code "Permanent"}/{@code "Expired"} when applicable.
    */
-  private String getTimeRemaining(ActiveBoostData boost) {
+  private @NotNull String getTimeRemaining(@NotNull ActiveBoostData boost) {
     if (boost.duration() == null) {
       return "Permanent";
     }
@@ -199,7 +201,7 @@ public class BoostsCommand implements JobsCommand {
    * @param player the player whose inventory is scanned
    * @return the distinct passive boosts with their originating slot
    */
-  private List<PassiveBoostInfo> getPassiveBoosts(Player player) {
+  private @NotNull List<PassiveBoostInfo> getPassiveBoosts(@NotNull Player player) {
     List<PassiveBoostInfo> passiveBoosts = new ArrayList<>();
     Set<String> seenBoostKeys = new HashSet<>();
     PlayerInventory inventory = player.getInventory();
@@ -234,10 +236,11 @@ public class BoostsCommand implements JobsCommand {
   }
 
   /** A passive boost source together with the inventory slot it is bound to. */
-  private record PassiveBoostInfo(BoostSource boostSource, int slot) {}
+  private record PassiveBoostInfo(@NotNull BoostSource boostSource, int slot) {}
 
   /** Renders the effects of a boost source as a comma-joined string for chat display. */
-  private String formatBoostEffects(BoostSource source) {
+  @Contract(pure = true)
+  private @NotNull String formatBoostEffects(@NotNull BoostSource source) {
     if (source instanceof RuledBoostSource ruledSource) {
       List<Rule> rules = ruledSource.rules();
       if (rules.isEmpty()) {
@@ -267,7 +270,8 @@ public class BoostsCommand implements JobsCommand {
    * Formats a single boost as its multiplicative ({@code x…}) or additive ({@code +…}) shorthand,
    * falling back to the simple class name for unknown boost types.
    */
-  private String formatBoost(Boost boost) {
+  @Contract(pure = true)
+  private @NotNull String formatBoost(@NotNull Boost boost) {
     if (boost instanceof MultiplicativeBoostImpl multi) {
       return "x" + multi.amount().stripTrailingZeros().toPlainString();
     } else if (boost instanceof AdditiveBoostImpl add) {

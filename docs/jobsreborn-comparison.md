@@ -46,7 +46,7 @@
 
 | JobsReborn feature | ModularJobs status |
 |---|---|
-| Vault economy | 🟡 uses **Mint** reflectively (intentional) + blackhole/fail fallback |
+| Vault economy | ✅ Vault fallback; typed Mint2 integration is preferred when both are installed |
 | Custom point economy (`/jobs points`, editpoints) | ❌ only `EXPERIENCE` + `ECONOMY` payables; "points" = upgrade skill points |
 | Money/Exp/Points boost via permission (`jobs.boost.*`) | ❌ boost sources are items/timed/upgrade-tree; no permission-based boost |
 | Money/Exp boost by wearing/using items | ✅ `ItemBoostDataService` + `BoostEngine.aggregateItemSources` |
@@ -107,7 +107,7 @@
 | MySQL | ✅ (MySQL 8 only — intentional; SQLite is a repo non-goal) |
 | PlaceholderAPI | ✅ expansion registered + full `modular` placeholder set (2026-08-18) |
 | McMMO | ✅ `McMMOBoostSourceImpl` |
-| Mint economy | ✅ (intentional Vault replacement) |
+| Mint2 economy | ✅ typed API integration; selected before Vault |
 | Bolt/LWC/Choco block protection | 🟡 Bolt adapter implemented; LWC/Choco soft-depends declared but no adapters |
 | MythicMobs | ❌ |
 | WorldGuard areas | ❌ |
@@ -131,7 +131,6 @@
 ## Intentional non-goals (not gaps)
 - SQLite / PostgreSQL / MariaDB storage — repo rule: **MySQL 8 only**
 - In-process DDL / auto schema creation — repo rule: **connect-only schema ownership**
-- Vault economy — replaced by **Mint** reflective adapter
 - Guice/DI frameworks — manual composition root
 
 ## Prioritized gap candidates

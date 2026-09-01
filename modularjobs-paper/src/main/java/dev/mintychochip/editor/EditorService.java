@@ -1,14 +1,14 @@
 package dev.mintychochip.editor;
 
 import dev.mintychochip.Job;
-import dev.mintychochip.JobTask;
+import dev.mintychochip.JobNode;
+import dev.mintychochip.JobNodeKey;
 import dev.mintychochip.common.editor.EditorMetadata;
 import dev.mintychochip.common.editor.EditorPayload;
 import dev.mintychochip.common.editor.JobData;
 import dev.mintychochip.common.editor.PayableData;
 import dev.mintychochip.common.editor.TaskData;
 import dev.mintychochip.container.ActionType;
-import dev.mintychochip.container.Payable;
 import dev.mintychochip.container.PayableType;
 import dev.mintychochip.domain.RelationalJobTaskRepositoryImpl;
 import dev.mintychochip.domain.model.JobTaskRecord;
@@ -31,7 +31,10 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
+import net.kyori.adventure.key.Key;
 import org.bukkit.Bukkit;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /** Editor service. */
@@ -45,11 +48,11 @@ public final class EditorService {
 
   /** Editor service. */
   public EditorService(
-      JobService jobService,
-      RelationalJobTaskRepositoryImpl jobTaskRepository,
-      RestSessionClient restSessionClient,
-      EditorSessionStore sessionStore,
-      EditorConfig config) {
+      @NotNull JobService jobService,
+      @NotNull RelationalJobTaskRepositoryImpl jobTaskRepository,
+      @NotNull RestSessionClient restSessionClient,
+      @NotNull EditorSessionStore sessionStore,
+      @NotNull EditorConfig config) {
     this.jobService = jobService;
     this.jobTaskRepository = jobTaskRepository;
     this.restSessionClient = restSessionClient;
@@ -57,23 +60,31 @@ public final class EditorService {
     this.config = config;
   }
 
-  private record ExportDraft(UUID playerId, EditorPayload payload) {}
+  private record ExportDraft(@NotNull UUID playerId, @NotNull EditorPayload payload) {}
 
   /** Created export. */
-  private record CreatedExport(UUID playerId, RestSessionClient.CreatedSession session) {}
+  private record CreatedExport(
+      @NotNull UUID playerId, @NotNull RestSessionClient.CreatedSession session) {}
 
   /** Export tasks. */
-  public CompletableFuture<ExportResult> exportTasks(@Nullable String jobKey, UUID playerId) {
+  public @NotNull CompletableFuture<ExportResult> exportTasks(
+      @Nullable String jobKey, @NotNull UUID playerId) {
     return CompletableFuture.supplyAsync(
             () -> {
               String sessionToken = UUID.randomUUID().toString();
 
-              List<Job> jobs =
-                  jobKey != null ? List.of(getJobOrThrow(jobKey)) : jobService.getJobs();
-
               Map<String, JobData> jobDataMap = new LinkedHashMap<>();
-              for (Job job : jobs) {
-                jobDataMap.put(job.key().toString(), buildJobData(job));
+              if (jobKey != null) {
+                Job job = getJobOrThrow(jobKey);
+                JobNode node = getNodeOrThrow(job, jobKey);
+                jobDataMap.put(node.nodeKey().asString(), buildJobData(node));
+              } else {
+                for (Job job : jobService.getJobs()) {
+                  job.nodes().values().stream()
+                      .sorted(java.util.Comparator.comparing(node -> node.nodeKey().asString()))
+                      .forEach(
+                          node -> jobDataMap.put(node.nodeKey().asString(), buildJobData(node)));
+                }
               }
 
               List<String> actionTypes = getRegisteredActionTypes();
@@ -120,7 +131,8 @@ public final class EditorService {
   }
 
   /** Import tasks. */
-  public CompletableFuture<ImportResult> importTasks(String sessionCode, UUID playerId) {
+  public @NotNull CompletableFuture<ImportResult> importTasks(
+      @NotNull String sessionCode, @NotNull UUID playerId) {
     return CompletableFuture.supplyAsync(
         () -> {
           List<String> errors = new ArrayList<>();
@@ -145,23 +157,26 @@ public final class EditorService {
             }
 
             for (Map.Entry<String, JobData> entry : payload.jobs().entrySet()) {
-              String jobKey = entry.getKey();
+              String requestedNodeKey = entry.getKey();
+              Job job = getJobOrThrow(requestedNodeKey);
+              JobNode node = getNodeOrThrow(job, requestedNodeKey);
+              String nodeKey = node.nodeKey().asString();
               JobData jobData = entry.getValue();
-              List<JobTaskRecord> existingTasks = jobTaskRepository.getAllRecords(jobKey);
+              List<JobTaskRecord> existingTasks = jobTaskRepository.getAllRecords(nodeKey);
               Set<String> incomingKeys = new HashSet<>();
 
               for (TaskData taskData : jobData.tasks()) {
-                String key = taskKey(jobKey, taskData.actionTypeKey(), taskData.contextKey());
+                String key = taskKey(nodeKey, taskData.actionTypeKey(), taskData.contextKey());
                 incomingKeys.add(key);
 
                 List<PayableRecord> payableRecords = new ArrayList<>();
                 for (PayableData pd : taskData.payables()) {
                   payableRecords.add(
-                      new PayableRecord(pd.type(), new BigDecimal(pd.amount()), null));
+                      new PayableRecord(pd.type(), new BigDecimal(pd.amount()), null, null));
                 }
                 JobTaskRecord record =
                     new JobTaskRecord(
-                        jobKey, taskData.actionTypeKey(), taskData.contextKey(), payableRecords);
+                        nodeKey, taskData.actionTypeKey(), taskData.contextKey(), payableRecords);
 
                 if (jobTaskRepository.save(record)) {
                   tasksImported++;
@@ -170,10 +185,10 @@ public final class EditorService {
 
               for (JobTaskRecord existing : existingTasks) {
                 String key =
-                    taskKey(existing.jobKey(), existing.actionTypeKey(), existing.contextKey());
+                    taskKey(existing.nodeKey(), existing.actionTypeKey(), existing.contextKey());
                 if (!incomingKeys.contains(key)
                     && jobTaskRepository.delete(
-                        existing.jobKey(), existing.actionTypeKey(), existing.contextKey())) {
+                        existing.nodeKey(), existing.actionTypeKey(), existing.contextKey())) {
                   tasksDeleted++;
                 }
               }
@@ -196,67 +211,62 @@ public final class EditorService {
         });
   }
 
-  static String editorUrl(String base, String apiBase, String code, String token) {
+  @Contract(pure = true)
+  static @NotNull String editorUrl(
+      @NotNull String base, @NotNull String apiBase, @NotNull String code, @NotNull String token) {
     String normalized = base.replaceFirst("/+$", "") + "/";
     String encodedApi = encode(apiBase);
     return normalized + "?api=" + encodedApi + "&code=" + encode(code) + "#token=" + encode(token);
   }
 
-  private static String encode(String value) {
+  @Contract(pure = true)
+  private static @NotNull String encode(@NotNull String value) {
     return URLEncoder.encode(value, StandardCharsets.UTF_8).replace("+", "%20");
   }
 
-  private String taskKey(String jobKey, String actionTypeKey, String contextKey) {
+  @Contract(pure = true)
+  private @NotNull String taskKey(
+      @NotNull String jobKey, @NotNull String actionTypeKey, @NotNull String contextKey) {
     return jobKey + "|" + actionTypeKey + "|" + contextKey;
   }
 
-  /** Builds JobData from a Job instance. */
-  private JobData buildJobData(Job job) {
-    Map<ActionType, List<JobTask>> tasksByAction = jobService.getAllTasks(job);
-    List<TaskData> tasks = new ArrayList<>();
-
-    for (Map.Entry<ActionType, List<JobTask>> entry : tasksByAction.entrySet()) {
-      for (JobTask task : entry.getValue()) {
-        TaskData taskData = buildTaskData(task);
-        tasks.add(taskData);
-      }
-    }
-
-    return JobData.create(job.getPlainName(), tasks);
+  /** Builds editor data from one node's direct task definitions. */
+  private @NotNull JobData buildJobData(@NotNull JobNode node) {
+    List<TaskData> tasks =
+        jobTaskRepository.getAllRecords(node.nodeKey().asString()).stream()
+            .map(this::buildTaskData)
+            .toList();
+    return JobData.create(node.getPlainName(), tasks);
   }
 
-  /** Builds TaskData from a JobTask instance. */
-  private TaskData buildTaskData(JobTask task) {
+  /** Builds editor task data without materializing inherited definitions on a child node. */
+  private @NotNull TaskData buildTaskData(@NotNull JobTaskRecord task) {
+    List<PayableRecord> payableRecords = task.payables() == null ? List.of() : task.payables();
     List<PayableData> payables =
-        task.payables().stream().map(this::buildPayableData).collect(Collectors.toList());
-
-    return TaskData.create(task.actionTypeKey().toString(), task.contextKey().toString(), payables);
-  }
-
-  /** Builds PayableData from a Payable instance. */
-  private PayableData buildPayableData(Payable payable) {
-    PayableType type = payable.type();
-    String amount = payable.amount().value().toString();
-    return PayableData.create(type.key().toString(), amount);
+        payableRecords.stream()
+            .map(
+                payable ->
+                    PayableData.create(payable.payableTypeKey(), payable.amount().toPlainString()))
+            .toList();
+    return TaskData.create(task.actionTypeKey(), task.contextKey(), payables);
   }
 
   /** Gets all registered action type keys. */
-  private List<String> getRegisteredActionTypes() {
+  private @NotNull List<String> getRegisteredActionTypes() {
     RegistryView<ActionType> registry =
         RegistryContainer.registryContainer().getRegistry(RegistryKeys.ACTION_TYPES);
     return registry.stream().map(type -> type.key().toString()).collect(Collectors.toList());
   }
 
   /** Gets all registered payable type keys. */
-  private List<String> getRegisteredPayableTypes() {
+  private @NotNull List<String> getRegisteredPayableTypes() {
     RegistryView<PayableType> registry =
         RegistryContainer.registryContainer().getRegistry(RegistryKeys.PAYABLE_TYPES);
     return registry.stream().map(type -> type.key().toString()).collect(Collectors.toList());
   }
 
   /** Gets the server name from Bukkit configuration. */
-  @Nullable
-  private String getServerName() {
+  private @Nullable String getServerName() {
     try {
       return Bukkit.getServer().getName();
     } catch (IllegalStateException e) {
@@ -264,13 +274,23 @@ public final class EditorService {
     }
   }
 
-  /** Gets a job by key or throws an exception. */
-  private Job getJobOrThrow(String jobKey) {
-    Job job = jobService.getJob(jobKey);
-    if (job == null) {
-      throw new IllegalArgumentException("Job not found: " + jobKey);
+  /** Gets a job tree by node or root key, or throws an exception. */
+  private @NotNull Job getJobOrThrow(@NotNull String jobKey) {
+    String fullKey = namespaced(jobKey);
+    return jobService.getJob(fullKey);
+  }
+
+  private static @NotNull JobNode getNodeOrThrow(@NotNull Job job, @NotNull String nodeKey) {
+    String fullKey = namespaced(nodeKey);
+    JobNode node = job.node(new JobNodeKey(Key.key(fullKey)));
+    if (node == null) {
+      throw new IllegalArgumentException("Job node not found: " + fullKey);
     }
-    return job;
+    return node;
+  }
+
+  private static @NotNull String namespaced(@NotNull String key) {
+    return key.contains(":") ? key : "modularjobs:" + key;
   }
 
   /** Exception thrown when editor operations fail. */
@@ -279,7 +299,7 @@ public final class EditorService {
     private static final long serialVersionUID = 1L;
 
     /** Editor exception. */
-    public EditorException(String message, Throwable cause) {
+    public EditorException(@NotNull String message, @NotNull Throwable cause) {
       super(message, cause);
     }
   }

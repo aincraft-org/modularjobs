@@ -36,7 +36,7 @@ public final class PlayerUpgradeRepository {
   private final ConnectionSource connectionSource;
 
   /** Player upgrade repository. */
-  public PlayerUpgradeRepository(ConnectionSource connectionSource) {
+  public PlayerUpgradeRepository(@NotNull ConnectionSource connectionSource) {
     this.connectionSource = connectionSource;
     // Schema is connect-only: node_levels must exist via sql/mysql.sql (ops apply).
   }
@@ -160,7 +160,8 @@ public final class PlayerUpgradeRepository {
    * follows prerequisite order: a major whose purchase required an earlier major replays after it,
    * mirroring the order purchases could actually occur.
    */
-  public static SkillTreeState hydrate(SkillTree tree, SkillTreeState persisted) {
+  public static @NotNull SkillTreeState hydrate(
+      @NotNull SkillTree tree, @NotNull SkillTreeState persisted) {
     // Clamp persisted levels to the tree's real max so a bad or edited row
     // (negative/oversized level) cannot poison purchase or spent-point math.
     // Unknown keys are passed through untouched: the legacy-migration adapter
@@ -213,8 +214,8 @@ public final class PlayerUpgradeRepository {
    * reachable through a prerequisite chain keep a stable relative order derived from the input map;
    * prerequisite cycles are tolerated by breaking them at the first repeated node.
    */
-  private static List<String> ownedInPrerequisiteOrder(
-      SkillTree tree, Map<String, Integer> levels) {
+  private static @NotNull List<String> ownedInPrerequisiteOrder(
+      @NotNull SkillTree tree, @NotNull Map<String, Integer> levels) {
     List<String> ordered = new ArrayList<>();
     Set<String> done = new HashSet<>();
     Set<String> visiting = new HashSet<>();
@@ -227,12 +228,12 @@ public final class PlayerUpgradeRepository {
   }
 
   private static void visitPrerequisites(
-      SkillTree tree,
-      Map<String, Integer> levels,
-      String nodeKey,
-      Set<String> done,
-      Set<String> visiting,
-      List<String> ordered) {
+      @NotNull SkillTree tree,
+      @NotNull Map<String, Integer> levels,
+      @NotNull String nodeKey,
+      @NotNull Set<String> done,
+      @NotNull Set<String> visiting,
+      @NotNull List<String> ordered) {
     if (done.contains(nodeKey)
         || visiting.contains(nodeKey)
         || levels.getOrDefault(nodeKey, 0) < 1) {
@@ -251,7 +252,7 @@ public final class PlayerUpgradeRepository {
     ordered.add(nodeKey);
   }
 
-  private Set<String> parseNodeSet(String str) {
+  private @NotNull Set<String> parseNodeSet(@Nullable String str) {
     if (str == null || str.isBlank()) {
       return new HashSet<>();
     }
@@ -261,14 +262,14 @@ public final class PlayerUpgradeRepository {
         .collect(Collectors.toCollection(HashSet::new));
   }
 
-  private String serializeNodeSet(Set<String> nodes) {
+  private @NotNull String serializeNodeSet(@Nullable Set<String> nodes) {
     if (nodes == null || nodes.isEmpty()) {
       return "";
     }
     return String.join(",", nodes);
   }
 
-  private Map<String, Integer> parseNodeLevels(String str) {
+  private @NotNull Map<String, Integer> parseNodeLevels(@Nullable String str) {
     // JSON object {"node": level}; empty -> empty map
     if (str == null || str.isBlank()) {
       return new HashMap<>();
@@ -282,7 +283,7 @@ public final class PlayerUpgradeRepository {
     return result;
   }
 
-  private String serializeNodeLevels(Map<String, Integer> nodeLevels) {
+  private @NotNull String serializeNodeLevels(@Nullable Map<String, Integer> nodeLevels) {
     if (nodeLevels == null || nodeLevels.isEmpty()) {
       return "";
     }

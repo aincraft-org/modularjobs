@@ -4,6 +4,7 @@ import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * {@link ConnectionSource} backed by a HikariCP {@link HikariDataSource}.
@@ -17,7 +18,7 @@ final class HikariSourceImpl implements ConnectionSource {
 
   private final DatabaseType type;
 
-  HikariSourceImpl(HikariConfig config, DatabaseType type) {
+  HikariSourceImpl(@NotNull HikariConfig config, @NotNull DatabaseType type) {
     this.source = new HikariDataSource(config);
     this.type = type;
   }
@@ -31,7 +32,7 @@ final class HikariSourceImpl implements ConnectionSource {
   }
 
   @Override
-  public DatabaseType getType() {
+  public @NotNull DatabaseType getType() {
     return type;
   }
 
@@ -41,7 +42,7 @@ final class HikariSourceImpl implements ConnectionSource {
   }
 
   @Override
-  public Connection getConnection() throws SQLException {
+  public @NotNull Connection getConnection() throws SQLException {
     return source.getConnection();
   }
 

@@ -9,27 +9,28 @@ icon: Server
 ModularJobs supports **MySQL 8 only** and **never runs DDL from a runtime
 process** — neither the Paper plugin nor the Rust REST API creates tables.
 
-- Source of truth: `paper/src/main/resources/sql/mysql.sql`
+- Source of truth: `modularjobs-paper/src/main/resources/sql/mysql.sql`
 - Apply: `./scripts/apply-mysql-schema.sh`
-- Verification: `SchemaPresence` on connect; checks `table-exists.sql` per
-  required table. Missing tables → hard error, no `CREATE`.
+- Verification: `SchemaPresence` checks required tables and migration-sensitive
+  columns on connect. Missing tables or `current_node_key` columns fail enable;
+  runtime never repairs the schema.
 
-Lab/integration tests may apply the SQL file explicitly; production paths stay
-connect-only. Do not reintroduce boot-time `CREATE TABLE` or other dialects.
+Lab/integration tests may apply SQL explicitly; production paths stay
+connect-only. Do not reintroduce boot-time DDL or other dialects.
 
 ## Repositories
 
 | Repository | Backing table(s) | Notes |
 | --- | --- | --- |
-| `JobRepository` | (config-backed) | Job catalog from `jobs.yml` |
-| `JobProgressionRepository` | `job_progression`, `archive_job_progression` | Level/XP; archive on leave |
-| `JobTaskRepository` | `job_tasks`, `job_task_payables`, `payable_records` | Applied via editor paths |
-| `RelationalTimedBoostRepository` | `time_boosts`, `time_boost_identity` | Timed boost persistence |
-| `UserUpgradeRepository` | `player_upgrades` | Skill points, unlocked nodes, node levels |
+| Configured job trees | (config-backed) | Flat `jobs.yml` nodes grouped into complete root-owned `Job` trees |
+| `PlayerJobStateRepository` | `job_progression`, `archive_job_progression` | Root tree key, active node key, tree-wide XP; archive on leave |
+| `RelationalJobTaskRepositoryImpl` | `job_tasks`, `job_task_payables`, `payable_records` | Direct node task definitions applied through editor paths |
+| `TimedBoostRepository` | `time_boosts`, `time_boost_identity` | Timed boost persistence |
+| `PlayerUpgradeRepository` | `player_upgrades` | Skill points, unlocked nodes, node levels |
 
 SQL lives in classpath resources under
-`paper/src/main/resources/sql/<table>/` (`.sql` per operation) — the
-repository pattern never inlines SQL strings.
+`modularjobs-paper/src/main/resources/sql/<table>/` (`.sql` per operation) —
+repositories do not inline their operation queries.
 
 ## Schema notes
 
@@ -39,6 +40,8 @@ repository pattern never inlines SQL strings.
   `updated_at`; the REST API is the session authority.
 - `player_upgrades` keeps `total_skill_points`, `unlocked_nodes` (legacy
   migration), and authoritative `node_levels`.
+- `job_progression.job_key` is the root tree key;
+  `current_node_key` is the active root/specialization node. XP is tree-wide.
 
 ## Connection pooling
 
@@ -46,21 +49,24 @@ HikariCP pools are keyed by `jdbc-url` + `username` — identical sections share
 one pool. `database.yml` sections: `payable`, `timed-boost`, `progression`,
 `upgrades`.
 
-## Task data ownership
+## Job and task ownership
 
-- `job_tasks.csv` seeds **only an empty** `job_tasks` table; startup skips
-  import when tasks exist.
-- Live task mutations go through the editor apply path or reviewed SQL — never
-  by editing the packaged CSV.
-- The `fisher` → `fisherman` job-key rename requires an operator-managed data
-  update before deploying the renamed catalog.
+- `jobs.yml` stays flat. Root sections own max level, leveling curve, and payout
+  curves; child sections declare `parent` and inherit those tree-wide rules.
+- A task row's `job_key` identifies its owning node. At runtime, tasks resolve
+  root-to-active-node; a descendant replaces the whole task with the same
+  action/context key while unrelated ancestor tasks remain.
+- The editor exports direct definitions per node. It does not materialize
+  inherited tasks into child rows.
+- The plugin does not seed task rows. An empty MySQL task table remains empty
+  until the editor/repository path or reviewed SQL writes definitions.
+- The `fisher` → `fisherman` rename still needs an operator-managed data update.
 
 ## Concurrency invariants
 
-- Multi-XP awards in one payment **reload progression per payable** so awards
-  accumulate.
-- Write-back flush failure **re-queues** with max-experience merge — no
-  older-XP clobber.
+- Multi-XP awards in one payment **reload player job state per payable** so
+  awards accumulate.
+- Write-back flush failure retains pending writes — no older-XP clobber.
 - Kill multi-damage pays each qualifying contributor above the cutoff.
 
 ## Test strategies

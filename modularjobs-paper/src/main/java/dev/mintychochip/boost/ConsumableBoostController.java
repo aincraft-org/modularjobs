@@ -10,6 +10,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerItemConsumeEvent;
 import org.bukkit.inventory.ItemStack;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Listener that turns consumed consumable items carrying {@link ConsumableBoostData} into active
@@ -30,14 +31,15 @@ public class ConsumableBoostController implements Listener {
    * @param timedBoostDataService service that records active timed boosts for a player
    */
   public ConsumableBoostController(
-      ItemBoostDataService boostDataService, TimedBoostDataService timedBoostDataService) {
+      @NotNull ItemBoostDataService boostDataService,
+      @NotNull TimedBoostDataService timedBoostDataService) {
     this.boostDataService = boostDataService;
     this.timedBoostDataService = timedBoostDataService;
   }
 
   /** Applies consumable boost data carried by the consumed item to the consuming player. */
   @EventHandler
-  public void onConsumeItem(final PlayerItemConsumeEvent event) {
+  public void onConsumeItem(final @NotNull PlayerItemConsumeEvent event) {
     ItemStack itemStack = event.getItem();
     Optional<SerializableBoostData> data = boostDataService.getData(itemStack);
     if (data.isEmpty()) {

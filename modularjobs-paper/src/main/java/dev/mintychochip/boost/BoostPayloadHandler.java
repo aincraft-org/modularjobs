@@ -2,6 +2,8 @@ package dev.mintychochip.boost;
 
 import dev.mintychochip.databag.DataHandler;
 import net.kyori.adventure.key.Key;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 
 /** DataBag codec for item boost JSON ({@code modularjobs:boost_data}, format 1). */
 public final class BoostPayloadHandler implements DataHandler<byte[]> {
@@ -13,22 +15,26 @@ public final class BoostPayloadHandler implements DataHandler<byte[]> {
   private BoostPayloadHandler() {}
 
   @Override
-  public Key key() {
+  @Contract(pure = true)
+  public @NotNull Key key() {
     return KEY;
   }
 
   @Override
+  @Contract(pure = true)
   public int format() {
     return FORMAT;
   }
 
   @Override
-  public byte[] encode(byte[] value) {
+  @Contract(pure = true)
+  public @NotNull byte[] encode(@NotNull byte[] value) {
     return value.clone();
   }
 
   @Override
-  public byte[] decode(byte[] bytes) {
+  @Contract(pure = true)
+  public @NotNull byte[] decode(@NotNull byte[] bytes) {
     return bytes.clone();
   }
 }

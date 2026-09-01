@@ -7,6 +7,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
+import org.jetbrains.annotations.NotNull;
 
 /** Shared helper for tests that need a live MySQL 8 instance. */
 public final class MysqlTestSupport {
@@ -18,17 +19,17 @@ public final class MysqlTestSupport {
   private MysqlTestSupport() {}
 
   /** Jdbc url. */
-  public static String jdbcUrl() {
+  public static @NotNull String jdbcUrl() {
     return envOr("MODULARJOBS_TEST_MYSQL_URL", DEFAULT_URL);
   }
 
   /** User. */
-  public static String user() {
+  public static @NotNull String user() {
     return envOr("MODULARJOBS_TEST_MYSQL_USER", DEFAULT_USER);
   }
 
   /** Password. */
-  public static String password() {
+  public static @NotNull String password() {
     return envOr("MODULARJOBS_TEST_MYSQL_PASSWORD", DEFAULT_PASSWORD);
   }
 
@@ -52,12 +53,12 @@ public final class MysqlTestSupport {
   }
 
   /** Open. */
-  public static Connection open() throws SQLException {
+  public static @NotNull Connection open() throws SQLException {
     return DriverManager.getConnection(jdbcUrl(), user(), password());
   }
 
   /** Apply shipped schema. */
-  public static void applyShippedSchema(Connection connection) throws SQLException {
+  public static void applyShippedSchema(@NotNull Connection connection) throws SQLException {
     for (String sql : DatabaseType.MYSQL.getSqlTables()) {
       try (Statement st = connection.createStatement()) {
         st.execute(sql);
@@ -65,7 +66,7 @@ public final class MysqlTestSupport {
     }
   }
 
-  private static String envOr(String key, String defaultValue) {
+  private static @NotNull String envOr(@NotNull String key, @NotNull String defaultValue) {
     String value = System.getenv(key);
     return value == null || value.isBlank() ? defaultValue : value;
   }

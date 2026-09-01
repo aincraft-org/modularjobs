@@ -21,7 +21,7 @@ public interface RegistryView<T> extends Iterable<T> {
    * @return an {@link Optional} containing the registered object, or empty if none is registered
    */
   @NotNull
-  Optional<T> get(Key key);
+  Optional<T> get(@NotNull Key key);
 
   /**
    * Returns the object registered under the given key.
@@ -31,7 +31,7 @@ public interface RegistryView<T> extends Iterable<T> {
    * @throws IllegalArgumentException if no object is registered under the key
    */
   @NotNull
-  T getOrThrow(Key key);
+  T getOrThrow(@NotNull Key key);
 
   /**
    * Tests whether an object is registered under the given key.
@@ -39,12 +39,13 @@ public interface RegistryView<T> extends Iterable<T> {
    * @param key the object key; must not be {@code null}
    * @return {@code true} if an object is registered, {@code false} otherwise
    */
-  boolean isRegistered(Key key);
+  boolean isRegistered(@NotNull Key key);
 
   /**
    * Returns a stream over the registered objects.
    *
    * @return a stream of the registered objects
    */
+  @NotNull
   Stream<T> stream();
 }

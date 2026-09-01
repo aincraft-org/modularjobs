@@ -15,16 +15,18 @@ import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
-import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.inventory.InventoryType.SlotType;
-import org.bukkit.inventory.ItemStack;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mockbukkit.mockbukkit.ServerMock;
 import org.mockbukkit.mockbukkit.entity.PlayerMock;
+
 class PaperUiHostTest {
   private static ServerMock server;
 
@@ -144,7 +146,12 @@ class PaperUiHostTest {
     host.open(
         player,
         new PaperUiHost.ScreenView(
-            "before", 1, Component.text("Before"), Map.of(0, new ItemStack(Material.BOOK)), Map.of(), ignored -> {}));
+            "before",
+            1,
+            Component.text("Before"),
+            Map.of(0, new ItemStack(Material.BOOK)),
+            Map.of(),
+            ignored -> {}));
     Inventory before = player.getOpenInventory().getTopInventory();
     Object holder = before.getHolder();
     ItemStack refreshed = new ItemStack(Material.DIAMOND);
@@ -154,7 +161,12 @@ class PaperUiHostTest {
     host.refresh(
         player,
         new PaperUiHost.ScreenView(
-            "after", 2, Component.text("After"), Map.of(5, refreshed), Map.of(5, action), ignored -> {}));
+            "after",
+            2,
+            Component.text("After"),
+            Map.of(5, refreshed),
+            Map.of(5, action),
+            ignored -> {}));
 
     Inventory after = player.getOpenInventory().getTopInventory();
     assertSame(holder, after.getHolder());
@@ -220,7 +232,12 @@ class PaperUiHostTest {
     host.open(
         player,
         new PaperUiHost.ScreenView(
-            "close", 1, Component.text("Close"), Map.of(), Map.of(), ignored -> calls.incrementAndGet()));
+            "close",
+            1,
+            Component.text("Close"),
+            Map.of(),
+            Map.of(),
+            ignored -> calls.incrementAndGet()));
 
     host.close(player);
     host.close(player);
@@ -236,7 +253,12 @@ class PaperUiHostTest {
     AtomicInteger calls = new AtomicInteger();
     PaperUiHost.ScreenView view =
         new PaperUiHost.ScreenView(
-            "close-all", 1, Component.text("Close all"), Map.of(), Map.of(), ignored -> calls.incrementAndGet());
+            "close-all",
+            1,
+            Component.text("Close all"),
+            Map.of(),
+            Map.of(),
+            ignored -> calls.incrementAndGet());
     host.open(first, view);
     host.open(second, view);
 
@@ -248,7 +270,8 @@ class PaperUiHostTest {
     assertEquals(2, calls.get());
   }
 
-  private static InventoryClickEvent click(org.bukkit.inventory.InventoryView view, int rawSlot) {
+  private static @NotNull InventoryClickEvent click(
+      @NotNull org.bukkit.inventory.InventoryView view, int rawSlot) {
     return new InventoryClickEvent(
         view, SlotType.CONTAINER, rawSlot, ClickType.LEFT, InventoryAction.PICKUP_ALL);
   }

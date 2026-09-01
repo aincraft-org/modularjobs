@@ -3,6 +3,7 @@ package dev.mintychochip.container.boost;
 import dev.mintychochip.Bridge;
 import dev.mintychochip.container.BoostContext;
 import dev.mintychochip.container.boost.factories.ConditionFactory;
+import org.jetbrains.annotations.NotNull;
 
 /** Predicate evaluated against a {@link BoostContext}. */
 @FunctionalInterface
@@ -14,13 +15,13 @@ public interface Condition {
    * @param context context to evaluate
    * @return {@code true} when the condition applies
    */
-  boolean applies(BoostContext context);
+  boolean applies(@NotNull BoostContext context);
 
   /**
    * Lazy factory access — must not run at class-init time (unit tests load {@link Condition}
    * without a live Bukkit server / Bridge).
    */
-  private static ConditionFactory factory() {
+  private static @NotNull ConditionFactory factory() {
     return Bridge.bridge().conditionFactory();
   }
 
@@ -29,7 +30,7 @@ public interface Condition {
    *
    * @param biomeKey biome id or namespaced key (e.g. {@code plains}, {@code minecraft:desert})
    */
-  static Condition biome(String biomeKey) {
+  static @NotNull Condition biome(@NotNull String biomeKey) {
     return factory().biome(biomeKey);
   }
 
@@ -39,23 +40,23 @@ public interface Condition {
    * @param worldName world name or namespaced key
    * @return a condition matching the world
    */
-  static Condition world(String worldName) {
+  static @NotNull Condition world(@NotNull String worldName) {
     return factory().world(worldName);
   }
 
   /** Player resource. */
-  static Condition playerResource(
-      PlayerResourceType type, double expected, RelationalOperator operator) {
+  static @NotNull Condition playerResource(
+      @NotNull PlayerResourceType type, double expected, @NotNull RelationalOperator operator) {
     return factory().playerResource(type, expected, operator);
   }
 
   /** Sneaking. */
-  static Condition sneaking(boolean state) {
+  static @NotNull Condition sneaking(boolean state) {
     return factory().sneaking(state);
   }
 
   /** Sprinting. */
-  static Condition sprinting(boolean state) {
+  static @NotNull Condition sprinting(boolean state) {
     return factory().sprinting(state);
   }
 
@@ -64,7 +65,7 @@ public interface Condition {
    *
    * @param materialKey liquid material name or key ({@code water}/{@code lava})
    */
-  static Condition liquid(String materialKey) {
+  static @NotNull Condition liquid(@NotNull String materialKey) {
     return factory().liquid(materialKey);
   }
 
@@ -74,7 +75,7 @@ public interface Condition {
    * @param potionEffectTypeKey effect id or namespaced key (e.g. {@code speed}, {@code
    *     minecraft:strength})
    */
-  static Condition potionType(String potionEffectTypeKey) {
+  static @NotNull Condition potionType(@NotNull String potionEffectTypeKey) {
     return factory().potionType(potionEffectTypeKey);
   }
 
@@ -83,36 +84,36 @@ public interface Condition {
    *
    * @param potionEffectTypeKey effect id or namespaced key
    */
-  static Condition potion(
-      String potionEffectTypeKey,
+  static @NotNull Condition potion(
+      @NotNull String potionEffectTypeKey,
       int expected,
-      PotionConditionType conditionType,
-      RelationalOperator operator) {
+      @NotNull PotionConditionType conditionType,
+      @NotNull RelationalOperator operator) {
     return factory().potion(potionEffectTypeKey, expected, conditionType, operator);
   }
 
   /** Weather. */
-  static Condition weather(WeatherState state) {
+  static @NotNull Condition weather(@NotNull WeatherState state) {
     return factory().weather(state);
   }
 
   /** And. */
-  default Condition and(Condition other) {
+  default @NotNull Condition and(@NotNull Condition other) {
     return compose(other, LogicalOperator.AND);
   }
 
   /** Or. */
-  default Condition or(Condition other) {
+  default @NotNull Condition or(@NotNull Condition other) {
     return compose(other, LogicalOperator.OR);
   }
 
   /** Negate. */
-  default Condition negate() {
+  default @NotNull Condition negate() {
     return factory().negate(this);
   }
 
   /** Compose. */
-  default Condition compose(Condition other, LogicalOperator operator) {
+  default @NotNull Condition compose(@NotNull Condition other, @NotNull LogicalOperator operator) {
     return factory().compose(this, other, operator);
   }
 }

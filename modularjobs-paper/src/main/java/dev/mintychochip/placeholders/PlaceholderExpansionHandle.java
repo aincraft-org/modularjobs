@@ -2,6 +2,7 @@ package dev.mintychochip.placeholders;
 
 import dev.mintychochip.service.JobService;
 import org.bukkit.Bukkit;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -22,7 +23,7 @@ public interface PlaceholderExpansionHandle {
    * ModularJobsPlaceholderExpansion} only inside this method so the class (and its PAPI superclass)
    * is not resolved when PAPI is missing.
    */
-  static @Nullable PlaceholderExpansionHandle tryCreate(JobService jobService) {
+  static @Nullable PlaceholderExpansionHandle tryCreate(@NotNull JobService jobService) {
     if (Bukkit.getPluginManager() == null
         || !Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
       return null;

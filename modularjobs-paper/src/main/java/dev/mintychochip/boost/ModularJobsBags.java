@@ -3,6 +3,8 @@ package dev.mintychochip.boost;
 import dev.mintychochip.databag.DataBag;
 import dev.mintychochip.databag.DataHandlers;
 import net.kyori.adventure.key.Key;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -23,7 +25,8 @@ public final class ModularJobsBags {
   }
 
   /** Extras. */
-  public static DataBag extras(@Nullable String jobKey, int jobLevel) {
+  @Contract(pure = true)
+  public static @NotNull DataBag extras(@Nullable String jobKey, int jobLevel) {
     DataBag bag = DataBag.create();
     if (jobKey == null || jobKey.isBlank()) {
       return bag;

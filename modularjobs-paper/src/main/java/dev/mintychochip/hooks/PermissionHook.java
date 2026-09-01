@@ -14,7 +14,7 @@ public final class PermissionHook {
   private final Logger logger;
 
   /** Permission hook. */
-  public PermissionHook(Plugin plugin) {
+  public PermissionHook(@NotNull Plugin plugin) {
     this.plugin = plugin;
     this.logger = plugin.getLogger();
   }
@@ -48,14 +48,14 @@ public final class PermissionHook {
     player.addAttachment(plugin).setPermission(permission, false);
   }
 
-  private static String perkPermission(String perkConfigName) {
+  private static @NotNull String perkPermission(@NotNull String perkConfigName) {
     if (perkConfigName.startsWith("storage.")) {
       return "aincraft-mining." + perkConfigName.toLowerCase(java.util.Locale.ROOT);
     }
     return "aincraft-mining.perk." + perkConfigName.toLowerCase(java.util.Locale.ROOT);
   }
 
-  private void grantViaLuckPerms(Player player, String permission) {
+  private void grantViaLuckPerms(@NotNull Player player, @NotNull String permission) {
     try {
       Class<?> lpClass = Class.forName("net.luckperms.api.LuckPermsProvider");
       Object lp = lpClass.getMethod("get").invoke(null);
@@ -79,7 +79,7 @@ public final class PermissionHook {
     }
   }
 
-  private void revokeViaLuckPerms(Player player, String permission) {
+  private void revokeViaLuckPerms(@NotNull Player player, @NotNull String permission) {
     try {
       Class<?> lpClass = Class.forName("net.luckperms.api.LuckPermsProvider");
       Object lp = lpClass.getMethod("get").invoke(null);

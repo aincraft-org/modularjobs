@@ -10,9 +10,11 @@ import dev.mintychochip.container.boost.RelationalOperator;
 import dev.mintychochip.container.boost.WeatherState;
 import dev.mintychochip.container.boost.factories.BoostFactory;
 import dev.mintychochip.container.boost.factories.ConditionFactory;
-import dev.mintychochip.databag.Conditions;
+import dev.mintychochip.databag.condition.Conditions;
 import java.math.BigDecimal;
 import net.kyori.adventure.key.Key;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Boost and condition factory. Conditions are snapshot-graph types from {@code
@@ -25,65 +27,76 @@ public final class BoostFactoryImpl implements BoostFactory, ConditionFactory {
   private BoostFactoryImpl() {}
 
   @Override
-  public Boost additive(BigDecimal amount) {
+  @Contract(pure = true)
+  public @NotNull Boost additive(@NotNull BigDecimal amount) {
     return new AdditiveBoostImpl(amount);
   }
 
   @Override
-  public Boost multiplicative(BigDecimal amount) {
+  @Contract(pure = true)
+  public @NotNull Boost multiplicative(@NotNull BigDecimal amount) {
     return new MultiplicativeBoostImpl(amount);
   }
 
   @Override
-  public Condition biome(String biomeKey) {
+  @Contract(pure = true)
+  public @NotNull Condition biome(@NotNull String biomeKey) {
     return SnapshotCondition.wrap(Conditions.biome(toKey(biomeKey)));
   }
 
   @Override
-  public Condition world(String worldName) {
+  @Contract(pure = true)
+  public @NotNull Condition world(@NotNull String worldName) {
     return SnapshotCondition.wrap(Conditions.world(worldName));
   }
 
   @Override
-  public Condition playerResource(
-      PlayerResourceType type, double expected, RelationalOperator operator) {
+  @Contract(pure = true)
+  public @NotNull Condition playerResource(
+      @NotNull PlayerResourceType type, double expected, @NotNull RelationalOperator operator) {
     return SnapshotCondition.wrap(
         Conditions.playerResource(mapResource(type), mapOperator(operator), expected));
   }
 
   @Override
-  public Condition sneaking(boolean state) {
+  @Contract(pure = true)
+  public @NotNull Condition sneaking(boolean state) {
     return SnapshotCondition.wrap(Conditions.sneaking(state));
   }
 
   @Override
-  public Condition sprinting(boolean state) {
+  @Contract(pure = true)
+  public @NotNull Condition sprinting(boolean state) {
     return SnapshotCondition.wrap(Conditions.sprinting(state));
   }
 
   @Override
-  public Condition negate(Condition condition) {
+  @Contract(pure = true)
+  public @NotNull Condition negate(@NotNull Condition condition) {
     return SnapshotCondition.wrap(Conditions.inverted(SnapshotCondition.unwrap(condition)));
   }
 
   @Override
-  public Condition liquid(String materialKey) {
+  @Contract(pure = true)
+  public @NotNull Condition liquid(@NotNull String materialKey) {
     return SnapshotCondition.wrap(Conditions.fluid(toKey(materialKey)));
   }
 
   @Override
-  public Condition potionType(String potionEffectTypeKey) {
+  @Contract(pure = true)
+  public @NotNull Condition potionType(@NotNull String potionEffectTypeKey) {
     return SnapshotCondition.wrap(Conditions.potionPresent(toKey(potionEffectTypeKey)));
   }
 
   @Override
-  public Condition potion(
-      String potionEffectTypeKey,
+  @Contract(pure = true)
+  public @NotNull Condition potion(
+      @NotNull String potionEffectTypeKey,
       int expected,
-      PotionConditionType conditionType,
-      RelationalOperator operator) {
+      @NotNull PotionConditionType conditionType,
+      @NotNull RelationalOperator operator) {
     Key key = toKey(potionEffectTypeKey);
-    dev.mintychochip.databag.RelationalOperator op = mapOperator(operator);
+    dev.mintychochip.databag.condition.RelationalOperator op = mapOperator(operator);
     return SnapshotCondition.wrap(
         switch (conditionType) {
           case AMPLIFIER -> Conditions.potionAmplifier(key, op, expected);
@@ -92,10 +105,12 @@ public final class BoostFactoryImpl implements BoostFactory, ConditionFactory {
   }
 
   @Override
-  public Condition compose(Condition a, Condition b, LogicalOperator operator) {
-    dev.mintychochip.databag.Condition left = SnapshotCondition.unwrap(a);
-    dev.mintychochip.databag.Condition right = SnapshotCondition.unwrap(b);
-    dev.mintychochip.databag.Condition composed =
+  @Contract(pure = true)
+  public @NotNull Condition compose(
+      @NotNull Condition a, @NotNull Condition b, @NotNull LogicalOperator operator) {
+    dev.mintychochip.databag.condition.Condition left = SnapshotCondition.unwrap(a);
+    dev.mintychochip.databag.condition.Condition right = SnapshotCondition.unwrap(b);
+    dev.mintychochip.databag.condition.Condition composed =
         switch (operator) {
           case AND -> Conditions.allOf(left, right);
           case OR -> Conditions.anyOf(left, right);
@@ -105,17 +120,20 @@ public final class BoostFactoryImpl implements BoostFactory, ConditionFactory {
   }
 
   @Override
-  public Condition weather(WeatherState state) {
+  @Contract(pure = true)
+  public @NotNull Condition weather(@NotNull WeatherState state) {
     return SnapshotCondition.wrap(Conditions.weather(mapWeather(state)));
   }
 
   @Override
-  public Condition job(String jobKey) {
+  @Contract(pure = true)
+  public @NotNull Condition job(@NotNull String jobKey) {
     return SnapshotCondition.wrap(Conditions.job(jobKey));
   }
 
   @Override
-  public Condition jobAny(String... jobKeys) {
+  @Contract(pure = true)
+  public @NotNull Condition jobAny(@NotNull String... jobKeys) {
     return SnapshotCondition.wrap(Conditions.jobAny(jobKeys));
   }
 
@@ -127,7 +145,8 @@ public final class BoostFactoryImpl implements BoostFactory, ConditionFactory {
    * @return the normalized {@link Key}
    * @throws IllegalArgumentException if {@code raw} is null or blank
    */
-  private static Key toKey(String raw) {
+  @Contract(value = "null -> fail", pure = true)
+  private static @NotNull Key toKey(@NotNull String raw) {
     if (raw == null || raw.isBlank()) {
       throw new IllegalArgumentException("key must be non-blank");
     }
@@ -138,32 +157,38 @@ public final class BoostFactoryImpl implements BoostFactory, ConditionFactory {
     return Key.key("minecraft", trimmed.toLowerCase());
   }
 
-  private static dev.mintychochip.databag.PlayerResourceType mapResource(PlayerResourceType type) {
+  @Contract(pure = true)
+  private static @NotNull dev.mintychochip.databag.condition.PlayerResourceType mapResource(
+      @NotNull PlayerResourceType type) {
     return switch (type) {
-      case HEALTH -> dev.mintychochip.databag.PlayerResourceType.HEALTH;
-      case HUNGER -> dev.mintychochip.databag.PlayerResourceType.HUNGER;
-      case EXPERIENCE -> dev.mintychochip.databag.PlayerResourceType.EXPERIENCE;
+      case HEALTH -> dev.mintychochip.databag.condition.PlayerResourceType.HEALTH;
+      case HUNGER -> dev.mintychochip.databag.condition.PlayerResourceType.HUNGER;
+      case EXPERIENCE -> dev.mintychochip.databag.condition.PlayerResourceType.EXPERIENCE;
     };
   }
 
-  private static dev.mintychochip.databag.RelationalOperator mapOperator(
-      RelationalOperator operator) {
+  @Contract(pure = true)
+  private static @NotNull dev.mintychochip.databag.condition.RelationalOperator mapOperator(
+      @NotNull RelationalOperator operator) {
     return switch (operator) {
-      case LESS_THAN -> dev.mintychochip.databag.RelationalOperator.LESS_THAN;
-      case LESS_THAN_OR_EQUAL -> dev.mintychochip.databag.RelationalOperator.LESS_THAN_OR_EQUAL;
-      case GREATER_THAN -> dev.mintychochip.databag.RelationalOperator.GREATER_THAN;
+      case LESS_THAN -> dev.mintychochip.databag.condition.RelationalOperator.LESS_THAN;
+      case LESS_THAN_OR_EQUAL ->
+          dev.mintychochip.databag.condition.RelationalOperator.LESS_THAN_OR_EQUAL;
+      case GREATER_THAN -> dev.mintychochip.databag.condition.RelationalOperator.GREATER_THAN;
       case GREATER_THAN_OR_EQUAL ->
-          dev.mintychochip.databag.RelationalOperator.GREATER_THAN_OR_EQUAL;
-      case EQUAL -> dev.mintychochip.databag.RelationalOperator.EQUAL;
-      case NOT_EQUAL -> dev.mintychochip.databag.RelationalOperator.NOT_EQUAL;
+          dev.mintychochip.databag.condition.RelationalOperator.GREATER_THAN_OR_EQUAL;
+      case EQUAL -> dev.mintychochip.databag.condition.RelationalOperator.EQUAL;
+      case NOT_EQUAL -> dev.mintychochip.databag.condition.RelationalOperator.NOT_EQUAL;
     };
   }
 
-  private static dev.mintychochip.databag.WeatherState mapWeather(WeatherState state) {
+  @Contract(pure = true)
+  private static @NotNull dev.mintychochip.databag.condition.WeatherState mapWeather(
+      @NotNull WeatherState state) {
     return switch (state) {
-      case THUNDERING -> dev.mintychochip.databag.WeatherState.THUNDERING;
-      case RAINING -> dev.mintychochip.databag.WeatherState.RAINING;
-      case CLEAR -> dev.mintychochip.databag.WeatherState.CLEAR;
+      case THUNDERING -> dev.mintychochip.databag.condition.WeatherState.THUNDERING;
+      case RAINING -> dev.mintychochip.databag.condition.WeatherState.RAINING;
+      case CLEAR -> dev.mintychochip.databag.condition.WeatherState.CLEAR;
     };
   }
 }

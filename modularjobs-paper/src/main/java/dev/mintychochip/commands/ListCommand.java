@@ -11,6 +11,7 @@ import java.util.List;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.HoverEvent;
 import org.bukkit.command.CommandSender;
+import org.jetbrains.annotations.NotNull;
 
 /** {@code /jobs list} command: prints the available jobs with hover/click details. */
 public class ListCommand implements JobsCommand {
@@ -18,12 +19,12 @@ public class ListCommand implements JobsCommand {
   private final JobService jobService;
 
   /** List command. */
-  public ListCommand(JobService jobService) {
+  public ListCommand(@NotNull JobService jobService) {
     this.jobService = jobService;
   }
 
   @Override
-  public LiteralArgumentBuilder<CommandSourceStack> build() {
+  public @NotNull LiteralArgumentBuilder<CommandSourceStack> build() {
     return Commands.literal("list")
         .requires(source -> source.getSender().hasPermission("jobs.command.list"))
         .executes(
@@ -33,7 +34,7 @@ public class ListCommand implements JobsCommand {
             });
   }
 
-  private void displayJobsList(CommandSender sender) {
+  private void displayJobsList(@NotNull CommandSender sender) {
     final List<Job> jobs = jobService.getJobs();
     Messages.send(sender, "");
     Messages.send(sender, "<neutral>━━━━━━━━━ <primary>Available Jobs <neutral>━━━━━━━━━");
@@ -55,7 +56,7 @@ public class ListCommand implements JobsCommand {
     Messages.send(sender, "");
   }
 
-  private void displayJobEntry(CommandSender sender, Job job) {
+  private void displayJobEntry(@NotNull CommandSender sender, @NotNull Job job) {
     Component jobName = job.displayName();
     Component description = job.description();
     int maxLevel = job.maxLevel();

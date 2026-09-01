@@ -1,6 +1,7 @@
 package dev.mintychochip.upgrade.wynncraft;
 
 import java.util.List;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -36,7 +37,8 @@ public record AbilityMeta(
     @Nullable Integer level)
     implements LayoutItemMeta {
   /** Combined description as a single string with newlines. */
-  public String combinedDescription() {
+  @Contract(pure = true)
+  public @NotNull String combinedDescription() {
     return String.join("\n", description);
   }
 

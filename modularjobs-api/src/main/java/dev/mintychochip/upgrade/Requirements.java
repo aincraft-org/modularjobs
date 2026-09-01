@@ -2,6 +2,7 @@ package dev.mintychochip.upgrade;
 
 import java.util.List;
 import net.kyori.adventure.key.Key;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 /** Concrete requirement variants: logical combinators and typed leaves. */
@@ -10,7 +11,8 @@ public final class Requirements {
   private Requirements() {}
 
   /** Returns an all-of requirement over the given children. */
-  public static Requirement allOf(@NotNull List<Requirement> requirements) {
+  @Contract(pure = true)
+  public static @NotNull Requirement allOf(@NotNull List<Requirement> requirements) {
     return new AllOf(requirements);
   }
 
@@ -22,6 +24,7 @@ public final class Requirements {
     }
 
     @Override
+    @Contract(pure = true)
     public boolean satisfied(@NotNull SkillTreeState state) {
       return requirements.stream().allMatch(r -> r.satisfied(state));
     }
@@ -35,6 +38,7 @@ public final class Requirements {
     }
 
     @Override
+    @Contract(pure = true)
     public boolean satisfied(@NotNull SkillTreeState state) {
       return requirements.stream().anyMatch(r -> r.satisfied(state));
     }
@@ -43,6 +47,7 @@ public final class Requirements {
   /** Inverts the inner requirement. */
   public record Not(@NotNull Requirement requirement) implements Requirement {
     @Override
+    @Contract(pure = true)
     public boolean satisfied(@NotNull SkillTreeState state) {
       return !requirement.satisfied(state);
     }
@@ -51,6 +56,7 @@ public final class Requirements {
   /** Player's current level in this job must be at least {@code minimumJobLevel}. */
   public record JobLevelRequirement(int minimumJobLevel) implements Requirement {
     @Override
+    @Contract(pure = true)
     public boolean satisfied(@NotNull SkillTreeState state) {
       return state.jobLevel() >= minimumJobLevel;
     }
@@ -59,6 +65,7 @@ public final class Requirements {
   /** The named node must be owned at least at {@code minimum} level. */
   public record NodeLevelRequirement(@NotNull String nodeKey, int minimum) implements Requirement {
     @Override
+    @Contract(pure = true)
     public boolean satisfied(@NotNull SkillTreeState state) {
       return state.levelOf(nodeKey) >= minimum;
     }
@@ -67,6 +74,7 @@ public final class Requirements {
   /** The named node must be unlocked (level >= 1). */
   public record NodeUnlockedRequirement(@NotNull String nodeKey) implements Requirement {
     @Override
+    @Contract(pure = true)
     public boolean satisfied(@NotNull SkillTreeState state) {
       return state.hasUnlocked(nodeKey);
     }
@@ -76,6 +84,7 @@ public final class Requirements {
   public record StateEqualsRequirement(@NotNull Key key, @NotNull String value)
       implements Requirement {
     @Override
+    @Contract(pure = true)
     public boolean satisfied(@NotNull SkillTreeState state) {
       return value.equals(state.state().get(key));
     }
@@ -84,6 +93,7 @@ public final class Requirements {
   /** The player must have the given Bukkit permission. */
   public record PermissionRequirement(@NotNull String key) implements Requirement {
     @Override
+    @Contract(pure = true)
     public boolean satisfied(@NotNull SkillTreeState state) {
       return state.hasPermission(key);
     }

@@ -1,7 +1,7 @@
 package dev.mintychochip.gui;
 
 import dev.mintychochip.Job;
-import dev.mintychochip.JobProgression;
+import dev.mintychochip.PlayerJobState;
 import dev.mintychochip.container.ActionType;
 import dev.mintychochip.container.Payable;
 import dev.mintychochip.service.JobService;
@@ -27,6 +27,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /** Job browse GUI backed by the native Paper inventory host. */
 public final class JobBrowseGui {
@@ -46,21 +48,23 @@ public final class JobBrowseGui {
 
   /** Builds the job-browse presenter over the shared native host. */
   public JobBrowseGui(
-      PaperUiHost host, JobService jobService, UpgradeService upgradeService, JoinGate joinGate) {
+      @NotNull PaperUiHost host,
+      @NotNull JobService jobService,
+      @NotNull UpgradeService upgradeService,
+      @NotNull JoinGate joinGate) {
     this.host = host;
     this.jobService = jobService;
     this.upgradeService = upgradeService;
     this.joinGate = joinGate;
   }
 
-
   /** Opens the browse menu for {@code player}. */
-  public void open(Player player) {
+  public void open(@NotNull Player player) {
     host.refresh(player, buildView(player));
   }
 
   /** Host action: join the job mapped to the clicked slot. */
-  public void onJoin(Player player, InventoryClickEvent event) {
+  public void onJoin(@NotNull Player player, @NotNull InventoryClickEvent event) {
     UUID audience = player.getUniqueId();
     Map<Integer, String> slotJobs = sessions.get(audience);
     if (slotJobs == null) {
@@ -81,14 +85,15 @@ public final class JobBrowseGui {
       return;
     }
     try {
-      if (jobService.getProgression(playerId, jobKey) != null) {
+      if (jobService.getPlayerJobState(playerId, jobKey) != null) {
         Messages.send(
             player, "<neutral>You are already in</neutral> <secondary>" + name + "</secondary>.");
         player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_BASS, 0.5f, 1.0f);
         return;
       }
       JoinGate.JoinResult result =
-          joinGate.canJoin(player, jobService.getJob(jobKey), jobService.getProgressions(audience));
+          joinGate.canJoin(
+              player, jobService.getJob(jobKey), jobService.getPlayerJobStates(audience));
       if (result != JoinGate.JoinResult.ALLOWED) {
         Messages.send(
             player,
@@ -133,14 +138,15 @@ public final class JobBrowseGui {
     }
   }
 
-  PaperUiHost.ScreenView buildView(Player player) {
+  @NotNull
+  PaperUiHost.ScreenView buildView(@NotNull Player player) {
     UUID audience = player.getUniqueId();
     Map<Integer, String> slotJobs = new HashMap<>();
 
     List<Job> allJobs = jobService.getJobs();
-    List<JobProgression> playerJobs = jobService.getProgressions(audience);
-    Map<String, JobProgression> playerJobMap = new HashMap<>();
-    for (JobProgression prog : playerJobs) {
+    List<PlayerJobState> playerJobs = jobService.getPlayerJobStates(audience);
+    Map<String, PlayerJobState> playerJobMap = new HashMap<>();
+    for (PlayerJobState prog : playerJobs) {
       playerJobMap.put(prog.job().key().asString(), prog);
     }
 
@@ -166,8 +172,8 @@ public final class JobBrowseGui {
         break;
       }
 
-      JobProgression progression = playerJobMap.get(job.key().asString());
-      items.put(slot, jobItem(job, progression));
+      PlayerJobState state = playerJobMap.get(job.key().asString());
+      items.put(slot, jobItem(job, state));
       actions.put(slot, this::onJoin);
       slotJobs.put(slot, job.key().asString());
       slot++;
@@ -188,7 +194,7 @@ public final class JobBrowseGui {
         ignored -> sessions.remove(audience));
   }
 
-  private ItemStack jobItem(Job job, JobProgression progression) {
+  private @NotNull ItemStack jobItem(@NotNull Job job, @Nullable PlayerJobState state) {
     List<String> lore = new ArrayList<>();
     lore.add(
         plain(
@@ -230,22 +236,21 @@ public final class JobBrowseGui {
                 .decoration(TextDecoration.ITALIC, false)));
     addExampleRewards(job, lore);
 
-    boolean isJoined = progression != null;
+    boolean isJoined = state != null;
     if (isJoined) {
       lore.add("");
       lore.add(
           plain(
               Component.text()
                   .append(Component.text("Your Level: ", NamedTextColor.GRAY))
-                  .append(Component.text(progression.level(), NamedTextColor.GREEN))
+                  .append(Component.text(state.level(), NamedTextColor.GREEN))
                   .decoration(TextDecoration.ITALIC, false)
                   .build()));
       lore.add(
           plain(
               Component.text()
                   .append(Component.text("Experience: ", NamedTextColor.GRAY))
-                  .append(
-                      Component.text(progression.experience().toPlainString(), NamedTextColor.AQUA))
+                  .append(Component.text(state.experience().toPlainString(), NamedTextColor.AQUA))
                   .decoration(TextDecoration.ITALIC, false)
                   .build()));
       lore.add("");
@@ -264,15 +269,16 @@ public final class JobBrowseGui {
     Material material = isJoined ? Material.EMERALD : Material.BOOK;
     NamedTextColor nameColor = isJoined ? NamedTextColor.GREEN : NamedTextColor.GOLD;
     String name =
-        PLAIN.serialize(job.displayName().color(nameColor).decoration(TextDecoration.ITALIC, false));
+        PLAIN.serialize(
+            job.displayName().color(nameColor).decoration(TextDecoration.ITALIC, false));
     return PaperItemFactory.of(material, name, lore);
   }
 
-  private int countActivePlayers(Job job) {
+  private int countActivePlayers(@NotNull Job job) {
     int count = 0;
     String jobKey = job.key().asString();
     for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
-      for (JobProgression prog : jobService.getProgressions(onlinePlayer.getUniqueId())) {
+      for (PlayerJobState prog : jobService.getPlayerJobStates(onlinePlayer.getUniqueId())) {
         if (prog.job().key().asString().equals(jobKey)) {
           count++;
           break;
@@ -282,8 +288,9 @@ public final class JobBrowseGui {
     return count;
   }
 
-  private void addExampleRewards(Job job, List<String> lore) {
-    Map<ActionType, List<dev.mintychochip.JobTask>> allTasks = jobService.getAllTasks(job);
+  private void addExampleRewards(@NotNull Job job, @NotNull List<String> lore) {
+    Map<ActionType, List<dev.mintychochip.JobTask>> allTasks =
+        jobService.getAllTasks(job, job.rootNode().nodeKey());
     int examplesAdded = 0;
     int maxExamples = 3;
 
@@ -329,7 +336,7 @@ public final class JobBrowseGui {
     }
   }
 
-  private static String formatPayableType(String payableType) {
+  private static @NotNull String formatPayableType(@NotNull String payableType) {
     if (payableType.contains(":")) {
       payableType = payableType.substring(payableType.indexOf(':') + 1);
     }
@@ -347,7 +354,7 @@ public final class JobBrowseGui {
     return result.toString();
   }
 
-  private static String plain(Component component) {
+  private static @NotNull String plain(@NotNull Component component) {
     return PLAIN.serialize(component);
   }
 }

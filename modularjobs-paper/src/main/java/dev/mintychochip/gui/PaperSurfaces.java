@@ -1,5 +1,6 @@
 package dev.mintychochip.gui;
 
+import com.google.common.base.Preconditions;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -16,29 +17,30 @@ import org.bukkit.scoreboard.DisplaySlot;
 import org.bukkit.scoreboard.Objective;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.ScoreboardManager;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /** Native Paper scoreboard and boss-bar surfaces shared by ModularJobs commands. */
 public final class PaperSurfaces {
   private static final int MAX_SCOREBOARD_LINES = 15;
   private static final String OBJECTIVE_NAME = "modularjobs";
-  private static final ChatColor[] ENTRY_SUFFIXES =
-      {
-        ChatColor.BLACK,
-        ChatColor.DARK_BLUE,
-        ChatColor.DARK_GREEN,
-        ChatColor.DARK_AQUA,
-        ChatColor.DARK_RED,
-        ChatColor.DARK_PURPLE,
-        ChatColor.GOLD,
-        ChatColor.GRAY,
-        ChatColor.DARK_GRAY,
-        ChatColor.BLUE,
-        ChatColor.GREEN,
-        ChatColor.AQUA,
-        ChatColor.RED,
-        ChatColor.LIGHT_PURPLE,
-        ChatColor.YELLOW
-      };
+  private static final ChatColor[] ENTRY_SUFFIXES = {
+    ChatColor.BLACK,
+    ChatColor.DARK_BLUE,
+    ChatColor.DARK_GREEN,
+    ChatColor.DARK_AQUA,
+    ChatColor.DARK_RED,
+    ChatColor.DARK_PURPLE,
+    ChatColor.GOLD,
+    ChatColor.GRAY,
+    ChatColor.DARK_GRAY,
+    ChatColor.BLUE,
+    ChatColor.GREEN,
+    ChatColor.AQUA,
+    ChatColor.RED,
+    ChatColor.LIGHT_PURPLE,
+    ChatColor.YELLOW
+  };
 
   private final ScoreboardManager scoreboardManager;
   private final Map<UUID, Scoreboard> previousScoreboards = new HashMap<>();
@@ -54,12 +56,10 @@ public final class PaperSurfaces {
   }
 
   /** Shows or replaces an audience's sidebar scoreboard. */
-  public void showScoreboard(UUID audience, String title, List<String> lines) {
+  public void showScoreboard(
+      @NotNull UUID audience, @NotNull String title, @Nullable List<String> lines) {
     Player player = Bukkit.getPlayer(require(audience, "audience"));
-    if (player == null) {
-      return;
-    }
-
+    Preconditions.checkNotNull(player, "player");
     if (!activeScoreboards.containsKey(audience)) {
       previousScoreboards.put(audience, player.getScoreboard());
     }
@@ -89,7 +89,7 @@ public final class PaperSurfaces {
   }
 
   /** Hides an audience's sidebar and restores its pre-surface scoreboard. */
-  public void hideScoreboard(UUID audience) {
+  public void hideScoreboard(@NotNull UUID audience) {
     UUID id = require(audience, "audience");
     Scoreboard active = activeScoreboards.remove(id);
     Scoreboard previous = previousScoreboards.remove(id);
@@ -105,7 +105,12 @@ public final class PaperSurfaces {
   }
 
   /** Shows or replaces one keyed native boss bar for an audience. */
-  public void showBossBar(UUID audience, String barKey, String title, double progress, Color color) {
+  public void showBossBar(
+      @NotNull UUID audience,
+      @NotNull String barKey,
+      @NotNull String title,
+      double progress,
+      @NotNull Color color) {
     UUID id = require(audience, "audience");
     String key = require(barKey, "barKey");
     Player player = Bukkit.getPlayer(id);
@@ -128,7 +133,7 @@ public final class PaperSurfaces {
   }
 
   /** Hides one keyed native boss bar. */
-  public void hideBossBar(UUID audience, String barKey) {
+  public void hideBossBar(@NotNull UUID audience, @NotNull String barKey) {
     UUID id = require(audience, "audience");
     String key = require(barKey, "barKey");
     org.bukkit.boss.BossBar bossBar = bossBars.remove(id + ":" + key);
@@ -142,7 +147,7 @@ public final class PaperSurfaces {
   }
 
   /** Hides all native boss bars tracked for an audience. */
-  public void hideAllBossBars(UUID audience) {
+  public void hideAllBossBars(@NotNull UUID audience) {
     UUID id = require(audience, "audience");
     List<String> keys = new ArrayList<>();
     String prefix = id + ":";
@@ -169,7 +174,7 @@ public final class PaperSurfaces {
     previousScoreboards.clear();
   }
 
-  private static String uniqueEntry(String line, int index) {
+  private static @NotNull String uniqueEntry(@NotNull String line, int index) {
     String suffix = ENTRY_SUFFIXES[index % ENTRY_SUFFIXES.length].toString();
     int maxLineLength = 40 - suffix.length();
     if (line.length() > maxLineLength) {
@@ -185,11 +190,11 @@ public final class PaperSurfaces {
     return Math.min(progress, 1.0);
   }
 
-  private static BarColor toBarColor(Color color) {
+  private static @NotNull BarColor toBarColor(@NotNull Color color) {
     return BarColor.valueOf(color.name());
   }
 
-  private static <T> T require(T value, String name) {
+  private static <T> @NotNull T require(@NotNull T value, @NotNull String name) {
     if (value == null) {
       throw new NullPointerException(name);
     }

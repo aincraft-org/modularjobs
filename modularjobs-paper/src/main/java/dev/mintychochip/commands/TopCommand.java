@@ -18,6 +18,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.plugin.Plugin;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * {@code /jobs top} command: displays paginated job leaderboards in chat or scoreboard mode.
@@ -37,10 +38,10 @@ public final class TopCommand implements JobsCommand {
 
   /** Top command. */
   public TopCommand(
-      JobService jobService,
-      JobTopPageProvider resultProvider,
-      Plugin plugin,
-      PaperSurfaces surfaces) {
+      @NotNull JobService jobService,
+      @NotNull JobTopPageProvider resultProvider,
+      @NotNull Plugin plugin,
+      @NotNull PaperSurfaces surfaces) {
     this.jobService = jobService;
     this.resultProvider = resultProvider;
     this.plugin = plugin;
@@ -48,7 +49,7 @@ public final class TopCommand implements JobsCommand {
   }
 
   @Override
-  public LiteralArgumentBuilder<CommandSourceStack> build() {
+  public @NotNull LiteralArgumentBuilder<CommandSourceStack> build() {
     return Commands.literal("top")
         .executes(
             context -> {
@@ -179,14 +180,14 @@ public final class TopCommand implements JobsCommand {
                     }));
   }
 
-  private void displayOverallLeaderboard(CommandSender sender) {
+  private void displayOverallLeaderboard(@NotNull CommandSender sender) {
     Messages.send(
         sender,
         "<error>Overall leaderboard is not yet implemented. Please specify a job:"
             + " <secondary>/jobs top <job>");
   }
 
-  private String getPlayerDisplayMode(Player player) {
+  private @NotNull String getPlayerDisplayMode(@NotNull Player player) {
     return player.hasMetadata("jobs_display_mode")
         ? player.getMetadata("jobs_display_mode").get(0).asString()
         : "chat";

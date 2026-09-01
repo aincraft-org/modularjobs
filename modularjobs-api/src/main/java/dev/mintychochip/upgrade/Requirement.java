@@ -1,5 +1,6 @@
 package dev.mintychochip.upgrade;
 
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 /** A declarative condition in a skill tree. */
@@ -14,5 +15,6 @@ public sealed interface Requirement
         Requirements.PermissionRequirement {
 
   /** Satisfied. */
+  @Contract(pure = true)
   boolean satisfied(@NotNull SkillTreeState state);
 }

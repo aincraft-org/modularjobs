@@ -12,23 +12,24 @@ import dev.mintychochip.container.boost.Condition;
 import dev.mintychochip.container.boost.RelationalOperator;
 import dev.mintychochip.container.boost.RuledBoostSource;
 import dev.mintychochip.container.boost.RuledBoostSource.Rule;
-import dev.mintychochip.databag.AllOfCondition;
-import dev.mintychochip.databag.AlwaysCondition;
-import dev.mintychochip.databag.AnyOfCondition;
-import dev.mintychochip.databag.BiomeCondition;
-import dev.mintychochip.databag.FluidCondition;
-import dev.mintychochip.databag.InvertedCondition;
-import dev.mintychochip.databag.JobCondition;
-import dev.mintychochip.databag.PlayerResourceCondition;
-import dev.mintychochip.databag.PotionAmplifierCondition;
-import dev.mintychochip.databag.PotionPresentCondition;
-import dev.mintychochip.databag.SneakingCondition;
-import dev.mintychochip.databag.SprintingCondition;
-import dev.mintychochip.databag.WeatherCondition;
-import dev.mintychochip.databag.WorldCondition;
+import dev.mintychochip.databag.condition.builtin.AllOfCondition;
+import dev.mintychochip.databag.condition.builtin.AlwaysCondition;
+import dev.mintychochip.databag.condition.builtin.AnyOfCondition;
+import dev.mintychochip.databag.condition.builtin.BiomeCondition;
+import dev.mintychochip.databag.condition.builtin.FluidCondition;
+import dev.mintychochip.databag.condition.builtin.InvertedCondition;
+import dev.mintychochip.databag.condition.builtin.JobCondition;
+import dev.mintychochip.databag.condition.builtin.PlayerResourceCondition;
+import dev.mintychochip.databag.condition.builtin.PotionAmplifierCondition;
+import dev.mintychochip.databag.condition.builtin.PotionPresentCondition;
+import dev.mintychochip.databag.condition.builtin.SneakingCondition;
+import dev.mintychochip.databag.condition.builtin.SprintingCondition;
+import dev.mintychochip.databag.condition.builtin.WeatherCondition;
+import dev.mintychochip.databag.condition.builtin.WorldCondition;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -41,7 +42,8 @@ public final class BoostSourceConfigSerializer {
   private BoostSourceConfigSerializer() {}
 
   /** Serializes a whole boost source into its JSON configuration model. */
-  public static BoostSourceConfig serialize(@NotNull BoostSource source) {
+  @Contract(pure = true)
+  public static @NotNull BoostSourceConfig serialize(@NotNull BoostSource source) {
     String key = source.key() != null ? source.key().asString() : "modularjobs:unknown";
     String description = source.description();
     List<RuleConfig> rules = new ArrayList<>();
@@ -56,7 +58,8 @@ public final class BoostSourceConfigSerializer {
   }
 
   /** Serialize only the rules list (for upgrade effect export). */
-  public static List<RuleConfig> serializeRules(@NotNull BoostSource source) {
+  @Contract(pure = true)
+  public static @NotNull List<RuleConfig> serializeRules(@NotNull BoostSource source) {
     if (source instanceof RuledBoostSource ruled) {
       List<RuleConfig> rules = new ArrayList<>();
       for (Rule rule : ruled.rules()) {
@@ -68,7 +71,8 @@ public final class BoostSourceConfigSerializer {
   }
 
   /** Serializes a single boost rule into its JSON configuration model. */
-  public static RuleConfig serializeRule(@NotNull Rule rule) {
+  @Contract(pure = true)
+  public static @NotNull RuleConfig serializeRule(@NotNull Rule rule) {
     return new RuleConfig(
         rule.priority(), serializeCondition(rule.condition()), serializeBoost(rule.boost()));
   }
@@ -78,7 +82,8 @@ public final class BoostSourceConfigSerializer {
    *
    * @throws IllegalArgumentException for unsupported boost implementations
    */
-  public static BoostConfig serializeBoost(@NotNull Boost boost) {
+  @Contract(pure = true)
+  public static @NotNull BoostConfig serializeBoost(@NotNull Boost boost) {
     return switch (boost) {
       case MultiplicativeBoostImpl mult ->
           new BoostConfig("multiplicative", mult.amount().doubleValue());
@@ -94,7 +99,8 @@ public final class BoostSourceConfigSerializer {
    *
    * @throws IllegalArgumentException for unsupported condition implementations
    */
-  public static ConditionConfig serializeCondition(@NotNull Condition condition) {
+  @Contract(pure = true)
+  public static @NotNull ConditionConfig serializeCondition(@NotNull Condition condition) {
     if (!(condition instanceof SnapshotCondition snapshot)) {
       throw new IllegalArgumentException(
           "Cannot serialize condition type: " + condition.getClass().getName());
@@ -102,7 +108,9 @@ public final class BoostSourceConfigSerializer {
     return serializeDataBag(snapshot.delegate());
   }
 
-  private static ConditionConfig serializeDataBag(dev.mintychochip.databag.Condition condition) {
+  @Contract(pure = true)
+  private static @NotNull ConditionConfig serializeDataBag(
+      @NotNull dev.mintychochip.databag.condition.Condition condition) {
     return switch (condition) {
       case AlwaysCondition ignored -> always();
       case AllOfCondition all -> {
@@ -215,19 +223,22 @@ public final class BoostSourceConfigSerializer {
     };
   }
 
-  private static String preferredWorldName(String worldName) {
+  @Contract(pure = true)
+  private static @NotNull String preferredWorldName(@NotNull String worldName) {
     if (worldName.startsWith("minecraft:")) {
       return worldName.substring("minecraft:".length());
     }
     return worldName;
   }
 
-  private static String stripMinecraft(String key) {
+  @Contract(pure = true)
+  private static @NotNull String stripMinecraft(@NotNull String key) {
     return key.startsWith("minecraft:") ? key.substring("minecraft:".length()) : key;
   }
 
-  private static RelationalOperator mapOperator(
-      dev.mintychochip.databag.RelationalOperator operator) {
+  @Contract(pure = true)
+  private static @NotNull RelationalOperator mapOperator(
+      @NotNull dev.mintychochip.databag.condition.RelationalOperator operator) {
     return switch (operator) {
       case LESS_THAN -> RelationalOperator.LESS_THAN;
       case LESS_THAN_OR_EQUAL -> RelationalOperator.LESS_THAN_OR_EQUAL;
@@ -238,17 +249,20 @@ public final class BoostSourceConfigSerializer {
     };
   }
 
-  private static ConditionConfig always() {
+  @Contract(pure = true)
+  private static @NotNull ConditionConfig always() {
     return new ConditionConfig(
         "always", null, null, null, null, null, null, null, null, null, null, null);
   }
 
-  private static ConditionConfig simple(String type, @Nullable Object value) {
+  @Contract(pure = true)
+  private static @NotNull ConditionConfig simple(@NotNull String type, @Nullable Object value) {
     return new ConditionConfig(
         type, null, value, null, null, null, null, null, null, null, null, null);
   }
 
-  private static String operatorName(RelationalOperator operator) {
+  @Contract(pure = true)
+  private static @NotNull String operatorName(@NotNull RelationalOperator operator) {
     return switch (operator) {
       case LESS_THAN -> "less_than";
       case LESS_THAN_OR_EQUAL -> "less_than_or_equal";
@@ -259,7 +273,8 @@ public final class BoostSourceConfigSerializer {
     };
   }
 
-  private static String stripJobNamespace(String jobKey) {
+  @Contract(pure = true)
+  private static @NotNull String stripJobNamespace(@NotNull String jobKey) {
     if (jobKey.startsWith("modularjobs:")) {
       return jobKey.substring("modularjobs:".length());
     }

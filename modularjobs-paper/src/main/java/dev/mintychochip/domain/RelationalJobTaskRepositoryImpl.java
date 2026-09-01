@@ -17,9 +17,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
- * SQL-backed repository for job task records, keyed by the tuple {@code (jobKey, actionTypeKey,
+ * SQL-backed repository for job task records, keyed by the tuple {@code (nodeKey, actionTypeKey,
  * contextKey)}. Reads are serviced through an LRU-style Caffeine cache (10-minute TTL, 10k entry
  * cap) that is invalidated on deletion and refreshed on successful saves; writes run in
  * transactions against the shared {@link ConnectionSource}.
@@ -42,7 +45,7 @@ public final class RelationalJobTaskRepositoryImpl {
 
   private final ConnectionSource connectionSource;
 
-  /** Read-through cache keyed by (jobKey, actionTypeKey, contextKey). */
+  /** Read-through cache keyed by (nodeKey, actionTypeKey, contextKey). */
   private final Cache<String, JobTaskRecord> readCache =
       Caffeine.newBuilder()
           .expireAfterWrite(CACHE_TIME_TO_LIVE)
@@ -54,40 +57,46 @@ public final class RelationalJobTaskRepositoryImpl {
    *
    * @param connectionSource the source of database connections for all operations
    */
-  public RelationalJobTaskRepositoryImpl(ConnectionSource connectionSource) {
+  public RelationalJobTaskRepositoryImpl(@NotNull ConnectionSource connectionSource) {
     this.connectionSource = connectionSource;
   }
 
   /**
-   * Loads the task record for the given key tuple, consulting the cache first and populating it on
-   * a cache miss. An absent task row yields a record with no payables.
+   * Loads one task owned by a job node.
    *
-   * @param jobKey the job key
-   * @param actionTypeKey the action type key
-   * @param contextKey the context key
-   * @return the matching task record (never {@code null})
+   * @return the matching task, or {@code null} when this node does not define the key
    */
-  public JobTaskRecord load(String jobKey, String actionTypeKey, String contextKey) {
-    String cacheKey = jobKey + actionTypeKey + contextKey;
+  public @Nullable JobTaskRecord load(
+      @NotNull String nodeKey, @NotNull String actionTypeKey, @NotNull String contextKey) {
+    String cacheKey = createCacheKey(nodeKey, actionTypeKey, contextKey);
     JobTaskRecord taskRecord = readCache.getIfPresent(cacheKey);
     if (taskRecord != null) {
       return taskRecord;
     }
     try (Connection connection = connectionSource.getConnection();
         PreparedStatement ps = connection.prepareStatement(SELECT_PAYABLES)) {
-      ps.setString(1, jobKey);
+      ps.setString(1, nodeKey);
       ps.setString(2, actionTypeKey);
       ps.setString(3, contextKey);
       try (ResultSet rs = ps.executeQuery()) {
         List<PayableRecord> records = new ArrayList<>();
+        boolean taskFound = false;
         while (rs.next()) {
+          taskFound = true;
           String payableTypeKey = rs.getString("payable_type_key");
-          BigDecimal amount = rs.getBigDecimal("amount");
-          String currency = rs.getString("currency_identifier");
-          PayableRecord record = new PayableRecord(payableTypeKey, amount, currency);
-          records.add(record);
+          if (payableTypeKey != null) {
+            BigDecimal amount = rs.getBigDecimal("amount");
+            String currencyIdentifier = rs.getString("currency_identifier");
+            String currencySymbol = rs.getString("currency_symbol");
+            PayableRecord record =
+                new PayableRecord(payableTypeKey, amount, currencyIdentifier, currencySymbol);
+            records.add(record);
+          }
         }
-        taskRecord = new JobTaskRecord(jobKey, actionTypeKey, contextKey, records);
+        if (!taskFound) {
+          return null;
+        }
+        taskRecord = new JobTaskRecord(nodeKey, actionTypeKey, contextKey, records);
         readCache.put(cacheKey, taskRecord);
         return taskRecord;
       }
@@ -104,15 +113,15 @@ public final class RelationalJobTaskRepositoryImpl {
    * @param record the record to store
    * @return {@code true} if the record was persisted
    */
-  public boolean save(JobTaskRecord record) {
-    String cacheKey = createCacheKey(record.jobKey(), record.actionTypeKey(), record.contextKey());
+  public boolean save(@NotNull JobTaskRecord record) {
+    String cacheKey = createCacheKey(record.nodeKey(), record.actionTypeKey(), record.contextKey());
     try (Connection connection = connectionSource.getConnection()) {
       connection.setAutoCommit(false);
       try {
         // Check if task exists
         Integer taskId = null;
         try (PreparedStatement ps = connection.prepareStatement(SELECT_TASK_ID)) {
-          ps.setString(1, record.jobKey());
+          ps.setString(1, record.nodeKey());
           ps.setString(2, record.actionTypeKey());
           ps.setString(3, record.contextKey());
           try (ResultSet rs = ps.executeQuery()) {
@@ -126,7 +135,7 @@ public final class RelationalJobTaskRepositoryImpl {
           // Insert new task
           try (PreparedStatement ps =
               connection.prepareStatement(INSERT_TASK, PreparedStatement.RETURN_GENERATED_KEYS)) {
-            ps.setString(1, record.jobKey());
+            ps.setString(1, record.nodeKey());
             ps.setString(2, record.actionTypeKey());
             ps.setString(3, record.contextKey());
             ps.executeUpdate();
@@ -152,6 +161,7 @@ public final class RelationalJobTaskRepositoryImpl {
               ps.setString(2, payable.payableTypeKey());
               ps.setBigDecimal(3, payable.amount());
               ps.setString(4, payable.currencyIdentifier());
+              ps.setString(5, payable.currencySymbol());
               ps.addBatch();
             }
             ps.executeBatch();
@@ -175,20 +185,21 @@ public final class RelationalJobTaskRepositoryImpl {
    * Deletes the task and its payables (children first to satisfy the foreign key) in a transaction,
    * invalidating the cache entry.
    *
-   * @param jobKey the job key
+   * @param nodeKey the job key
    * @param actionTypeKey the action type key
    * @param contextKey the context key
    * @return {@code true} if a task row was deleted, {@code false} if none matched
    */
-  public boolean delete(String jobKey, String actionTypeKey, String contextKey) {
-    String cacheKey = createCacheKey(jobKey, actionTypeKey, contextKey);
+  public boolean delete(
+      @NotNull String nodeKey, @NotNull String actionTypeKey, @NotNull String contextKey) {
+    String cacheKey = createCacheKey(nodeKey, actionTypeKey, contextKey);
     try (Connection connection = connectionSource.getConnection()) {
       connection.setAutoCommit(false);
       try {
         // Get task_id first
         Integer taskId = null;
         try (PreparedStatement ps = connection.prepareStatement(SELECT_TASK_ID)) {
-          ps.setString(1, jobKey);
+          ps.setString(1, nodeKey);
           ps.setString(2, actionTypeKey);
           ps.setString(3, contextKey);
           try (ResultSet rs = ps.executeQuery()) {
@@ -231,28 +242,30 @@ public final class RelationalJobTaskRepositoryImpl {
    * Loads all task records for a job, grouped by action type key (map order follows action type
    * ordering).
    *
-   * @param jobKey the job key to match
+   * @param nodeKey the job key to match
    * @return a map of action type key to its task records
    */
-  public Map<String, List<JobTaskRecord>> getRecords(String jobKey) {
+  public @NotNull Map<String, List<JobTaskRecord>> getRecords(@NotNull String nodeKey) {
     Map<String, Map<Integer, TaskRecordAccumulator>> actionTypeTaskMap = new LinkedHashMap<>();
     try (Connection connection = connectionSource.getConnection();
         PreparedStatement ps = connection.prepareStatement(SELECT_RECORDS_MAP)) {
-      ps.setString(1, jobKey);
+      ps.setString(1, nodeKey);
       try (ResultSet rs = ps.executeQuery()) {
         while (rs.next()) {
           int taskId = rs.getInt("task_id");
           String actionTypeKey = rs.getString("action_type_key");
           String payableTypeKey = rs.getString("payable_type_key");
           BigDecimal amount = rs.getBigDecimal("amount");
-          String currency = rs.getString("currency_identifier");
+          String currencyIdentifier = rs.getString("currency_identifier");
+          String currencySymbol = rs.getString("currency_symbol");
           String contextKey = rs.getString("context_key");
           Map<Integer, TaskRecordAccumulator> taskMap =
               actionTypeTaskMap.computeIfAbsent(actionTypeKey, ignored -> new LinkedHashMap<>());
           TaskRecordAccumulator accumulator =
               taskMap.computeIfAbsent(taskId, ignored -> new TaskRecordAccumulator(contextKey));
           if (payableTypeKey != null) {
-            accumulator.payables.add(new PayableRecord(payableTypeKey, amount, currency));
+            accumulator.payables.add(
+                new PayableRecord(payableTypeKey, amount, currencyIdentifier, currencySymbol));
           }
         }
       }
@@ -269,7 +282,7 @@ public final class RelationalJobTaskRepositoryImpl {
               .map(
                   a ->
                       new JobTaskRecord(
-                          jobKey, actionTypeKey, a.contextKey, List.copyOf(a.payables)))
+                          nodeKey, actionTypeKey, a.contextKey, List.copyOf(a.payables)))
               .toList();
       records.put(actionTypeKey, taskRecords);
     }
@@ -279,21 +292,24 @@ public final class RelationalJobTaskRepositoryImpl {
   /**
    * Loads all task records for a single action type of a job.
    *
-   * @param jobKey the job key
+   * @param nodeKey the job key
    * @param actionTypeKey the action type key
    * @return the matching task records
    */
-  public List<JobTaskRecord> getRecords(String jobKey, String actionTypeKey) {
+  public @NotNull List<JobTaskRecord> getRecords(
+      @NotNull String nodeKey, @NotNull String actionTypeKey) {
     List<JobTaskRecord> records = new ArrayList<>();
     try (Connection connection = connectionSource.getConnection();
         PreparedStatement ps = connection.prepareStatement(SELECT_CONTEXT_KEYS)) {
-      ps.setString(1, jobKey);
+      ps.setString(1, nodeKey);
       ps.setString(2, actionTypeKey);
       try (ResultSet rs = ps.executeQuery()) {
         while (rs.next()) {
           String contextKey = rs.getString("context_key");
-          JobTaskRecord record = load(jobKey, actionTypeKey, contextKey);
-          records.add(record);
+          JobTaskRecord record = load(nodeKey, actionTypeKey, contextKey);
+          if (record != null) {
+            records.add(record);
+          }
         }
       }
       return records;
@@ -306,11 +322,11 @@ public final class RelationalJobTaskRepositoryImpl {
   /**
    * Loads every task record for a job across all action types.
    *
-   * @param jobKey the job key to match
+   * @param nodeKey the job key to match
    * @return all task records for the job
    */
-  public List<JobTaskRecord> getAllRecords(String jobKey) {
-    Map<String, List<JobTaskRecord>> grouped = getRecords(jobKey);
+  public @NotNull List<JobTaskRecord> getAllRecords(@NotNull String nodeKey) {
+    Map<String, List<JobTaskRecord>> grouped = getRecords(nodeKey);
     List<JobTaskRecord> all = new ArrayList<>();
     for (List<JobTaskRecord> records : grouped.values()) {
       all.addAll(records);
@@ -324,13 +340,15 @@ public final class RelationalJobTaskRepositoryImpl {
     private final String contextKey;
     private final List<PayableRecord> payables = new ArrayList<>();
 
-    private TaskRecordAccumulator(String contextKey) {
+    private TaskRecordAccumulator(@NotNull String contextKey) {
       this.contextKey = contextKey;
     }
   }
 
   /** Builds the cache key for a task's key tuple. */
-  private static String createCacheKey(String jobKey, String actionTypeKey, String contextKey) {
-    return jobKey + actionTypeKey + contextKey;
+  @Contract(pure = true)
+  private static @NotNull String createCacheKey(
+      @NotNull String nodeKey, @NotNull String actionTypeKey, @NotNull String contextKey) {
+    return nodeKey + '\0' + actionTypeKey + '\0' + contextKey;
   }
 }

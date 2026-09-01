@@ -7,6 +7,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityTransformEvent;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Responsible for tracking entities spawned or transformed by spawner-related mechanics (e.g.,
@@ -21,12 +22,12 @@ final class MobTagController implements Listener {
 
   private final EntityValidationService entityValidationService;
 
-  MobTagController(EntityValidationService entityValidationService) {
+  MobTagController(@NotNull EntityValidationService entityValidationService) {
     this.entityValidationService = entityValidationService;
   }
 
   @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-  void onSpawn(final CreatureSpawnEvent event) {
+  void onSpawn(final @NotNull CreatureSpawnEvent event) {
     switch (event.getSpawnReason()) {
       case BREEDING:
       case SPAWNER:
@@ -40,7 +41,7 @@ final class MobTagController implements Listener {
   }
 
   @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-  void onEntityTransform(final EntityTransformEvent event) {
+  void onEntityTransform(final @NotNull EntityTransformEvent event) {
     if (!entityValidationService.isValid(event.getEntity())) {
       return;
     }

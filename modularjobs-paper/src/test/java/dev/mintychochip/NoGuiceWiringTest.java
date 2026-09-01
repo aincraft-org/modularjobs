@@ -16,7 +16,9 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
+import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 
 /** Proves Guice was removed and manual composition entry points still work. */
@@ -67,8 +69,10 @@ class NoGuiceWiringTest {
     Path context = locateJobsCoreMainJava().resolve("dev/mintychochip/PluginContext.java");
     assertTrue(Files.isRegularFile(context), "PluginContext.java must exist");
     String text = Files.readString(context);
+    Pattern createMethod =
+        Pattern.compile("public\\s+static\\s+(?:@\\w+\\s+)?PluginContext\\s+create\\s*\\(");
     assertTrue(
-        text.contains("public static PluginContext create"),
+        createMethod.matcher(text).find(),
         "PluginContext must expose create(...) composition entry point");
     assertFalse(text.contains("com.google.inject"));
     assertFalse(text.contains("javax.inject"));
@@ -153,7 +157,7 @@ class NoGuiceWiringTest {
         "Guava should replace Guice-transitive Guava usage");
   }
 
-  private static Path locateJobsCoreMainJava() {
+  private static @Nullable Path locateJobsCoreMainJava() {
     Path fromModule = Path.of("src/main/java");
     if (Files.isDirectory(fromModule)) {
       return fromModule.toAbsolutePath().normalize();
@@ -166,7 +170,7 @@ class NoGuiceWiringTest {
     return null;
   }
 
-  private static Path locateRepoRoot() {
+  private static @Nullable Path locateRepoRoot() {
     Path cwd = Path.of(".").toAbsolutePath().normalize();
     if (Files.isRegularFile(cwd.resolve("settings.gradle.kts"))) {
       return cwd;

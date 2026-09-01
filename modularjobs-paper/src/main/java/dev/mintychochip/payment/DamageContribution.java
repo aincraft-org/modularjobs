@@ -23,7 +23,7 @@ final class DamageContribution {
    * @param entity contributor to inspect
    * @param normalized whether to divide by the current total
    */
-  double getContribution(Entity entity, boolean normalized) {
+  double getContribution(@NotNull Entity entity, boolean normalized) {
     UUID uniqueId = entity.getUniqueId();
     double raw = contribution.getOrDefault(uniqueId, 0.0);
 
@@ -53,7 +53,7 @@ final class DamageContribution {
     return contribution.keySet().stream().map(Bukkit::getEntity).filter(Objects::nonNull).toList();
   }
 
-  void addContribution(Entity entity, double contribution) {
+  void addContribution(@NotNull Entity entity, double contribution) {
     dirty = true;
     this.contribution.merge(entity.getUniqueId(), contribution, Double::sum);
   }

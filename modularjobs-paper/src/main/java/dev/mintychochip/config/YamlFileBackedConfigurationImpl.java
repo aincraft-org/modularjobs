@@ -16,7 +16,7 @@ final class YamlFileBackedConfigurationImpl {
   private YamlConfiguration config;
   private File configFile;
 
-  YamlFileBackedConfigurationImpl(Plugin plugin, String path) {
+  YamlFileBackedConfigurationImpl(@NotNull Plugin plugin, @NotNull String path) {
     this.plugin = plugin;
     this.path = path;
     this.configFile = new File(plugin.getDataFolder(), path);
@@ -38,7 +38,8 @@ final class YamlFileBackedConfigurationImpl {
 
   /** Creates a proxy exposing Bukkit configuration access plus reload/save operations. */
   @SuppressWarnings("PMD.UseProperClassLoader")
-  static dev.mintychochip.config.YamlConfiguration create(Plugin plugin, String path) {
+  static @NotNull dev.mintychochip.config.YamlConfiguration create(
+      @NotNull Plugin plugin, @NotNull String path) {
     String[] split = path.split("\\.");
     Preconditions.checkArgument(split.length >= 2);
     Preconditions.checkArgument(split[1].equals("yml") || split[1].equals("yaml"));

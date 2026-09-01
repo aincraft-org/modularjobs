@@ -4,6 +4,7 @@ import java.util.Objects;
 import java.util.function.Predicate;
 import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -26,7 +27,8 @@ public final class PaymentEligibility {
    *
    * @return the settings driving this payment gate
    */
-  public PaymentSettings settings() {
+  @Contract(pure = true)
+  public @NotNull PaymentSettings settings() {
     return settings;
   }
 
@@ -52,7 +54,7 @@ public final class PaymentEligibility {
   }
 
   /** Predicate form used by existing listener call sites ({@code true} = block pay). */
-  public Predicate<Player> asPredicate() {
+  public @NotNull Predicate<Player> asPredicate() {
     return this::blocksPay;
   }
 }

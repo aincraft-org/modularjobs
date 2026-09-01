@@ -43,7 +43,7 @@ public final class StubNodeHarvestService implements NodeHarvestService {
     return result != null ? result : HarvestResult.empty();
   }
 
-  private static String locationKey(String world, int x, int y, int z) {
+  private static @NotNull String locationKey(@NotNull String world, int x, int y, int z) {
     return world.toLowerCase(Locale.ROOT) + "|" + x + "|" + y + "|" + z;
   }
 }

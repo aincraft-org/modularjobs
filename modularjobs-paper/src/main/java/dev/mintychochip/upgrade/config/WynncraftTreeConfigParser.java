@@ -13,13 +13,13 @@ import dev.mintychochip.container.boost.RuledBoostSource.Rule;
 import dev.mintychochip.container.boost.factories.BoostFactory;
 import dev.mintychochip.container.boost.factories.ConditionFactory;
 import dev.mintychochip.upgrade.PerkPolicy;
-import dev.mintychochip.upgrade.Position;
 import dev.mintychochip.upgrade.UpgradeEffect;
 import dev.mintychochip.upgrade.UpgradeEffect.BoostEffect;
 import dev.mintychochip.upgrade.UpgradeEffect.PermissionEffect;
 import dev.mintychochip.upgrade.UpgradeEffect.RuledBoostEffect;
 import dev.mintychochip.upgrade.UpgradeNode;
 import dev.mintychochip.upgrade.UpgradeTree;
+import dev.mintychochip.upgrade.rendering.Position;
 import dev.mintychochip.upgrade.wynncraft.AbilityMeta;
 import dev.mintychochip.upgrade.wynncraft.AbilityMeta.BoostConfig;
 import dev.mintychochip.upgrade.wynncraft.AbilityMeta.EffectConfig;
@@ -35,6 +35,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import net.kyori.adventure.key.Key;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Parses WynncraftTreeConfig into UpgradeTree instances. Supports the new Wynncraft-style JSON
@@ -47,7 +50,8 @@ public final class WynncraftTreeConfigParser {
   private final Gson gson;
 
   /** Wynncraft tree config parser. */
-  public WynncraftTreeConfigParser(ConditionFactory conditionFactory, BoostFactory boostFactory) {
+  public WynncraftTreeConfigParser(
+      @NotNull ConditionFactory conditionFactory, @NotNull BoostFactory boostFactory) {
     this.boostFactory = boostFactory;
     this.conditionParser = new ConditionConfigParser(conditionFactory);
     this.gson = new Gson();
@@ -59,7 +63,8 @@ public final class WynncraftTreeConfigParser {
    * @param config the parsed JSON configuration
    * @return a fully constructed UpgradeTree
    */
-  public UpgradeTree parse(WynncraftTreeConfig config) {
+  @Contract(pure = true)
+  public @NotNull UpgradeTree parse(@NotNull WynncraftTreeConfig config) {
     final String jobKey = config.job(); // Use job field
     final Key treeKey = Key.key("modularjobs", "upgrade_tree/" + jobKey);
 
@@ -132,8 +137,12 @@ public final class WynncraftTreeConfigParser {
   }
 
   /** Parse an ability layout item into an UpgradeNode. */
-  private UpgradeNode parseAbilityNode(
-      String jobKey, String nodeId, Position position, AbilityMeta meta) {
+  @Contract(pure = true)
+  private @NotNull UpgradeNode parseAbilityNode(
+      @NotNull String jobKey,
+      @NotNull String nodeId,
+      @NotNull Position position,
+      @NotNull AbilityMeta meta) {
     Key key = Key.key(jobKey, nodeId);
 
     // Material names stored as strings; paper GUI resolves via Material.matchMaterial
@@ -204,15 +213,16 @@ public final class WynncraftTreeConfigParser {
         level);
   }
 
-  /** Extract the short key (without namespace) from an UpgradeNode. */
-  private String getShortKey(UpgradeNode node) {
+  @Contract(pure = true)
+  private @NotNull String getShortKey(@NotNull UpgradeNode node) {
     String full = node.key().asString();
     int colonIndex = full.indexOf(':');
     return colonIndex >= 0 ? full.substring(colonIndex + 1) : full;
   }
 
   /** Parse an effect configuration into an UpgradeEffect. */
-  private UpgradeEffect parseEffect(EffectConfig config) {
+  @Contract(pure = true)
+  private @Nullable UpgradeEffect parseEffect(@NotNull EffectConfig config) {
     return switch (config.type().toLowerCase()) {
       case "boost" -> {
         String target = config.target() != null ? config.target() : BoostEffect.TARGET_ALL;
@@ -241,8 +251,9 @@ public final class WynncraftTreeConfigParser {
   }
 
   /** Parse a ruled_boost effect configuration into a RuledBoostSource. */
-  private BoostSource parseRuledBoostSource(
-      EffectConfig config, String target, String description) {
+  @Contract(pure = true)
+  private @NotNull BoostSource parseRuledBoostSource(
+      @NotNull EffectConfig config, @NotNull String target, @NotNull String description) {
     // Parse rules
     List<Rule> rules = new ArrayList<>();
     if (config.rules() != null) {
@@ -259,7 +270,8 @@ public final class WynncraftTreeConfigParser {
   }
 
   /** Parse a single rule configuration. */
-  private Rule parseRule(RuleConfig ruleConfig) {
+  @Contract(pure = true)
+  private @NotNull Rule parseRule(@NotNull RuleConfig ruleConfig) {
     int priority = ruleConfig.priority();
 
     // Parse condition - conditions can be a JsonElement when deserialized
@@ -272,7 +284,8 @@ public final class WynncraftTreeConfigParser {
   }
 
   /** Parse condition from object (could be JsonElement, JsonObject or Map). */
-  private Condition parseCondition(Object conditionsObj) {
+  @Contract(pure = true)
+  private @NotNull Condition parseCondition(@Nullable Object conditionsObj) {
     if (conditionsObj == null) {
       // Return always-true condition
       return context -> true;
@@ -294,7 +307,8 @@ public final class WynncraftTreeConfigParser {
   }
 
   /** Parse boost configuration. */
-  private Boost parseBoost(BoostConfig boostConfig) {
+  @Contract(pure = true)
+  private @NotNull Boost parseBoost(@Nullable BoostConfig boostConfig) {
     if (boostConfig == null) {
       return boostFactory.multiplicative(BigDecimal.ONE);
     }

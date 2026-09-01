@@ -6,6 +6,7 @@ import java.math.BigDecimal;
 import java.util.UUID;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Safe fallback for servers that do not install a currency provider.
@@ -25,8 +26,8 @@ public final class BlackholeEconomyProvider implements EconomyProvider {
         .getLogger()
         .warning(
             "No economy provider is available; positive modularjobs:economy rewards will be"
-                + " discarded. Install Mint or set economy.missing-provider: fail if currency"
-                + " rewards are mandatory.");
+                + " discarded. Install Mint2 or Vault, or set economy.missing-provider: fail"
+                + " if currency rewards are mandatory.");
   }
 
   @Override
@@ -35,7 +36,7 @@ public final class BlackholeEconomyProvider implements EconomyProvider {
   }
 
   @Override
-  public boolean deposit(UUID playerId, PayableAmount payableAmount) {
+  public boolean deposit(@NotNull UUID playerId, @Nullable PayableAmount payableAmount) {
     if (payableAmount == null) {
       return false;
     }

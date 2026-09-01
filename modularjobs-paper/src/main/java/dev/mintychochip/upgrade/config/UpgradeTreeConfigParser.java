@@ -5,7 +5,6 @@ import dev.mintychochip.container.BoostSource;
 import dev.mintychochip.container.boost.RuledBoostSource.Rule;
 import dev.mintychochip.container.boost.factories.BoostFactory;
 import dev.mintychochip.container.boost.factories.ConditionFactory;
-import dev.mintychochip.upgrade.Position;
 import dev.mintychochip.upgrade.UpgradeEffect;
 import dev.mintychochip.upgrade.UpgradeEffect.BoostEffect;
 import dev.mintychochip.upgrade.UpgradeEffect.PermissionEffect;
@@ -16,6 +15,7 @@ import dev.mintychochip.upgrade.config.UpgradeTreeConfig.EffectConfig;
 import dev.mintychochip.upgrade.config.UpgradeTreeConfig.NodeConfig;
 import dev.mintychochip.upgrade.config.UpgradeTreeConfig.PositionConfig;
 import dev.mintychochip.upgrade.config.UpgradeTreeConfig.RuleConfig;
+import dev.mintychochip.upgrade.rendering.Position;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -24,6 +24,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import net.kyori.adventure.key.Key;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Parses UpgradeTreeConfig from JSON into UpgradeTree instances. Supports both simple boost effects
@@ -34,13 +37,14 @@ public final class UpgradeTreeConfigParser {
   private final dev.mintychochip.boost.config.BoostSourceConfigParser boostSourceParser;
 
   /** Upgrade tree config parser. */
-  public UpgradeTreeConfigParser(ConditionFactory conditionFactory, BoostFactory boostFactory) {
+  public UpgradeTreeConfigParser(
+      @NotNull ConditionFactory conditionFactory, @NotNull BoostFactory boostFactory) {
     this.boostSourceParser =
         new dev.mintychochip.boost.config.BoostSourceConfigParser(conditionFactory, boostFactory);
   }
 
-  /** Parse. */
-  public UpgradeTree parse(UpgradeTreeConfig config) {
+  @Contract(pure = true)
+  public @NotNull UpgradeTree parse(@NotNull UpgradeTreeConfig config) {
     String jobKey = config.job();
     Key treeKey = Key.key("modularjobs", "upgrade_tree/" + jobKey);
 
@@ -65,7 +69,8 @@ public final class UpgradeTreeConfigParser {
         );
   }
 
-  private UpgradeNode parseNode(String jobKey, String nodeKey, NodeConfig config) {
+  private @NotNull UpgradeNode parseNode(
+      @NotNull String jobKey, @NotNull String nodeKey, @NotNull NodeConfig config) {
     final Key key = Key.key(jobKey, nodeKey);
 
     // Material name string; paper GUI resolves via Material.matchMaterial (BARRIER fallback)
@@ -141,7 +146,8 @@ public final class UpgradeTreeConfigParser {
         level);
   }
 
-  private UpgradeEffect parseEffect(EffectConfig config, String jobKey, String nodeKey) {
+  private @Nullable UpgradeEffect parseEffect(
+      @NotNull EffectConfig config, @NotNull String jobKey, @NotNull String nodeKey) {
     return switch (config.type().toLowerCase()) {
       case "boost" -> {
         String target = config.target() != null ? config.target() : BoostEffect.TARGET_ALL;
@@ -163,7 +169,8 @@ public final class UpgradeTreeConfigParser {
     };
   }
 
-  private BoostSource parseRuledBoostSource(EffectConfig config, String jobKey, String nodeKey) {
+  private @NotNull BoostSource parseRuledBoostSource(
+      @NotNull EffectConfig config, @NotNull String jobKey, @NotNull String nodeKey) {
     Key key = Key.key("modularjobs", "upgrade/" + jobKey + "/" + nodeKey);
     List<Rule> rules = new ArrayList<>();
 

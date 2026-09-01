@@ -12,6 +12,7 @@ import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
 import net.kyori.adventure.key.Key;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -23,12 +24,13 @@ public final class SkillTreeEffectParser {
   private final BoostSourceConfigParser boostSourceParser;
 
   /** Skill tree effect parser. */
-  public SkillTreeEffectParser(BoostFactory boostFactory, ConditionFactory conditionFactory) {
+  public SkillTreeEffectParser(
+      @NotNull BoostFactory boostFactory, @NotNull ConditionFactory conditionFactory) {
     this.boostSourceParser = new BoostSourceConfigParser(conditionFactory, boostFactory);
   }
 
-  /** Parse. */
-  public NodeEffect parse(@NotNull JsonElement element) {
+  @Contract(pure = true)
+  public @NotNull NodeEffect parse(@NotNull JsonElement element) {
     JsonObject obj = element.getAsJsonObject();
     String type = obj.get("type").getAsString();
 
@@ -55,14 +57,14 @@ public final class SkillTreeEffectParser {
     };
   }
 
-  private NodeEffect parseRuledBoost(JsonObject obj) {
+  private @NotNull NodeEffect parseRuledBoost(@NotNull JsonObject obj) {
     String target =
         obj.has("target") ? obj.get("target").getAsString() : NodeEffect.BoostEffect.TARGET_ALL;
     BoostSourceConfig config = new Gson().fromJson(obj, BoostSourceConfig.class);
     return new NodeEffect.RuledBoostEffect(target, boostSourceParser.parse(config));
   }
 
-  private NodeEffect parseCapability(JsonObject obj) {
+  private @NotNull NodeEffect parseCapability(@NotNull JsonObject obj) {
     String rawCapability = obj.get("capability").getAsString();
     int schemaVersion = obj.get("schema").getAsInt();
     if (schemaVersion <= 0 || !rawCapability.contains(":")) {
@@ -80,7 +82,7 @@ public final class SkillTreeEffectParser {
     return new NodeEffect.CapabilityEffect(parseKey(rawCapability), schemaVersion, payload);
   }
 
-  private Key parseKey(String raw) {
+  private @NotNull Key parseKey(@NotNull String raw) {
     int separator = raw.indexOf(':');
     if (separator > 0) {
       return Key.key(raw.substring(0, separator), raw.substring(separator + 1));

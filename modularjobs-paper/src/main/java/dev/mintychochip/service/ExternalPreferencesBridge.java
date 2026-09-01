@@ -8,6 +8,7 @@ import net.kyori.adventure.bossbar.BossBar.Color;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.jetbrains.annotations.NotNull;
 import org.jspecify.annotations.NullMarked;
 
 /**
@@ -20,7 +21,7 @@ final class ExternalPreferencesBridge {
 
   private ExternalPreferencesBridge() {}
 
-  static PreferencesIntegration.Wiring wire(JavaPlugin plugin) {
+  static @NotNull PreferencesIntegration.Wiring wire(@NotNull JavaPlugin plugin) {
     PreferencesService external = Bukkit.getServicesManager().load(PreferencesService.class);
     if (external == null) {
       plugin

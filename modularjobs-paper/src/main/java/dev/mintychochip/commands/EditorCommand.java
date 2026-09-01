@@ -15,6 +15,7 @@ import net.kyori.adventure.text.event.ClickEvent;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Command handler for the web editor.
@@ -34,7 +35,9 @@ public final class EditorCommand implements JobsCommand {
 
   /** Editor command. */
   public EditorCommand(
-      EditorService editorService, JobService jobService, JobResolver jobResolver) {
+      @NotNull EditorService editorService,
+      @NotNull JobService jobService,
+      @NotNull JobResolver jobResolver) {
     this.editorService = editorService;
     this.jobResolver = jobResolver;
   }
@@ -42,7 +45,7 @@ public final class EditorCommand implements JobsCommand {
   public static final String PERMISSION = AdminPermissions.ADMIN;
 
   @Override
-  public LiteralArgumentBuilder<CommandSourceStack> build() {
+  public @NotNull LiteralArgumentBuilder<CommandSourceStack> build() {
     return Commands.literal("editor")
         .requires(AdminPermissions::isAdmin)
         .then(
@@ -88,7 +91,7 @@ public final class EditorCommand implements JobsCommand {
             });
   }
 
-  private void handleExport(Player player, String jobKey) {
+  private void handleExport(@NotNull Player player, @NotNull String jobKey) {
     Messages.send(player, "<neutral>Exporting job data to web editor...");
     editorService
         .exportTasks(jobKey, player.getUniqueId())

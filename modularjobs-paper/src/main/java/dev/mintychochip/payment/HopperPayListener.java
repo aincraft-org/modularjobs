@@ -12,6 +12,7 @@ import org.bukkit.event.inventory.InventoryMoveItemEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.InventoryHolder;
+import org.jetbrains.annotations.NotNull;
 
 /** Marks hopper-filled containers so smelt and brew rewards can be skipped. */
 final class HopperPayListener implements Listener {
@@ -19,7 +20,7 @@ final class HopperPayListener implements Listener {
   private final HopperPayDisableStore store;
   private final ExploitService exploitService;
 
-  HopperPayListener(HopperPayDisableStore store, ExploitService exploitService) {
+  HopperPayListener(@NotNull HopperPayDisableStore store, @NotNull ExploitService exploitService) {
     this.store = store;
     this.exploitService = exploitService;
   }
@@ -29,7 +30,7 @@ final class HopperPayListener implements Listener {
   }
 
   @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-  void onMoveToFurnace(final InventoryMoveItemEvent event) {
+  void onMoveToFurnace(final @NotNull InventoryMoveItemEvent event) {
     if (!exploitService.settings().preventHopperSmelt()) {
       return;
     }
@@ -43,7 +44,7 @@ final class HopperPayListener implements Listener {
   }
 
   @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-  void onMoveToBrewing(final InventoryMoveItemEvent event) {
+  void onMoveToBrewing(final @NotNull InventoryMoveItemEvent event) {
     if (!exploitService.settings().preventHopperBrew()) {
       return;
     }
@@ -61,7 +62,7 @@ final class HopperPayListener implements Listener {
 
   /** Opening a machine re-enables payment attribution. */
   @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-  void onInteract(final PlayerInteractEvent event) {
+  void onInteract(final @NotNull PlayerInteractEvent event) {
     if (event.getAction() != Action.RIGHT_CLICK_BLOCK) {
       return;
     }

@@ -1,6 +1,6 @@
 package dev.mintychochip.payment;
 
-import dev.mintychochip.JobProgression;
+import dev.mintychochip.PlayerJobState;
 import dev.mintychochip.boost.ModularJobsBags;
 import dev.mintychochip.container.ActionType;
 import dev.mintychochip.container.Boost;
@@ -31,6 +31,9 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Aggregates passive item, timed, and upgrade-tree boost sources, evaluates them against a {@link
@@ -46,9 +49,9 @@ public final class BoostEngine {
    * Composes the three boost-data services (item, timed, upgrade-tree) into the aggregation engine.
    */
   public BoostEngine(
-      ItemBoostDataService boostDataService,
-      TimedBoostDataService timedBoostDataService,
-      UpgradeBoostDataService upgradeBoostDataService) {
+      @NotNull ItemBoostDataService boostDataService,
+      @NotNull TimedBoostDataService timedBoostDataService,
+      @NotNull UpgradeBoostDataService upgradeBoostDataService) {
     this.boostDataService = boostDataService;
     this.timedBoostDataService = timedBoostDataService;
     this.upgradeBoostDataService = upgradeBoostDataService;
@@ -56,17 +59,17 @@ public final class BoostEngine {
 
   /**
    * Evaluates the full boost set for a player's action: aggregates the player's item-sourced,
-   * timed, and upgrade-tree boost sources, then applies them for {@code type} against {@code
-   * progression} and {@code payable}.
+   * timed, and upgrade-tree boost sources, then applies them for {@code type} against {@code state}
+   * and {@code payable}.
    *
    * @return one boost per source key; empty when the player is offline
    */
-  public Map<Key, Boost> evaluate(
-      OfflinePlayer player,
-      ActionType type,
-      Context context,
-      JobProgression progression,
-      Payable payable) {
+  public @NotNull Map<Key, Boost> evaluate(
+      @NotNull OfflinePlayer player,
+      @NotNull ActionType type,
+      @NotNull Context context,
+      @Nullable PlayerJobState state,
+      @NotNull Payable payable) {
     if (!player.isOnline()) {
       return Map.of();
     }
@@ -75,15 +78,12 @@ public final class BoostEngine {
       return Map.of();
     }
 
-    String jobKey =
-        progression == null || progression.job() == null
-            ? null
-            : progression.job().key().asString();
-    DataBag extras = ModularJobsBags.extras(jobKey, progression == null ? 0 : progression.level());
+    String jobKey = state == null ? null : state.job().key().asString();
+    DataBag extras = ModularJobsBags.extras(jobKey, state == null ? 0 : state.level());
     BoostContext boostContext =
         new BoostContext(
             type,
-            progression,
+            state,
             onlinePlayer.getUniqueId(),
             onlinePlayer.getWorld().getName(),
             payable,
@@ -93,10 +93,10 @@ public final class BoostEngine {
     List<ActiveBoostData> timedBoosts =
         timedBoostDataService.findApplicableBoosts(new PlayerTarget(onlinePlayer.getUniqueId()));
     List<BoostSource> upgradeSources =
-        progression == null || progression.job() == null
+        state == null
             ? List.of()
             : upgradeBoostDataService.getBoostSources(
-                onlinePlayer.getUniqueId(), progression.job().key());
+                onlinePlayer.getUniqueId(), state.job().key());
     return evaluateSources(boostContext, itemSources, timedBoosts, upgradeSources);
   }
 
@@ -104,11 +104,11 @@ public final class BoostEngine {
    * Pure evaluation path used by payment and unit tests: given already-resolved sources, evaluate
    * each against {@code context} and flatten to one boost per source key.
    */
-  public Map<Key, Boost> evaluateSources(
-      BoostContext context,
-      List<BoostSource> itemSources,
-      List<ActiveBoostData> timedBoosts,
-      List<BoostSource> upgradeSources) {
+  public @NotNull Map<Key, Boost> evaluateSources(
+      @NotNull BoostContext context,
+      @NotNull List<BoostSource> itemSources,
+      @NotNull List<ActiveBoostData> timedBoosts,
+      @NotNull List<BoostSource> upgradeSources) {
     Map<Key, List<Boost>> boostsBySource = new HashMap<>();
 
     for (BoostSource source : itemSources) {
@@ -125,7 +125,9 @@ public final class BoostEngine {
   }
 
   /** Apply evaluated boosts to a base amount (same loop as payment handling). */
-  public static BigDecimal applyBoosts(BigDecimal baseAmount, Map<Key, Boost> boosts) {
+  @Contract(pure = true)
+  public static @NotNull BigDecimal applyBoosts(
+      @NotNull BigDecimal baseAmount, @NotNull Map<Key, Boost> boosts) {
     BigDecimal boostedAmount = baseAmount;
     for (Boost boost : boosts.values()) {
       boostedAmount = boost.boost(boostedAmount);
@@ -134,14 +136,16 @@ public final class BoostEngine {
   }
 
   private static void collect(
-      Map<Key, List<Boost>> boostsBySource, BoostSource source, BoostContext context) {
+      @NotNull Map<Key, List<Boost>> boostsBySource,
+      @NotNull BoostSource source,
+      @NotNull BoostContext context) {
     List<Boost> evaluated = source.evaluate(context);
     if (!evaluated.isEmpty()) {
       boostsBySource.put(source.key(), evaluated);
     }
   }
 
-  private static Map<Key, Boost> flatten(Map<Key, List<Boost>> boostsBySource) {
+  private static @NotNull Map<Key, Boost> flatten(@NotNull Map<Key, List<Boost>> boostsBySource) {
     Map<Key, Boost> result = new HashMap<>();
     for (Map.Entry<Key, List<Boost>> entry : boostsBySource.entrySet()) {
       List<Boost> sourceBoosts = entry.getValue();
@@ -162,7 +166,7 @@ public final class BoostEngine {
     return result;
   }
 
-  private List<BoostSource> aggregateItemSources(Player player) {
+  private @NotNull List<BoostSource> aggregateItemSources(@NotNull Player player) {
     List<BoostSource> sources = new ArrayList<>();
     Set<Key> boostSourceKeys = new HashSet<>();
     PlayerInventory inventory = player.getInventory();

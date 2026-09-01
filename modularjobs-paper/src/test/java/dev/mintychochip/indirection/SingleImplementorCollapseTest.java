@@ -13,6 +13,7 @@ import dev.mintychochip.upgrade.UpgradeBoostDataServiceImpl;
 import dev.mintychochip.upgrade.UpgradeService;
 import dev.mintychochip.upgrade.UpgradeServiceImpl;
 import java.lang.reflect.Modifier;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -65,17 +66,17 @@ class SingleImplementorCollapseTest {
     assertTrue(Class.forName("dev.mintychochip.repository.ConnectionSource").isInterface());
     assertTrue(Class.forName("dev.mintychochip.repository.TimedBoostRepository").isInterface());
     assertTrue(
-        Class.forName("dev.mintychochip.domain.repository.JobProgressionRepository").isInterface());
+        Class.forName("dev.mintychochip.domain.repository.PlayerJobStateRepository").isInterface());
     assertTrue(Class.forName("dev.mintychochip.commands.JobsCommand").isInterface());
     assertTrue(Class.forName("dev.mintychochip.Bridge").isInterface());
   }
 
-  private static void assertConcrete(Class<?> type) {
+  private static void assertConcrete(@NotNull Class<?> type) {
     assertFalse(type.isInterface(), type.getName() + " must not be an interface");
     assertFalse(Modifier.isAbstract(type.getModifiers()), type.getName() + " must not be abstract");
   }
 
-  private static void assertClassMissing(String fqcn) {
+  private static void assertClassMissing(@NotNull String fqcn) {
     try {
       Class.forName(fqcn);
       fail("expected " + fqcn + " to be removed");

@@ -2,25 +2,23 @@ package dev.mintychochip.domain.model;
 
 import java.util.List;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
- * Immutable definition of a single task within a job, tying an action to its payout {@link
- * PayableRecord}s within a context.
+ * Immutable task definition owned by one job node.
  *
- * @param jobKey the job key this task belongs to
+ * @param nodeKey the owning job-node key
  * @param actionTypeKey the action type this task tracks
- * @param contextKey the context scoping the action (may be {@code null} for global tasks)
- * @param payables the reward records awarded for completing the task
+ * @param contextKey the context scoping the action
+ * @param payables the complete reward definition for the task
  */
 public record JobTaskRecord(
-    @NotNull String jobKey, String actionTypeKey, String contextKey, List<PayableRecord> payables) {
+    @NotNull String nodeKey,
+    @NotNull String actionTypeKey,
+    @Nullable String contextKey,
+    @Nullable List<PayableRecord> payables) {
 
-  /**
-   * Composite key identifying a task by its job, action type, and context.
-   *
-   * @param jobKey the job key
-   * @param actionTypeKey the action type key
-   * @param contextKey the context key
-   */
-  public record JobTaskRecordKey(String jobKey, String actionTypeKey, String contextKey) {}
+  /** Composite persistence identity for a task owned by one job node. */
+  public record JobTaskRecordKey(
+      @NotNull String nodeKey, @NotNull String actionTypeKey, @Nullable String contextKey) {}
 }

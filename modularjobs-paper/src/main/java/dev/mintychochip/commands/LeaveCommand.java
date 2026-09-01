@@ -4,7 +4,7 @@ import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import dev.mintychochip.Job;
-import dev.mintychochip.JobProgression;
+import dev.mintychochip.PlayerJobState;
 import dev.mintychochip.domain.JobResolver;
 import dev.mintychochip.service.JobService;
 import dev.mintychochip.util.Messages;
@@ -13,6 +13,7 @@ import io.papermc.paper.command.brigadier.Commands;
 import java.util.List;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.NotNull;
 
 /** {@code /jobs leave} command: removes the invoking player from a single job or all jobs. */
 public class LeaveCommand implements JobsCommand {
@@ -22,7 +23,7 @@ public class LeaveCommand implements JobsCommand {
   private static final String DEFAULT_NAMESPACE = "modularjobs";
 
   /** Creates the leave command with the job service and resolver used to look up jobs. */
-  public LeaveCommand(JobService jobService, JobResolver jobResolver) {
+  public LeaveCommand(@NotNull JobService jobService, @NotNull JobResolver jobResolver) {
     this.jobService = jobService;
     this.jobResolver = jobResolver;
   }
@@ -34,7 +35,7 @@ public class LeaveCommand implements JobsCommand {
    * @return the Brigadier command tree for leaving jobs
    */
   @Override
-  public LiteralArgumentBuilder<CommandSourceStack> build() {
+  public @NotNull LiteralArgumentBuilder<CommandSourceStack> build() {
     return Commands.literal("leave")
         .then(
             Commands.literal("all")
@@ -48,18 +49,18 @@ public class LeaveCommand implements JobsCommand {
                         return 0;
                       }
 
-                      List<JobProgression> progressions =
-                          jobService.getProgressions(player.getUniqueId());
+                      List<PlayerJobState> states =
+                          jobService.getPlayerJobStates(player.getUniqueId());
 
-                      if (progressions.isEmpty()) {
+                      if (states.isEmpty()) {
                         Messages.send(player, "<neutral>You are not in any jobs.");
                         return 0;
                       }
 
                       int leftCount = 0;
-                      for (JobProgression progression : progressions) {
+                      for (PlayerJobState state : states) {
                         if (jobService.leaveJob(
-                            player.getUniqueId().toString(), progression.job().key().toString())) {
+                            player.getUniqueId().toString(), state.job().key().toString())) {
                           leftCount++;
                         }
                       }

@@ -1,11 +1,13 @@
 package dev.mintychochip.domain;
 
 import dev.mintychochip.Job;
+import dev.mintychochip.JobNode;
 import dev.mintychochip.service.JobService;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -15,7 +17,7 @@ public final class JobResolver {
   private final JobService jobService;
 
   /** Job resolver. */
-  public JobResolver(JobService jobService) {
+  public JobResolver(@NotNull JobService jobService) {
     this.jobService = jobService;
   }
 
@@ -30,32 +32,45 @@ public final class JobResolver {
       }
     }
 
-    // Plain name lookup (case-insensitive)
+    // Plain node-name lookup (case-insensitive).
     String normalizedInput = identifier.toLowerCase(Locale.ROOT);
     return jobService.getJobs().stream()
-        .filter(job -> job.getPlainName().toLowerCase(Locale.ROOT).equals(normalizedInput))
+        .filter(
+            job ->
+                job.nodes().values().stream()
+                    .anyMatch(
+                        node ->
+                            node.getPlainName().toLowerCase(Locale.ROOT).equals(normalizedInput)))
         .findFirst()
         .orElse(null);
   }
 
   /** Resolve in namespace. */
-  public @Nullable Job resolveInNamespace(@NotNull String plainName, @NotNull String namespace) {
-    // Try exact namespacedkey first
-    String fullKey = namespace + ":" + plainName.toLowerCase(Locale.ROOT);
-    try {
-      Job job = jobService.getJob(fullKey);
-      if (job != null) {
-        return job;
-      }
-    } catch (IllegalArgumentException ignored) {
-      // Job key not found; fall back to plain-name search within namespace.
+  public @Nullable Job resolveInNamespace(@NotNull String identifier, @NotNull String namespace) {
+    String normalizedInput = identifier.toLowerCase(Locale.ROOT);
+    boolean namespaced = normalizedInput.contains(":");
+    if (namespaced && !normalizedInput.startsWith(namespace.toLowerCase(Locale.ROOT) + ":")) {
+      return null;
     }
 
-    // Fallback: search by plain name within namespace
-    String normalizedInput = plainName.toLowerCase(Locale.ROOT);
+    String fullKey = namespaced ? normalizedInput : namespace + ":" + normalizedInput;
+    try {
+      return jobService.getJob(fullKey);
+    } catch (IllegalArgumentException ignored) {
+      if (namespaced) {
+        return null;
+      }
+    }
+
+    // Fallback: search node display names within the requested namespace.
     return jobService.getJobs().stream()
         .filter(job -> job.key().namespace().equals(namespace))
-        .filter(job -> job.getPlainName().toLowerCase(Locale.ROOT).equals(normalizedInput))
+        .filter(
+            job ->
+                job.nodes().values().stream()
+                    .anyMatch(
+                        node ->
+                            node.getPlainName().toLowerCase(Locale.ROOT).equals(normalizedInput)))
         .findFirst()
         .orElse(null);
   }
@@ -65,16 +80,25 @@ public final class JobResolver {
     String normalizedInput = input.toLowerCase(Locale.ROOT);
 
     return jobService.getJobs().stream()
-        .map(job -> new ScoredJob(job, calculateSimilarity(normalizedInput, job.getPlainName())))
-        .filter(scored -> scored.score() > 0) // Only include matches with positive scores
-        .sorted(Comparator.comparingInt(ScoredJob::score).reversed())
+        .flatMap(
+            job ->
+                job.nodes().values().stream()
+                    .map(
+                        node ->
+                            new ScoredNode(
+                                node, calculateSimilarity(normalizedInput, node.getPlainName()))))
+        .filter(scored -> scored.score() > 0)
+        .sorted(Comparator.comparingInt(ScoredNode::score).reversed())
         .limit(maxSuggestions)
-        .map(scored -> scored.job().getPlainName())
+        .map(scored -> scored.node().getPlainName())
         .collect(Collectors.toList());
   }
 
   public @NotNull List<String> getPlainNames() {
-    return jobService.getJobs().stream().map(Job::getPlainName).collect(Collectors.toList());
+    return jobService.getJobs().stream()
+        .flatMap(job -> job.nodes().values().stream())
+        .map(JobNode::getPlainName)
+        .collect(Collectors.toList());
   }
 
   /**
@@ -84,7 +108,8 @@ public final class JobResolver {
    * - Contains match: 250 points - Levenshtein distance: 100 - (distance * 10), capped at 0 - Very
    * dissimilar matches (distance > length/2): 0 points (filtered out)
    */
-  private int calculateSimilarity(String input, String jobName) {
+  @Contract(pure = true)
+  private int calculateSimilarity(@NotNull String input, @NotNull String jobName) {
     String normalizedJobName = jobName.toLowerCase(Locale.ROOT);
 
     // Exact match (shouldn't typically reach here, but included for completeness)
@@ -125,7 +150,8 @@ public final class JobResolver {
    * @param b Second string
    * @return Levenshtein distance
    */
-  private int levenshteinDistance(String a, String b) {
+  @Contract(pure = true)
+  private int levenshteinDistance(@NotNull String a, @NotNull String b) {
     int[][] dp = new int[a.length() + 1][b.length() + 1];
 
     // Initialize base cases
@@ -153,6 +179,6 @@ public final class JobResolver {
     return dp[a.length()][b.length()];
   }
 
-  /** Internal record for pairing jobs with their similarity scores during fuzzy matching. */
-  private record ScoredJob(Job job, int score) {}
+  /** Internal record for pairing job nodes with their fuzzy-match score. */
+  private record ScoredNode(@NotNull JobNode node, int score) {}
 }

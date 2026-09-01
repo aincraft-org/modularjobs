@@ -8,8 +8,10 @@ import net.kyori.adventure.text.minimessage.tag.Tag;
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import net.kyori.adventure.text.minimessage.tag.standard.StandardTags;
 import org.bukkit.command.CommandSender;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.jspecify.annotations.NullMarked;
-import org.jspecify.annotations.Nullable;
 
 /**
  * Local themed MiniMessage messaging — replaces Mint.sendThemedMessage /
@@ -38,7 +40,8 @@ public final class Messages {
   private Messages() {}
 
   /** Deserialize a themed MiniMessage string to a Component. */
-  public static Component component(@Nullable String message) {
+  @Contract(pure = true)
+  public static @NotNull Component component(@Nullable String message) {
     if (message == null || message.isEmpty()) {
       return Component.empty();
     }
@@ -46,12 +49,13 @@ public final class Messages {
   }
 
   /** Send a themed MiniMessage string to a command sender. */
-  public static void send(CommandSender sender, @Nullable String message) {
+  public static void send(@NotNull CommandSender sender, @Nullable String message) {
     sender.sendMessage(component(message));
   }
 
   /** Exposed for tests — same MiniMessage instance used at runtime. */
-  static MiniMessage miniMessage() {
+  @Contract(pure = true)
+  static @NotNull MiniMessage miniMessage() {
     return MINI_MESSAGE;
   }
 }

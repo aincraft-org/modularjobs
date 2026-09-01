@@ -3,7 +3,7 @@ package dev.mintychochip.commands;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
-import dev.mintychochip.JobProgression;
+import dev.mintychochip.PlayerJobState;
 import dev.mintychochip.service.JobService;
 import dev.mintychochip.util.Messages;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
@@ -15,6 +15,8 @@ import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Lists a player's archived (previously left) jobs. Supports an admin variant {@code /jobs archive
@@ -27,14 +29,14 @@ public class ArchiveCommand implements JobsCommand {
   /**
    * Creates the archive command backed by the job service.
    *
-   * @param jobService service used to load archived progressions
+   * @param jobService service used to load archived player states
    */
-  public ArchiveCommand(JobService jobService) {
+  public ArchiveCommand(@NotNull JobService jobService) {
     this.jobService = jobService;
   }
 
   @Override
-  public LiteralArgumentBuilder<CommandSourceStack> build() {
+  public @NotNull LiteralArgumentBuilder<CommandSourceStack> build() {
     return Commands.literal("archive")
         // /jobs archive <playerName> - admin variant
         .then(
@@ -74,9 +76,9 @@ public class ArchiveCommand implements JobsCommand {
   }
 
   /** Prints the header and the target player's archived jobs to the viewer. */
-  private void displayArchive(CommandSender viewer, OfflinePlayer target) {
-    List<JobProgression> archivedProgressions =
-        jobService.getArchivedProgressions(target.getUniqueId());
+  private void displayArchive(@NotNull CommandSender viewer, @NotNull OfflinePlayer target) {
+    List<PlayerJobState> archivedStates =
+        jobService.getArchivedPlayerJobStates(target.getUniqueId());
 
     // Header
     String targetName = target.getName() != null ? target.getName() : "Unknown";
@@ -87,11 +89,11 @@ public class ArchiveCommand implements JobsCommand {
 
     Messages.send(viewer, "<neutral>━━━━━━━━━ " + header + " <neutral>━━━━━━━━━");
 
-    if (archivedProgressions.isEmpty()) {
+    if (archivedStates.isEmpty()) {
       Messages.send(viewer, "<neutral>  No archived jobs found.");
     } else {
-      for (JobProgression progression : archivedProgressions) {
-        displayJobEntry(viewer, progression);
+      for (PlayerJobState state : archivedStates) {
+        displayJobEntry(viewer, state);
       }
     }
 
@@ -99,16 +101,16 @@ public class ArchiveCommand implements JobsCommand {
     Messages.send(viewer, "<neutral>━━━━━━━━━━━━━━━━━━━━━━━━━━━");
   }
 
-  private void displayJobEntry(CommandSender viewer, JobProgression progression) {
-    int level = progression.level();
-    BigDecimal experience = progression.experience();
+  private void displayJobEntry(@NotNull CommandSender viewer, @NotNull PlayerJobState state) {
+    int level = state.level();
+    BigDecimal experience = state.experience();
 
-    Messages.send(
-        viewer, "  " + progression.job().getPlainName() + " <neutral>- Level <accent>" + level);
+    Messages.send(viewer, "  " + state.job().getPlainName() + " <neutral>- Level <accent>" + level);
     Messages.send(viewer, "    <neutral>Total XP: <accent>" + formatNumber(experience));
   }
 
-  private String formatNumber(BigDecimal number) {
+  @Contract(pure = true)
+  private @NotNull String formatNumber(@NotNull BigDecimal number) {
     if (number.compareTo(BigDecimal.valueOf(1_000_000)) >= 0) {
       return number.divide(BigDecimal.valueOf(1_000_000), 2, RoundingMode.HALF_UP) + "M";
     } else if (number.compareTo(BigDecimal.valueOf(1_000)) >= 0) {

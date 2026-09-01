@@ -5,6 +5,7 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import java.time.Duration;
 import org.bukkit.Location;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -42,7 +43,8 @@ public record LocationKey(@NotNull String worldName, int x, int y, int z) {
    * @throws com.google.common.cache.CacheLoader.InvalidCacheLoadException if the location's world
    *     is null
    */
-  public static LocationKey create(@NotNull Location loc) {
+  @Contract(pure = true)
+  public static @NotNull LocationKey create(@NotNull Location loc) {
     return CACHE.getUnchecked(loc);
   }
 
@@ -52,7 +54,8 @@ public record LocationKey(@NotNull String worldName, int x, int y, int z) {
    * @return stable textual key
    */
   @Override
-  public String toString() {
+  @Contract(pure = true)
+  public @NotNull String toString() {
     return worldName + ":" + x + "," + y + "," + z;
   }
 }

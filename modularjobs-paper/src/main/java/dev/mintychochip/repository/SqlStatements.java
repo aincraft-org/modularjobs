@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 
 /** Loads packaged SQL statement text from {@code /sql/} classpath resources. */
 public final class SqlStatements {
@@ -18,7 +20,8 @@ public final class SqlStatements {
    * @return trimmed statement text
    * @throws IllegalStateException if the resource is missing
    */
-  public static String load(String name) {
+  @Contract(pure = true)
+  public static @NotNull String load(@NotNull String name) {
     String path = name.startsWith("/") ? name : "/sql/" + name;
     try (InputStream in = SqlStatements.class.getResourceAsStream(path)) {
       if (in == null) {

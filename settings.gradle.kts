@@ -3,6 +3,11 @@ rootProject.name = "jobs2"
 
 include("modularjobs-api", "modularjobs-common", "modularjobs-paper")
 
+// Mint2 sibling checkout (../mint2): build mint-api/mint-common from source as the
+// compileOnly provider surface. Coordinate aliases are set in gradle/libs.versions.toml;
+// included-build dependency substitution replaces dev.mintychochip:mint-api / mint-common.
+includeBuild("../mint2")
+
 
 
 dependencyResolutionManagement {
@@ -13,11 +18,6 @@ dependencyResolutionManagement {
         maven {
             name = "mockbukkitLocal"
             url = uri(rootDir.resolve("libs/mockbukkit-maven"))
-        }
-        // Mint durable ledger API from sibling checkout (./gradlew -p ../mint publish)
-        maven {
-            name = "mintLocal"
-            url = uri(rootDir.resolve("../mint/build/maven-repo"))
         }
         // Sibling SNAPSHOT: exclusive so Gradle 9.7 does not fail the whole
         // resolve when a remote (GitHub Packages 401, incendo DNS) errors on

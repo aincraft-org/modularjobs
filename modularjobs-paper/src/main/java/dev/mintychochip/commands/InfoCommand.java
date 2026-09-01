@@ -5,9 +5,12 @@ import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import dev.mintychochip.Job;
+import dev.mintychochip.JobNode;
+import dev.mintychochip.JobNodeKey;
 import dev.mintychochip.JobTask;
 import dev.mintychochip.container.ActionType;
 import dev.mintychochip.container.Payable;
+import dev.mintychochip.container.PayableRenderer;
 import dev.mintychochip.domain.JobResolver;
 import dev.mintychochip.gui.JobInfoGui;
 import dev.mintychochip.service.JobService;
@@ -18,6 +21,7 @@ import io.papermc.paper.command.brigadier.Commands;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 import net.kyori.adventure.key.Key;
@@ -28,6 +32,8 @@ import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * /jobs info — chat listing or native inventory GUI (preference-driven).
@@ -39,23 +45,26 @@ public class InfoCommand implements JobsCommand {
   private final JobService jobService;
   private final JobResolver jobResolver;
   private final PreferencesService preferencesService;
+  private final PayableRenderer payableRenderer;
   private final JobInfoGui jobInfoGui;
   private static final String DEFAULT_NAMESPACE = "modularjobs";
 
   /** Info command. */
   public InfoCommand(
-      JobService jobService,
-      JobResolver jobResolver,
-      PreferencesService preferencesService,
-      JobInfoGui jobInfoGui) {
+      @NotNull JobService jobService,
+      @NotNull JobResolver jobResolver,
+      @NotNull PreferencesService preferencesService,
+      @NotNull PayableRenderer payableRenderer,
+      @NotNull JobInfoGui jobInfoGui) {
     this.jobService = jobService;
     this.jobResolver = jobResolver;
     this.preferencesService = preferencesService;
+    this.payableRenderer = payableRenderer;
     this.jobInfoGui = jobInfoGui;
   }
 
   @Override
-  public LiteralArgumentBuilder<CommandSourceStack> build() {
+  public @NotNull LiteralArgumentBuilder<CommandSourceStack> build() {
     return Commands.literal("info")
         .then(
             Commands.literal("chat")
@@ -143,7 +152,8 @@ public class InfoCommand implements JobsCommand {
                                     IntegerArgumentType.getInteger(context, "pageNumber")))));
   }
 
-  private int executeCommand(CommandSourceStack source, String jobName, int page) {
+  private int executeCommand(
+      @NotNull CommandSourceStack source, @NotNull String jobName, int page) {
     CommandSender sender = source.getSender();
     if (!(sender instanceof Player player)) {
       Messages.send(sender, "<error>This command can only be used by players.");
@@ -154,14 +164,16 @@ public class InfoCommand implements JobsCommand {
       Messages.send(sender, "<error>The job you specified does not exist.");
       return 0;
     }
-    Map<ActionType, List<JobTask>> tasks = jobService.getAllTasks(job);
+    Map<ActionType, List<JobTask>> tasks =
+        jobService.getAllTasks(job, selectedNodeKey(job, jobName));
     if (preferencesService.prefersGuiMode(player.getUniqueId())) {
       return executeGuiCommandInternal(player, job, tasks, page);
     }
     return executeChatCommandInternal(player, job, tasks, page);
   }
 
-  private int executeChatCommand(CommandSourceStack source, String jobName, int page) {
+  private int executeChatCommand(
+      @NotNull CommandSourceStack source, @NotNull String jobName, int page) {
     CommandSender sender = source.getSender();
     if (!(sender instanceof Player player)) {
       Messages.send(sender, "<error>This command can only be used by players.");
@@ -172,11 +184,15 @@ public class InfoCommand implements JobsCommand {
       Messages.send(sender, "<error>The job you specified does not exist.");
       return 0;
     }
-    return executeChatCommandInternal(player, job, jobService.getAllTasks(job), page);
+    return executeChatCommandInternal(
+        player, job, jobService.getAllTasks(job, selectedNodeKey(job, jobName)), page);
   }
 
   private int executeChatCommandInternal(
-      Player player, Job job, Map<ActionType, List<JobTask>> tasks, int page) {
+      @NotNull Player player,
+      @NotNull Job job,
+      @NotNull Map<ActionType, List<JobTask>> tasks,
+      int page) {
     int entriesPerPage = preferencesService.getEntriesPerPage(player.getUniqueId());
     int totalPages = jobInfoGui.calculateTotalPages(tasks, entriesPerPage);
     if (page < 1 || page > totalPages) {
@@ -187,7 +203,8 @@ public class InfoCommand implements JobsCommand {
     return Command.SINGLE_SUCCESS;
   }
 
-  private int executeGuiCommand(CommandSourceStack source, String jobName, int page) {
+  private int executeGuiCommand(
+      @NotNull CommandSourceStack source, @NotNull String jobName, int page) {
     CommandSender sender = source.getSender();
     if (!(sender instanceof Player player)) {
       Messages.send(sender, "<error>This command can only be used by players.");
@@ -198,11 +215,39 @@ public class InfoCommand implements JobsCommand {
       Messages.send(sender, "<error>The job you specified does not exist.");
       return 0;
     }
-    return executeGuiCommandInternal(player, job, jobService.getAllTasks(job), page);
+    return executeGuiCommandInternal(
+        player, job, jobService.getAllTasks(job, selectedNodeKey(job, jobName)), page);
+  }
+
+  private static @NotNull JobNodeKey selectedNodeKey(@NotNull Job job, @NotNull String identifier) {
+    String fullKey =
+        identifier.contains(":")
+            ? identifier.toLowerCase(Locale.ROOT)
+            : DEFAULT_NAMESPACE + ":" + identifier.toLowerCase(Locale.ROOT);
+    try {
+      JobNode node = job.node(new JobNodeKey(Key.key(fullKey)));
+      if (node != null) {
+        return node.nodeKey();
+      }
+    } catch (IllegalArgumentException ignored) {
+      // Fall through to display-name lookup.
+    }
+    return job.nodes().values().stream()
+        .filter(
+            node ->
+                node.getPlainName()
+                    .toLowerCase(Locale.ROOT)
+                    .equals(identifier.toLowerCase(Locale.ROOT)))
+        .findFirst()
+        .map(JobNode::nodeKey)
+        .orElseGet(() -> job.rootNode().nodeKey());
   }
 
   private int executeGuiCommandInternal(
-      Player player, Job job, Map<ActionType, List<JobTask>> tasks, int page) {
+      @NotNull Player player,
+      @NotNull Job job,
+      @NotNull Map<ActionType, List<JobTask>> tasks,
+      int page) {
     int entriesPerPage = preferencesService.getEntriesPerPage(player.getUniqueId());
     int totalPages = jobInfoGui.calculateTotalPages(tasks, entriesPerPage);
     if (page < 1 || page > totalPages) {
@@ -216,7 +261,7 @@ public class InfoCommand implements JobsCommand {
     return Command.SINGLE_SUCCESS;
   }
 
-  private int setEntriesPreference(CommandSourceStack source, int count) {
+  private int setEntriesPreference(@NotNull CommandSourceStack source, int count) {
     CommandSender sender = source.getSender();
     if (!(sender instanceof Player player)) {
       Messages.send(sender, "<error>This command can only be used by players.");
@@ -227,7 +272,7 @@ public class InfoCommand implements JobsCommand {
     return Command.SINGLE_SUCCESS;
   }
 
-  private int setGuiModePreference(CommandSourceStack source, boolean guiMode) {
+  private int setGuiModePreference(@NotNull CommandSourceStack source, boolean guiMode) {
     CommandSender sender = source.getSender();
     if (!(sender instanceof Player player)) {
       Messages.send(sender, "<error>This command can only be used by players.");
@@ -243,12 +288,17 @@ public class InfoCommand implements JobsCommand {
   }
 
   /** Calculate total pages. */
-  public int calculateTotalPages(Map<ActionType, List<JobTask>> tasks, int entriesPerPage) {
+  public int calculateTotalPages(
+      @NotNull Map<ActionType, List<JobTask>> tasks, int entriesPerPage) {
     return jobInfoGui.calculateTotalPages(tasks, entriesPerPage);
   }
 
   private void displayJobInfoChat(
-      Player player, Job job, Map<ActionType, List<JobTask>> tasks, int page, int entriesPerPage) {
+      @NotNull Player player,
+      @NotNull Job job,
+      @NotNull Map<ActionType, List<JobTask>> tasks,
+      int page,
+      int entriesPerPage) {
     final int totalPages = jobInfoGui.calculateTotalPages(tasks, entriesPerPage);
     final String jobName = job.key().value();
     String jobDisplayName = serializePlain(job.displayName());
@@ -279,7 +329,8 @@ public class InfoCommand implements JobsCommand {
     Messages.send(player, "");
   }
 
-  private void displayActionTypeSectionChat(Player player, ActionType type, List<JobTask> tasks) {
+  private void displayActionTypeSectionChat(
+      @NotNull Player player, @NotNull ActionType type, @NotNull List<JobTask> tasks) {
     Messages.send(
         player, "<neutral>  ━━ <accent>" + formatActionTypeName(type.name()) + "<neutral> ━━");
     for (JobTask task : tasks) {
@@ -294,7 +345,9 @@ public class InfoCommand implements JobsCommand {
     }
   }
 
-  private Component buildPaginationControls(String jobName, int currentPage, int totalPages) {
+  @Contract(pure = true)
+  private @NotNull Component buildPaginationControls(
+      @NotNull String jobName, int currentPage, int totalPages) {
     Component controls = Component.text("  ");
     if (currentPage > 1) {
       controls =
@@ -332,13 +385,14 @@ public class InfoCommand implements JobsCommand {
     return controls;
   }
 
-  private Component buildPayableComponent(List<Payable> payables) {
+  @Contract(pure = true)
+  private @NotNull Component buildPayableComponent(@NotNull List<Payable> payables) {
     if (payables.isEmpty()) {
       return Component.text("No rewards", TextColor.color(0xAEB4BF));
     }
     Component result = Component.empty();
     for (int i = 0; i < payables.size(); i++) {
-      result = result.append(payables.get(i).asComponent());
+      result = result.append(payableRenderer.render(payables.get(i)));
       if (i < payables.size() - 1) {
         result = result.append(Component.text(", ", TextColor.color(0xAEB4BF)));
       }
@@ -349,14 +403,16 @@ public class InfoCommand implements JobsCommand {
   private static final PlainTextComponentSerializer PLAIN_TEXT =
       PlainTextComponentSerializer.plainText();
 
-  private static String formatActionTypeName(String name) {
-    return Arrays.stream(name.toLowerCase(java.util.Locale.ROOT).split("_"))
+  @Contract(pure = true)
+  private static @NotNull String formatActionTypeName(@NotNull String name) {
+    return Arrays.stream(name.toLowerCase(Locale.ROOT).split("_"))
         .filter(w -> !w.isEmpty())
         .map(word -> Character.toUpperCase(word.charAt(0)) + word.substring(1))
         .collect(Collectors.joining(" "));
   }
 
-  private static String formatContextKey(Key key) {
+  @Contract(pure = true)
+  private static @NotNull String formatContextKey(@NotNull Key key) {
     String value = key.value();
     return Arrays.stream(value.split("[_/]"))
         .filter(w -> !w.isEmpty())
@@ -364,7 +420,8 @@ public class InfoCommand implements JobsCommand {
         .collect(Collectors.joining(" "));
   }
 
-  private static String serializePlain(Component component) {
+  @Contract(pure = true)
+  private static @NotNull String serializePlain(@NotNull Component component) {
     return PLAIN_TEXT.serialize(component);
   }
 }

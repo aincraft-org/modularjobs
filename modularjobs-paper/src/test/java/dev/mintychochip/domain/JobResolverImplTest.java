@@ -6,11 +6,15 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import dev.mintychochip.Job;
-import dev.mintychochip.JobProgression;
+import dev.mintychochip.JobKey;
+import dev.mintychochip.JobNode;
+import dev.mintychochip.JobNodeKey;
 import dev.mintychochip.JobTask;
+import dev.mintychochip.LevelingCurve;
+import dev.mintychochip.PayableCurve;
+import dev.mintychochip.PlayerJobState;
 import dev.mintychochip.container.ActionType;
 import dev.mintychochip.container.Context;
-import dev.mintychochip.math.ExpressionCurves;
 import dev.mintychochip.service.JobService;
 import java.util.HashMap;
 import java.util.List;
@@ -18,6 +22,7 @@ import java.util.Map;
 import java.util.UUID;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -32,11 +37,12 @@ class JobResolverImplTest {
 
   @BeforeEach
   void setUp() {
-    miner = job("modularjobs", "miner", "Miner");
+    miner = jobWithChild("modularjobs", "miner", "Miner", "prospector", "Prospector");
     fisherman = job("modularjobs", "fisherman", "Fisherman");
     lumberjack = job("other", "lumberjack", "Lumberjack");
     Map<String, Job> byKey = new HashMap<>();
     byKey.put(miner.key().asString(), miner);
+    byKey.put("modularjobs:prospector", miner);
     byKey.put(fisherman.key().asString(), fisherman);
     byKey.put(lumberjack.key().asString(), lumberjack);
     resolver = new JobResolver(new FakeJobService(List.of(miner, fisherman, lumberjack), byKey));
@@ -76,7 +82,22 @@ class JobResolverImplTest {
     assertNotNull(otherNs);
     assertEquals(lumberjack.key(), otherNs.key());
 
+    assertEquals(miner, resolver.resolveInNamespace("modularjobs:miner", "modularjobs"));
+    assertEquals(miner, resolver.resolveInNamespace("modularjobs:prospector", "modularjobs"));
+    assertNull(resolver.resolveInNamespace("other:lumberjack", "modularjobs"));
+
     assertNull(resolver.resolveInNamespace("miner", "other"));
+  }
+
+  @Test
+  void resolvesAndSuggestsSpecializationNodes() {
+    Job found = resolver.resolve("Prospector");
+
+    assertNotNull(found);
+    assertEquals(miner, found);
+    assertEquals(miner, resolver.resolve("modularjobs:prospector"));
+    assertTrue(resolver.getPlainNames().contains("Prospector"));
+    assertEquals("Prospector", resolver.suggestSimilar("prosp", 1).get(0));
   }
 
   @Test
@@ -95,27 +116,90 @@ class JobResolverImplTest {
   @Test
   void getPlainNamesListsAllJobs() {
     List<String> names = resolver.getPlainNames();
-    assertEquals(3, names.size());
+    assertEquals(4, names.size());
     assertTrue(names.contains("Miner"));
+    assertTrue(names.contains("Prospector"));
     assertTrue(names.contains("Fisherman"));
     assertTrue(names.contains("Lumberjack"));
   }
 
-  private static void assertFalseEmpty(List<String> suggestions) {
+  private static void assertFalseEmpty(@NotNull List<String> suggestions) {
     assertNotNull(suggestions);
     assertTrue(!suggestions.isEmpty(), "expected non-empty suggestions");
   }
 
-  private static Job job(String namespace, String value, String displayName) {
-    return new JobImpl(
-        Key.key(namespace, value),
-        Component.text(displayName),
-        Component.text(displayName + " job"),
-        50,
-        ExpressionCurves.levelingCurve("level * 100"),
-        Map.of(),
-        30,
-        Map.of());
+  private static @NotNull Job job(
+      @NotNull String namespace, @NotNull String value, @NotNull String displayName) {
+    JobKey jobKey = new JobKey(Key.key(namespace, value));
+    JobNodeKey nodeKey = new JobNodeKey(jobKey.key());
+    JobNode root =
+        new TestNode(
+            jobKey,
+            nodeKey,
+            null,
+            Component.text(displayName),
+            Component.text(displayName + " job"));
+    return new TestJob(jobKey, root, Map.of(nodeKey, root));
+  }
+
+  private static @NotNull Job jobWithChild(
+      @NotNull String namespace,
+      @NotNull String rootValue,
+      @NotNull String rootDisplayName,
+      @NotNull String childValue,
+      @NotNull String childDisplayName) {
+    JobKey jobKey = new JobKey(Key.key(namespace, rootValue));
+    JobNodeKey rootKey = new JobNodeKey(jobKey.key());
+    JobNodeKey childKey = new JobNodeKey(Key.key(namespace, childValue));
+    JobNode root =
+        new TestNode(
+            jobKey,
+            rootKey,
+            null,
+            Component.text(rootDisplayName),
+            Component.text(rootDisplayName + " job"));
+    JobNode child =
+        new TestNode(
+            jobKey,
+            childKey,
+            rootKey,
+            Component.text(childDisplayName),
+            Component.text(childDisplayName + " specialization"));
+    return new TestJob(jobKey, root, Map.of(rootKey, root, childKey, child));
+  }
+
+  private record TestJob(
+      @NotNull JobKey jobKey, @NotNull JobNode rootNode, @NotNull Map<JobNodeKey, JobNode> nodes)
+      implements Job {
+
+    @Override
+    public int maxLevel() {
+      return 50;
+    }
+
+    @Override
+    public @NotNull LevelingCurve levelingCurve() {
+      return parameters -> java.math.BigDecimal.valueOf(parameters.level() * 100L);
+    }
+
+    @Override
+    public @NotNull Map<Key, PayableCurve> payableCurves() {
+      return Map.of();
+    }
+  }
+
+  private record TestNode(
+      @NotNull JobKey jobKey,
+      @NotNull JobNodeKey nodeKey,
+      JobNodeKey parentKey,
+      @NotNull Component displayName,
+      @NotNull Component description)
+      implements JobNode {
+
+    @Override
+    public @NotNull String getPlainName() {
+      return PlainTextComponentSerializer.plainText().serialize(displayName);
+    }
   }
 
   /** Collaborator fake — SUT is JobResolver. */
@@ -124,7 +208,7 @@ class JobResolverImplTest {
     private final List<Job> jobs;
     private final Map<String, Job> byKey;
 
-    FakeJobService(List<Job> jobs, Map<String, Job> byKey) {
+    FakeJobService(@NotNull List<Job> jobs, @NotNull Map<String, Job> byKey) {
       this.jobs = jobs;
       this.byKey = byKey;
     }
@@ -135,7 +219,7 @@ class JobResolverImplTest {
     }
 
     @Override
-    public Job getJob(String jobKey) {
+    public @NotNull Job getJob(@NotNull String jobKey) {
       Job job = byKey.get(jobKey);
       if (job == null) {
         throw new IllegalArgumentException("unknown job: " + jobKey);
@@ -144,47 +228,53 @@ class JobResolverImplTest {
     }
 
     @Override
-    public JobTask getTask(Job job, ActionType type, Context context) {
+    public @NotNull JobTask getTask(
+        @NotNull Job job,
+        @NotNull JobNodeKey nodeKey,
+        @NotNull ActionType type,
+        @NotNull Context context) {
       throw new UnsupportedOperationException();
     }
 
     @Override
-    public Map<ActionType, List<JobTask>> getAllTasks(Job job) {
+    public @NotNull Map<ActionType, List<JobTask>> getAllTasks(
+        @NotNull Job job, @NotNull JobNodeKey nodeKey) {
       return Map.of();
     }
 
     @Override
-    public boolean update(JobProgression progression) {
+    public boolean update(@NotNull PlayerJobState state) {
       return false;
     }
 
     @Override
-    public boolean joinJob(String playerId, String jobKey) {
+    public boolean joinJob(@NotNull String playerId, @NotNull String jobKey) {
       return false;
     }
 
     @Override
-    public boolean leaveJob(String playerId, String jobKey) {
+    public boolean leaveJob(@NotNull String playerId, @NotNull String jobKey) {
       return false;
     }
 
     @Override
-    public JobProgression getProgression(String playerId, String jobKey) {
+    public @NotNull PlayerJobState getPlayerJobState(
+        @NotNull String playerId, @NotNull String jobKey) {
       throw new UnsupportedOperationException();
     }
 
     @Override
-    public List<JobProgression> getProgressions(UUID playerId) {
+    public @NotNull List<PlayerJobState> getPlayerJobStates(@NotNull UUID playerId) {
       return List.of();
     }
 
     @Override
-    public List<JobProgression> getProgressions(Key jobKey, int limit) {
+    public @NotNull List<PlayerJobState> getPlayerJobStates(@NotNull Key jobKey, int limit) {
       return List.of();
     }
 
     @Override
-    public List<JobProgression> getArchivedProgressions(UUID playerId) {
+    public @NotNull List<PlayerJobState> getArchivedPlayerJobStates(@NotNull UUID playerId) {
       return List.of();
     }
   }

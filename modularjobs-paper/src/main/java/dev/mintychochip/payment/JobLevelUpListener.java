@@ -11,6 +11,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Listens for job level-up events and plays celebratory feedback (sound, title, and chat message)
@@ -23,7 +24,7 @@ final class JobLevelUpListener implements Listener {
    * message when a player levels up in a job.
    */
   @EventHandler(priority = EventPriority.MONITOR)
-  void onJobLevelUp(BukkitJobLevelEvent event) {
+  void onJobLevelUp(@NotNull BukkitJobLevelEvent event) {
     Player player = event.getPlayer();
     int newLevel = event.getNewLevel();
 

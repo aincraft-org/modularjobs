@@ -19,7 +19,7 @@ public final class CraftRecipeContentValidationSettings {
       int maxDetailLines) {
 
     /** Defaults. */
-    public static Settings defaults() {
+    public static @NotNull Settings defaults() {
       return new Settings(true, true, true, 10);
     }
   }

@@ -1,9 +1,12 @@
 package dev.mintychochip.upgrade;
 
+import dev.mintychochip.upgrade.rendering.ConnectorNode;
+import dev.mintychochip.upgrade.rendering.Position;
 import java.util.List;
 import java.util.Set;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.key.Keyed;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -50,6 +53,7 @@ public record UpgradeNode(
     implements Keyed {
 
   /** Check if this node is a root node (no prerequisites). */
+  @Contract(pure = true)
   public boolean isRoot() {
     return prerequisites.isEmpty() && maxedPrerequisites.isEmpty();
   }
@@ -58,6 +62,7 @@ public record UpgradeNode(
    * Check if this node is an ability (grants effects). All UpgradeNode instances are abilities -
    * use this for generic filtering.
    */
+  @Contract(pure = true)
   public boolean isAbility() {
     return true;
   }
@@ -68,7 +73,8 @@ public record UpgradeNode(
    * @param unlocked true if the node is unlocked
    * @return the locked or unlocked icon material name
    */
-  public String getIconForState(boolean unlocked) {
+  @Contract(pure = true)
+  public @NotNull String getIconForState(boolean unlocked) {
     return unlocked ? unlockedIcon : icon;
   }
 
@@ -78,8 +84,8 @@ public record UpgradeNode(
    * @param unlocked true if the node is unlocked
    * @return the item model namespace:key (null if none)
    */
-  @Nullable
-  public String getItemModelForState(boolean unlocked) {
+  @Contract(pure = true)
+  public @Nullable String getItemModelForState(boolean unlocked) {
     return unlocked ? unlockedItemModel : itemModel;
   }
 }

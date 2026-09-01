@@ -1,6 +1,7 @@
 package dev.mintychochip.paper.event;
 
 import dev.mintychochip.Job;
+import dev.mintychochip.PlayerJobState;
 import dev.mintychochip.event.JobJoinEvent;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
@@ -30,12 +31,12 @@ public final class BukkitJobJoinEvent extends Event {
     return pure;
   }
 
-  public Job getJob() {
+  public @NotNull Job getJob() {
     return pure.getJob();
   }
 
-  public int getLevel() {
-    return pure.getLevel();
+  public @NotNull PlayerJobState getPlayerJobState() {
+    return pure.getPlayerJobState();
   }
 
   public boolean isRejoin() {
@@ -47,7 +48,7 @@ public final class BukkitJobJoinEvent extends Event {
     return HANDLERS;
   }
 
-  public static HandlerList getHandlerList() {
+  public static @NotNull HandlerList getHandlerList() {
     return HANDLERS;
   }
 }

@@ -1,7 +1,7 @@
 package dev.mintychochip.paper.event;
 
 import dev.mintychochip.Job;
-import dev.mintychochip.JobProgression;
+import dev.mintychochip.PlayerJobState;
 import dev.mintychochip.event.JobExperienceGainEvent;
 import java.math.BigDecimal;
 import org.bukkit.entity.Player;
@@ -36,20 +36,20 @@ public final class BukkitJobExperienceGainEvent extends Event implements Cancell
     return pure;
   }
 
-  public Job getJob() {
+  public @NotNull Job getJob() {
     return pure.getJob();
   }
 
-  public JobProgression getProgression() {
-    return pure.getProgression();
+  public @NotNull PlayerJobState getPlayerJobState() {
+    return pure.getPlayerJobState();
   }
 
-  public BigDecimal getExperienceGained() {
+  public @NotNull BigDecimal getExperienceGained() {
     return pure.getExperienceGained();
   }
 
   /** Sets the experience gained. */
-  public void setExperienceGained(BigDecimal experienceGained) {
+  public void setExperienceGained(@NotNull BigDecimal experienceGained) {
     pure.setExperienceGained(experienceGained);
   }
 
@@ -68,7 +68,7 @@ public final class BukkitJobExperienceGainEvent extends Event implements Cancell
     return HANDLERS;
   }
 
-  public static HandlerList getHandlerList() {
+  public static @NotNull HandlerList getHandlerList() {
     return HANDLERS;
   }
 }

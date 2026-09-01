@@ -8,7 +8,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Supported store for ModularJobs. MySQL only — schema is applied out-of-band ({@code
@@ -20,7 +22,7 @@ public enum DatabaseType {
   @NotNull private final String identifier;
   private final String className;
 
-  DatabaseType(@NotNull String identifier, String className) {
+  DatabaseType(@NotNull String identifier, @NotNull String className) {
     this.identifier = identifier;
     this.className = className;
   }
@@ -29,7 +31,7 @@ public enum DatabaseType {
     return identifier;
   }
 
-  public String getClassName() {
+  public @NotNull String getClassName() {
     return className;
   }
 
@@ -40,7 +42,7 @@ public enum DatabaseType {
    * comment lines such as {@code -- Apply out-of-band; the plugin never runs DDL.} do not create
    * partial statements.
    */
-  public String[] getSqlTables() {
+  public @NotNull String[] getSqlTables() {
     try (InputStream resourceStream =
             ResourceExtractor.getResourceStream(String.format("sql/%s.sql", identifier));
         BufferedReader reader =
@@ -56,7 +58,8 @@ public enum DatabaseType {
    * Splits SQL on statement terminators ({@code ;}) while respecting single-line comments ({@code
    * --}), block comments ({@code /* * /}), and single/double-quoted string literals.
    */
-  private static String[] splitStatements(String sql) {
+  @NotNull
+  static String[] splitStatements(@NotNull String sql) {
     List<String> statements = new ArrayList<>();
     StringBuilder current = new StringBuilder();
     boolean inSingleQuote = false;
@@ -153,7 +156,8 @@ public enum DatabaseType {
    *
    * @throws IllegalArgumentException if identifier is not {@code mysql}
    */
-  public static DatabaseType fromIdentifier(String identifier) {
+  @Contract(value = "null -> !null", pure = true)
+  public static @NotNull DatabaseType fromIdentifier(@Nullable String identifier) {
     if (identifier == null || identifier.isBlank()) {
       return getDefault();
     }
@@ -168,7 +172,8 @@ public enum DatabaseType {
             + "Provision schema with scripts/apply-mysql-schema.sh");
   }
 
-  public static DatabaseType getDefault() {
+  @Contract(pure = true)
+  public static @NotNull DatabaseType getDefault() {
     return MYSQL;
   }
 }

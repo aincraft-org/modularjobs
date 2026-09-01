@@ -19,6 +19,7 @@ public interface RegistryContainer {
    *
    * @return the bridge's registry container
    */
+  @NotNull
   static RegistryContainer registryContainer() {
     return Bridge.bridge().registryContainer();
   }
@@ -29,7 +30,7 @@ public interface RegistryContainer {
    * @param key the registry key; must not be {@code null}
    * @return {@code true} if a registry is registered under the key, {@code false} otherwise
    */
-  <T> boolean hasRegistry(RegistryKey<T> key);
+  <T> boolean hasRegistry(@NotNull RegistryKey<T> key);
 
   /**
    * Returns the read-only view of the registry identified by the given key.
@@ -38,8 +39,7 @@ public interface RegistryContainer {
    * @return the registry view
    * @throws IllegalArgumentException if no registry exists under the key
    */
-  @NotNull
-  <T> RegistryView<T> getRegistry(RegistryKey<T> key);
+  <T> @NotNull RegistryView<T> getRegistry(@NotNull RegistryKey<T> key);
 
   /**
    * Applies the given consumer to the mutable registry identified by the given key.
@@ -52,5 +52,6 @@ public interface RegistryContainer {
    *     null}
    * @throws IllegalArgumentException if no registry exists under the key
    */
-  <T extends Keyed> void editRegistry(RegistryKey<T> key, Consumer<Registry<T>> registryConsumer);
+  <T extends Keyed> void editRegistry(
+      @NotNull RegistryKey<T> key, @NotNull Consumer<Registry<T>> registryConsumer);
 }

@@ -12,6 +12,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import net.kyori.adventure.key.Key;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 import org.mockbukkit.mockbukkit.MockBukkit;
 import org.mockbukkit.mockbukkit.ServerMock;
@@ -78,35 +79,35 @@ class RecipeUnlockEffectApplierTest {
     final Set<Key> granted = new HashSet<>();
 
     @Override
-    public boolean knows(UUID playerId, Key recipeId) {
+    public boolean knows(@NotNull UUID playerId, @NotNull Key recipeId) {
       return granted.contains(recipeId);
     }
 
     @Override
-    public void grant(UUID playerId, Key recipeId) {
+    public void grant(@NotNull UUID playerId, @NotNull Key recipeId) {
       granted.add(recipeId);
     }
 
     @Override
-    public void revoke(UUID playerId, Key recipeId) {
+    public void revoke(@NotNull UUID playerId, @NotNull Key recipeId) {
       granted.remove(recipeId);
     }
 
     @Override
-    public Set<Key> knownRecipes(UUID playerId) {
+    public @NotNull Set<Key> knownRecipes(@NotNull UUID playerId) {
       return Set.copyOf(granted);
     }
 
     @Override
-    public void registerDefinition(RecipeDefinition definition) {}
+    public void registerDefinition(@NotNull RecipeDefinition definition) {}
 
     @Override
-    public Optional<RecipeDefinition> definition(Key recipeId) {
+    public @NotNull Optional<RecipeDefinition> definition(@NotNull Key recipeId) {
       return Optional.empty();
     }
 
     @Override
-    public boolean canCraft(UUID playerId, Key recipeId, int professionLevel) {
+    public boolean canCraft(@NotNull UUID playerId, @NotNull Key recipeId, int professionLevel) {
       return knows(playerId, recipeId);
     }
   }

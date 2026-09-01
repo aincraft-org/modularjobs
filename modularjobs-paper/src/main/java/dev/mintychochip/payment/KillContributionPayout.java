@@ -23,7 +23,7 @@ public final class KillContributionPayout {
    *
    * @return players with normalized contribution above cutoff and not blocked by eligibility
    */
-  public static List<Player> selectPayees(
+  public static @NotNull List<Player> selectPayees(
       @NotNull DamageContribution damageContribution,
       double cutoff,
       @NotNull PaymentEligibility eligibility) {

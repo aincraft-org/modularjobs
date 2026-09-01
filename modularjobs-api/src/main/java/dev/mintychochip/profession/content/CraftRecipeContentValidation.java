@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import net.kyori.adventure.key.Key;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -18,6 +19,7 @@ public final class CraftRecipeContentValidation {
   private CraftRecipeContentValidation() {}
 
   /** Finds craft tasks without recipe metadata and registered recipes without craft pay tasks. */
+  @Contract(pure = true)
   public static @NotNull CraftRecipeValidationReport validate(
       @NotNull List<CraftTaskSnapshot> craftTasks,
       @NotNull List<RegisteredRecipeSnapshot> recipes) {
@@ -38,11 +40,11 @@ public final class CraftRecipeContentValidation {
       }
       tasksWithoutRecipe.add(
           new CraftTaskWithoutRecipeFinding(
-              task.jobKey(),
+              task.nodeKey(),
               task.contextKey(),
               task.outputKey(),
               "Craft task "
-                  + task.jobKey().asString()
+                  + task.nodeKey().asString()
                   + " / "
                   + task.contextKey().asString()
                   + " has no entry in recipes.yml for output "

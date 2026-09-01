@@ -30,22 +30,23 @@ public final class PlayerChunkExplorationService {
    *
    * @return true when this player's UUID is recorded as having explored {@code chunk}
    */
-  public boolean hasExplored(OfflinePlayer player, Chunk chunk) {
+  public boolean hasExplored(@NotNull OfflinePlayer player, @NotNull Chunk chunk) {
     PersistentChunkData data = chunk.getPersistentDataContainer().get(CHUNK_KEY, DATA_TYPE);
     return data != null && data.getPlayers().contains(player.getUniqueId());
   }
 
   /** Records that {@code player} explored {@code chunk}. */
-  public void addExploration(OfflinePlayer player, Chunk chunk) {
+  public void addExploration(@NotNull OfflinePlayer player, @NotNull Chunk chunk) {
     updateData(chunk, data -> data.getPlayers().add(player.getUniqueId()));
   }
 
   /** Forgets that {@code player} explored {@code chunk}, removing the tag when no one remains. */
-  public void removeExploration(OfflinePlayer player, Chunk chunk) {
+  public void removeExploration(@NotNull OfflinePlayer player, @NotNull Chunk chunk) {
     updateData(chunk, data -> data.getPlayers().remove(player.getUniqueId()));
   }
 
-  private void updateData(Chunk chunk, Function<PersistentChunkData, Boolean> mutator) {
+  private void updateData(
+      @NotNull Chunk chunk, @NotNull Function<PersistentChunkData, Boolean> mutator) {
     PersistentDataContainer pdc = chunk.getPersistentDataContainer();
     PersistentChunkData data = pdc.get(CHUNK_KEY, DATA_TYPE);
 
@@ -68,12 +69,13 @@ public final class PlayerChunkExplorationService {
 
     private final Set<UUID> players = new HashSet<>();
 
+    @NotNull
     Set<UUID> getPlayers() {
       return players;
     }
 
     @Override
-    public String toString() {
+    public @NotNull String toString() {
       return "PersistentChunkData[players=" + players + "]";
     }
   }

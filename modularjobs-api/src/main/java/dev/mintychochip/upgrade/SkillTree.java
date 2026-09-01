@@ -10,7 +10,9 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.key.Keyed;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Immutable skill graph for one base job. Children are derived from each node's prerequisites;
@@ -19,7 +21,7 @@ import org.jetbrains.annotations.NotNull;
 public record SkillTree(
     @NotNull Key key,
     @NotNull String jobKey,
-    String description,
+    @Nullable String description,
     int skillPointsPerLevel,
     @NotNull String rootNodeKey,
     @NotNull Map<String, SkillNode> nodeMap)
@@ -31,16 +33,19 @@ public record SkillTree(
   }
 
   /** Node. */
+  @Contract(pure = true)
   public @NotNull Optional<SkillNode> node(@NotNull String nodeKey) {
     return Optional.ofNullable(nodeMap.get(nodeKey));
   }
 
   /** Nodes. */
+  @Contract(pure = true)
   public @NotNull Collection<SkillNode> nodes() {
     return nodeMap.values();
   }
 
   /** Children derived from prerequisites: nodes whose prerequisites include this node's key. */
+  @Contract(pure = true)
   public @NotNull Collection<SkillNode> children(@NotNull SkillNode node) {
     String nodeKey = node.key().value();
     return nodeMap.values().stream()
@@ -49,6 +54,7 @@ public record SkillTree(
   }
 
   /** Node keys that conflict with {@code nodeKey} (both directions). */
+  @Contract(pure = true)
   public @NotNull Set<String> symmetricExcludes(@NotNull String nodeKey) {
     Set<String> result = new HashSet<>();
     for (SkillNode node : nodeMap.values()) {
@@ -64,6 +70,7 @@ public record SkillTree(
   }
 
   /** Points already spent: per-level costs plus one-time major costs. */
+  @Contract(pure = true)
   public int spentPoints(@NotNull SkillTreeState state) {
     int spent = 0;
     for (Map.Entry<String, Integer> entry : state.nodeLevels().entrySet()) {
@@ -84,11 +91,13 @@ public record SkillTree(
   }
 
   /** Available points. */
+  @Contract(pure = true)
   public int availablePoints(@NotNull SkillTreeState state) {
     return state.totalSkillPoints() - spentPoints(state);
   }
 
   /** Nodes a player can currently purchase (next skill level or whole major). */
+  @Contract(pure = true)
   public @NotNull Set<SkillNode> availableNodes(@NotNull SkillTreeState state) {
     Set<SkillNode> result = new HashSet<>();
     for (SkillNode node : nodeMap.values()) {
@@ -100,6 +109,7 @@ public record SkillTree(
   }
 
   /** Full purchase gate: requirements, prereqs, excludes, ownership, and cost. */
+  @Contract(pure = true)
   public boolean canPurchase(@NotNull SkillTreeState state, @NotNull String nodeKey) {
     SkillNode node = nodeMap.get(nodeKey);
     if (node == null) {

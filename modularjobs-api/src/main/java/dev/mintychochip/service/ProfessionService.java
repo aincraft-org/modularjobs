@@ -8,7 +8,7 @@ import java.util.OptionalInt;
 import java.util.UUID;
 import org.jetbrains.annotations.NotNull;
 
-/** Public profession API over job progression and catalog. */
+/** Public profession API over the job catalog and player job state. */
 public interface ProfessionService {
 
   /** Built-in tracks in catalog order. */
@@ -16,7 +16,8 @@ public interface ProfessionService {
   List<ProfessionDefinition> tracks();
 
   /** Resolve. */
-  Optional<ProfessionDefinition> resolve(String idOrAlias);
+  @NotNull
+  Optional<ProfessionDefinition> resolve(@NotNull String idOrAlias);
 
   /** Level. */
   OptionalInt level(@NotNull UUID playerId, @NotNull String professionIdOrAlias);
@@ -25,7 +26,7 @@ public interface ProfessionService {
   Optional<BigDecimal> experience(@NotNull UUID playerId, @NotNull String professionIdOrAlias);
 
   /**
-   * Ensure the player has a progression row for this profession (join if missing).
+   * Ensure the player has a state row for this profession's job tree (join if missing).
    *
    * @return true if joined or already present
    */

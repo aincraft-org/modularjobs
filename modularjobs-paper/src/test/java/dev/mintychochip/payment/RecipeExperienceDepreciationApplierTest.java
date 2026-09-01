@@ -16,6 +16,8 @@ import java.util.OptionalInt;
 import java.util.Set;
 import java.util.UUID;
 import net.kyori.adventure.key.Key;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 
 class RecipeExperienceDepreciationApplierTest {
@@ -36,7 +38,7 @@ class RecipeExperienceDepreciationApplierTest {
 
     BigDecimal scaled =
         applier.scaleCraftExperience(
-            PLAYER, new Context.ItemContext("minecraft:iron_sword", 1), new BigDecimal("100"));
+            PLAYER, new Context.ItemContext(OUTPUT, 1), new BigDecimal("100"));
 
     assertEquals(OUTPUT, recipes.lastCraftOutputLookup());
     assertEquals(0, new BigDecimal("50").compareTo(scaled));
@@ -54,8 +56,7 @@ class RecipeExperienceDepreciationApplierTest {
 
     BigDecimal amount = new BigDecimal("100");
     BigDecimal scaled =
-        applier.scaleCraftExperience(
-            PLAYER, new Context.ItemContext("minecraft:iron_sword", 1), amount);
+        applier.scaleCraftExperience(PLAYER, new Context.ItemContext(OUTPUT, 1), amount);
 
     assertEquals(OUTPUT, recipes.lastCraftOutputLookup());
     assertEquals(0, amount.compareTo(scaled));
@@ -72,8 +73,7 @@ class RecipeExperienceDepreciationApplierTest {
 
     BigDecimal amount = new BigDecimal("100");
     BigDecimal scaled =
-        applier.scaleCraftExperience(
-            PLAYER, new Context.ItemContext("minecraft:iron_sword", 1), amount);
+        applier.scaleCraftExperience(PLAYER, new Context.ItemContext(OUTPUT, 1), amount);
 
     assertEquals(OUTPUT, recipes.lastCraftOutputLookup());
     assertNull(recipes.lastDefinitionLookup());
@@ -81,7 +81,7 @@ class RecipeExperienceDepreciationApplierTest {
   }
 
   @Test
-  void requestsExactCraftOutputKeyFromMaterialContext() {
+  void requestsExactCraftOutputKeyFromItemContext() {
     RecordingRecipeService recipes = new RecordingRecipeService();
     RecipeExperienceDepreciationApplier applier =
         new RecipeExperienceDepreciationApplier(
@@ -89,8 +89,7 @@ class RecipeExperienceDepreciationApplierTest {
             recipes,
             new RecordingProfessionService(30));
 
-    applier.scaleCraftExperience(
-        PLAYER, new Context.ItemContext("minecraft:iron_sword", 1), new BigDecimal("10"));
+    applier.scaleCraftExperience(PLAYER, new Context.ItemContext(OUTPUT, 1), new BigDecimal("10"));
 
     assertEquals(OUTPUT, recipes.lastCraftOutputLookup());
   }
@@ -102,48 +101,51 @@ class RecipeExperienceDepreciationApplierTest {
     private Key lastDefinitionLookup;
 
     @Override
-    public boolean knows(UUID playerId, Key recipeId) {
+    public boolean knows(@NotNull UUID playerId, @NotNull Key recipeId) {
       return false;
     }
 
     @Override
-    public void grant(UUID playerId, Key recipeId) {}
+    public void grant(@NotNull UUID playerId, @NotNull Key recipeId) {}
 
     @Override
-    public void revoke(UUID playerId, Key recipeId) {}
+    public void revoke(@NotNull UUID playerId, @NotNull Key recipeId) {}
 
     @Override
-    public Set<Key> knownRecipes(UUID playerId) {
+    public @NotNull Set<Key> knownRecipes(@NotNull UUID playerId) {
       return Set.of();
     }
 
     @Override
-    public boolean canCraft(UUID playerId, Key recipeId, int professionLevel) {
+    public boolean canCraft(@NotNull UUID playerId, @NotNull Key recipeId, int professionLevel) {
       return false;
     }
 
     @Override
-    public void registerDefinition(RecipeDefinition definition) {
+    public void registerDefinition(@NotNull RecipeDefinition definition) {
       byId.put(definition.id(), definition);
       byCraftOutput.put(definition.craftOutputKey(), definition);
     }
 
     @Override
-    public Optional<RecipeDefinition> definition(Key recipeId) {
+    public @NotNull Optional<RecipeDefinition> definition(@NotNull Key recipeId) {
       lastDefinitionLookup = recipeId;
       return Optional.ofNullable(byId.get(recipeId));
     }
 
     @Override
-    public Optional<RecipeDefinition> definitionForCraftOutput(Key outputMaterialKey) {
+    public @NotNull Optional<RecipeDefinition> definitionForCraftOutput(
+        @NotNull Key outputMaterialKey) {
       lastCraftOutputLookup = outputMaterialKey;
       return Optional.ofNullable(byCraftOutput.get(outputMaterialKey));
     }
 
+    @Nullable
     Key lastCraftOutputLookup() {
       return lastCraftOutputLookup;
     }
 
+    @Nullable
     Key lastDefinitionLookup() {
       return lastDefinitionLookup;
     }
@@ -157,27 +159,29 @@ class RecipeExperienceDepreciationApplierTest {
     }
 
     @Override
-    public java.util.List<dev.mintychochip.profession.ProfessionDefinition> tracks() {
+    public @NotNull java.util.List<dev.mintychochip.profession.ProfessionDefinition> tracks() {
       return java.util.List.of();
     }
 
     @Override
-    public Optional<dev.mintychochip.profession.ProfessionDefinition> resolve(String idOrAlias) {
+    public @NotNull Optional<dev.mintychochip.profession.ProfessionDefinition> resolve(
+        @NotNull String idOrAlias) {
       return Optional.empty();
     }
 
     @Override
-    public OptionalInt level(UUID playerId, String professionIdOrAlias) {
+    public @NotNull OptionalInt level(@NotNull UUID playerId, @NotNull String professionIdOrAlias) {
       return OptionalInt.of(level);
     }
 
     @Override
-    public Optional<BigDecimal> experience(UUID playerId, String professionIdOrAlias) {
+    public @NotNull Optional<BigDecimal> experience(
+        @NotNull UUID playerId, @NotNull String professionIdOrAlias) {
       return Optional.empty();
     }
 
     @Override
-    public boolean ensureTrack(UUID playerId, String professionIdOrAlias) {
+    public boolean ensureTrack(@NotNull UUID playerId, @NotNull String professionIdOrAlias) {
       return false;
     }
   }

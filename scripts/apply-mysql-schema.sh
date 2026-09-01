@@ -40,7 +40,7 @@ if command -v mysql >/dev/null 2>&1; then
 elif command -v docker >/dev/null 2>&1; then
   docker run --rm --network host \
     -e MYSQL_PWD="${DB_PASSWORD}" \
-    -v "${SCHEMA}:/schema.sql:ro" mysql:8 \
+    -v "${SCHEMA}:/schema.sql:ro,Z" mysql:8 \
     sh -c 'mysql --protocol=TCP --host="$1" --port="$2" --user="$3" "$4" < /schema.sql' \
     sh "${DB_HOST}" "${DB_PORT}" "${DB_USER}" "${DB_NAME}"
 else

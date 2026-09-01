@@ -10,19 +10,22 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import net.kyori.adventure.key.Key;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 
 class SkillTreeTest {
 
-  private static SkillNode node(
-      String jobKey,
-      String nodeKey,
-      SkillNodeKind kind,
+  @Contract(pure = true)
+  private static @NotNull SkillNode node(
+      @NotNull String jobKey,
+      @NotNull String nodeKey,
+      @NotNull SkillNodeKind kind,
       int cost,
-      List<NodeLevel> levels,
-      List<Requirement> requirements,
-      Set<String> prerequisites,
-      Set<String> excludes) {
+      @NotNull List<NodeLevel> levels,
+      @NotNull List<Requirement> requirements,
+      @NotNull Set<String> prerequisites,
+      @NotNull Set<String> excludes) {
     return new SkillNode(
         Key.key(jobKey, nodeKey),
         nodeKey,
@@ -45,7 +48,8 @@ class SkillTreeTest {
         List.of());
   }
 
-  private static SkillTree minerTree() {
+  @Contract(pure = true)
+  private static @NotNull SkillTree minerTree() {
     SkillNode root =
         node("miner", "root", SkillNodeKind.ROOT, 0, List.of(), List.of(), Set.of(), Set.of());
     SkillNode efficiency =

@@ -16,6 +16,7 @@ import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BossBar;
 import org.bukkit.scoreboard.Objective;
 import org.bukkit.scoreboard.Scoreboard;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -55,7 +56,9 @@ class PaperSurfacesTest {
     Map<?, ?> scores = objectiveScores(objective);
     assertEquals(15, scores.size());
     assertTrue(scores.keySet().stream().noneMatch(key -> ((String) key).isBlank()));
-    assertTrue(scores.keySet().stream().filter(key -> ((String) key).startsWith("duplicate")).count() == 2);
+    assertTrue(
+        scores.keySet().stream().filter(key -> ((String) key).startsWith("duplicate")).count()
+            == 2);
   }
 
   @Test
@@ -127,28 +130,30 @@ class PaperSurfacesTest {
   }
 
   @SuppressWarnings("unchecked")
-  private static Map<?, ?> objectiveScores(Objective objective) throws Exception {
+  private static @NotNull Map<?, ?> objectiveScores(@NotNull Objective objective) throws Exception {
     Field field = objective.getClass().getDeclaredField("scores");
     field.setAccessible(true);
     return (Map<?, ?>) field.get(objective);
   }
 
   @SuppressWarnings("unchecked")
-  private static Map<String, BossBar> bossBars(PaperSurfaces surfaces) throws Exception {
+  private static @NotNull Map<String, BossBar> bossBars(@NotNull PaperSurfaces surfaces)
+      throws Exception {
     Field field = PaperSurfaces.class.getDeclaredField("bossBars");
     field.setAccessible(true);
     return (Map<String, BossBar>) field.get(surfaces);
   }
 
   @SuppressWarnings("unchecked")
-  private static Map<UUID, Scoreboard> activeScoreboards(PaperSurfaces surfaces) throws Exception {
+  private static @NotNull Map<UUID, Scoreboard> activeScoreboards(@NotNull PaperSurfaces surfaces)
+      throws Exception {
     Field field = PaperSurfaces.class.getDeclaredField("activeScoreboards");
     field.setAccessible(true);
     return (Map<UUID, Scoreboard>) field.get(surfaces);
   }
 
   @SuppressWarnings("unchecked")
-  private static Map<UUID, Scoreboard> previousScoreboards(PaperSurfaces surfaces)
+  private static @NotNull Map<UUID, Scoreboard> previousScoreboards(@NotNull PaperSurfaces surfaces)
       throws Exception {
     Field field = PaperSurfaces.class.getDeclaredField("previousScoreboards");
     field.setAccessible(true);

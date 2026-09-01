@@ -19,7 +19,7 @@ public class PreferencesServiceImpl implements PreferencesService {
   private static final boolean DEFAULT_GUI_MODE = true;
 
   /** Preferences service impl. */
-  public PreferencesServiceImpl(JavaPlugin plugin) {
+  public PreferencesServiceImpl(@NotNull JavaPlugin plugin) {
     this.plugin = plugin;
   }
 

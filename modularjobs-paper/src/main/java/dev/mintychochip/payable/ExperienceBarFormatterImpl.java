@@ -1,6 +1,6 @@
 package dev.mintychochip.payable;
 
-import dev.mintychochip.JobProgressionView;
+import dev.mintychochip.PlayerJobState;
 import dev.mintychochip.container.ExperiencePayableHandler;
 import dev.mintychochip.container.ExperiencePayableHandler.ExperienceBarFormatter;
 import java.math.BigDecimal;
@@ -13,6 +13,7 @@ import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.ApiStatus.Internal;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -29,18 +30,18 @@ public final class ExperienceBarFormatterImpl implements ExperienceBarFormatter 
 
   private final NameFormatter formatter = new NameFormatter();
 
-  ExperienceBarFormatterImpl(ExperienceBarColorProvider colorProvider) {
+  ExperienceBarFormatterImpl(@NotNull ExperienceBarColorProvider colorProvider) {
     this.colorProvider = colorProvider;
   }
 
   @Override
-  public BossBar format(
+  public @NotNull BossBar format(
       @NotNull BossBar bossBar, @NotNull ExperiencePayableHandler.ExperienceBarContext context) {
     Player player = Bukkit.getPlayer(context.playerId());
     BossBar.Color color = player != null ? colorProvider.getColor(player) : BossBar.Color.GREEN;
     return bossBar
         .name(formatter.format(context))
-        .progress(progress(context.progression()))
+        .progress(progress(context.jobState()))
         .color(color)
         .overlay(overlay);
   }
@@ -51,25 +52,26 @@ public final class ExperienceBarFormatterImpl implements ExperienceBarFormatter 
   }
 
   /**
-   * Computes the bar progress fraction as the position of the progression's current experience
-   * within its current level band, clamped to {@code 0..1}.
+   * Computes the bar progress fraction as the position of the state's current experience within its
+   * current level band, clamped to {@code 0..1}.
    *
-   * @param progression the progression view to measure
+   * @param state the player state to measure
    * @return a float in {@code [0,1]} representing progress toward the next level
    */
   @Internal
-  private static float progress(JobProgressionView progression) {
-    int level = progression.level();
+  @Contract(pure = true)
+  private static float progress(@NotNull PlayerJobState state) {
+    int level = state.level();
 
-    double currentRequired = progression.experienceForLevel(level).doubleValue();
-    double nextRequired = progression.experienceForLevel(level + 1).doubleValue();
+    double currentRequired = state.experienceForLevel(level).doubleValue();
+    double nextRequired = state.experienceForLevel(level + 1).doubleValue();
     double needed = nextRequired - currentRequired;
 
     if (needed <= 0.0) {
       return 1.0f;
     }
 
-    double xp = progression.experience().doubleValue();
+    double xp = state.experience().doubleValue();
     double ratio = (xp - currentRequired) / needed;
 
     if (ratio < 0.0) {
@@ -78,7 +80,7 @@ public final class ExperienceBarFormatterImpl implements ExperienceBarFormatter 
     return Math.min((float) ratio, 1.0f);
   }
 
-  /** Renders the boss bar name from a progression context using {@link MiniMessage}. */
+  /** Renders the boss bar name from a player job state context using {@link MiniMessage}. */
   private static final class NameFormatter {
 
     private static final String FORMAT = "Lvl. <level> <job-name>: <xp>/<total-xp> xp (<payable>)";
@@ -86,25 +88,25 @@ public final class ExperienceBarFormatterImpl implements ExperienceBarFormatter 
 
     /** Deserializes the level/job/xp/payable name template against the given context. */
     @NotNull
+    @Contract(pure = true)
     Component format(@NotNull ExperiencePayableHandler.ExperienceBarContext context) {
-      JobProgressionView progression = context.progression();
-      int level = progression.level();
-      BigDecimal experienceForNext = progression.experienceForLevel(level + 1);
+      PlayerJobState state = context.jobState();
+      int level = state.level();
+      BigDecimal experienceForNext = state.experienceForLevel(level + 1);
       return MINI_MESSAGE.deserialize(
           FORMAT,
           TagResolver.builder()
               .tag("level", Tag.inserting(Component.text(level)))
-              .tag(
-                  "job-name",
-                  Tag.inserting(Component.empty().append(progression.job().displayName())))
-              .tag("xp", Tag.inserting(Component.text(progression.experience().doubleValue())))
+              .tag("job-name", Tag.inserting(Component.empty().append(state.job().displayName())))
+              .tag("xp", Tag.inserting(Component.text(state.experience().doubleValue())))
               .tag("total-xp", Tag.inserting(Component.text(experienceForNext.doubleValue())))
               .tag("payable", Tag.inserting(payableComponent(context.amount())))
               .build());
     }
 
     /** Formats a payable amount as a signed text component (e.g. {@code +12.5}). */
-    private static Component payableComponent(BigDecimal amount) {
+    @Contract(pure = true)
+    private static @NotNull Component payableComponent(@NotNull BigDecimal amount) {
       double value = amount.doubleValue();
       Component component = Component.empty();
       if (value > 0.0) {

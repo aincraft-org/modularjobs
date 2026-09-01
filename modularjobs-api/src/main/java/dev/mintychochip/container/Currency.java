@@ -1,5 +1,8 @@
 package dev.mintychochip.container;
 
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
+
 /** Represents a currency for payable amounts. Extensible for custom currencies via plugins. */
 public interface Currency {
 
@@ -13,16 +16,16 @@ public interface Currency {
    * Creates a new currency with the given identifier and symbol. Use this for custom currencies in
    * plugins.
    */
-  static Currency of(String identifier, String symbol) {
+  @Contract(pure = true)
+  static @NotNull Currency of(@NotNull String identifier, @NotNull String symbol) {
     return new CurrencyImpl(identifier, symbol);
   }
 
   /** Identifier. */
+  @NotNull
   String identifier();
 
   /** Symbol. */
+  @NotNull
   String symbol();
-
-  /** Default implementation for standard and custom currencies. */
-  record CurrencyImpl(String identifier, String symbol) implements Currency {}
 }

@@ -1,6 +1,8 @@
 package dev.mintychochip.profession;
 
+import java.util.Locale;
 import net.kyori.adventure.key.Key;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -27,7 +29,7 @@ public record RecipeDefinition(
     if (tier < 1 || tier > 5) {
       throw new IllegalArgumentException("tier must be 1–5");
     }
-    professionId = professionId.toLowerCase();
+    professionId = professionId.toLowerCase(Locale.ROOT);
   }
 
   /** Backward-compatible constructor when the recipe id matches the crafted output. */
@@ -37,6 +39,7 @@ public record RecipeDefinition(
   }
 
   /** Key used to resolve this recipe from a crafted item stack. */
+  @Contract(pure = true)
   public @NotNull Key craftOutputKey() {
     return outputKey;
   }

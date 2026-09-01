@@ -2,6 +2,7 @@ package dev.mintychochip.common.editor;
 
 import com.google.gson.annotations.SerializedName;
 import java.util.List;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -21,7 +22,9 @@ public record JobData(
    * @param tasks list of tasks for this job
    * @return new job data instance
    */
-  public static JobData create(@NotNull String displayName, @NotNull List<TaskData> tasks) {
+  @Contract(pure = true)
+  public static @NotNull JobData create(
+      @NotNull String displayName, @NotNull List<TaskData> tasks) {
     return new JobData(displayName, tasks);
   }
 }

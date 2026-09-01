@@ -1,6 +1,7 @@
 package dev.mintychochip.paper.event;
 
 import dev.mintychochip.Job;
+import dev.mintychochip.PlayerJobState;
 import dev.mintychochip.event.JobLeaveEvent;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
@@ -30,12 +31,12 @@ public final class BukkitJobLeaveEvent extends Event {
     return pure;
   }
 
-  public Job getJob() {
+  public @NotNull Job getJob() {
     return pure.getJob();
   }
 
-  public int getFinalLevel() {
-    return pure.getFinalLevel();
+  public @NotNull PlayerJobState getPlayerJobState() {
+    return pure.getPlayerJobState();
   }
 
   @Override
@@ -43,7 +44,7 @@ public final class BukkitJobLeaveEvent extends Event {
     return HANDLERS;
   }
 
-  public static HandlerList getHandlerList() {
+  public static @NotNull HandlerList getHandlerList() {
     return HANDLERS;
   }
 }

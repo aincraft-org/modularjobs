@@ -4,6 +4,8 @@ import java.util.Optional;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.RegisteredServiceProvider;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.popcraft.bolt.BoltAPI;
 
 /**
@@ -13,7 +15,7 @@ import org.popcraft.bolt.BoltAPI;
 public final class BlockProtectionAdapterProvider {
 
   /** Creates an adapter backed by an installed Bolt service, or null when absent. */
-  public static BlockProtectionAdapter create() {
+  public static @Nullable BlockProtectionAdapter create() {
     return new BlockProtectionAdapterProvider().get();
   }
 
@@ -21,6 +23,7 @@ public final class BlockProtectionAdapterProvider {
    * Returns a Bolt-backed adapter when the Bolt plugin is enabled and registered as a
    * services-manager provider; otherwise returns null.
    */
+  @Nullable
   BlockProtectionAdapter get() {
     Plugin boltPlugin = Bukkit.getPluginManager().getPlugin("Bolt");
     if (boltPlugin != null && boltPlugin.isEnabled()) {
@@ -38,7 +41,7 @@ public final class BlockProtectionAdapterProvider {
    * Builds a Bolt-backed {@link BlockProtectionAdapter} resolving the owner of each block's
    * protection, or empty when no protection exists.
    */
-  public static BlockProtectionAdapter boltAdapter(BoltAPI bolt) {
+  public static @NotNull BlockProtectionAdapter boltAdapter(@NotNull BoltAPI bolt) {
     return block -> {
       org.popcraft.bolt.protection.Protection protection = bolt.findProtection(block);
       return Optional.ofNullable(protection.getOwner());

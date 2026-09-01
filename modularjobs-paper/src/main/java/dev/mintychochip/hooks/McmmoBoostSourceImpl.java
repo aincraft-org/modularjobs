@@ -6,9 +6,8 @@ import com.gmail.nossr50.events.skills.abilities.McMMOPlayerAbilityDeactivateEve
 import dev.mintychochip.container.Boost;
 import dev.mintychochip.container.BoostContext;
 import dev.mintychochip.container.BoostSource;
-import dev.mintychochip.container.MemoryStoreImpl;
-import dev.mintychochip.container.Store;
 import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -28,37 +27,38 @@ import org.jetbrains.annotations.NotNull;
  */
 public class McmmoBoostSourceImpl implements BoostSource {
 
-  private final Store<UUID, SuperAbilityType> store;
+  private final Map<UUID, SuperAbilityType> activeAbilities;
 
   private final Map<SuperAbilityType, BigDecimal> boostAmounts;
 
   /**
-   * Creates a source backed by the supplied active-ability store and boost amounts.
+   * Creates a source backed by the supplied active-ability map and boost amounts.
    *
-   * @param store store containing each tracked player's active super ability
+   * @param activeAbilities map containing each tracked player's active super ability
    * @param boostAmounts configured multiplicative boost amount for each super ability
    */
   public McmmoBoostSourceImpl(
-      Store<UUID, SuperAbilityType> store, Map<SuperAbilityType, BigDecimal> boostAmounts) {
-    this.store = store;
+      @NotNull Map<UUID, SuperAbilityType> activeAbilities,
+      @NotNull Map<SuperAbilityType, BigDecimal> boostAmounts) {
+    this.activeAbilities = activeAbilities;
     this.boostAmounts = boostAmounts;
   }
 
   /**
    * Creates and registers a McMMO boost source.
    *
-   * <p>The source uses an in-memory store and registers a controller with the supplied plugin to
+   * <p>The source uses an in-memory map and registers a controller with the supplied plugin to
    * track McMMO ability activation and deactivation events.
    *
    * @param plugin plugin with which the event controller is registered
    * @param boostAmounts configured multiplicative boost amount for each super ability
    * @return a source that evaluates boosts for currently active McMMO abilities
    */
-  public static McmmoBoostSourceImpl create(
-      Plugin plugin, Map<SuperAbilityType, BigDecimal> boostAmounts) {
-    Store<UUID, SuperAbilityType> store = new MemoryStoreImpl<>();
-    Bukkit.getPluginManager().registerEvents(new McmmoController(store), plugin);
-    return new McmmoBoostSourceImpl(store, boostAmounts);
+  public static @NotNull McmmoBoostSourceImpl create(
+      @NotNull Plugin plugin, @NotNull Map<SuperAbilityType, BigDecimal> boostAmounts) {
+    Map<UUID, SuperAbilityType> activeAbilities = new HashMap<>();
+    Bukkit.getPluginManager().registerEvents(new McmmoController(activeAbilities), plugin);
+    return new McmmoBoostSourceImpl(activeAbilities, boostAmounts);
   }
 
   /**
@@ -71,12 +71,12 @@ public class McmmoBoostSourceImpl implements BoostSource {
    * @return an empty list or a single configured multiplicative boost
    */
   @Override
-  public @NotNull List<Boost> evaluate(BoostContext context) {
+  public @NotNull List<Boost> evaluate(@NotNull BoostContext context) {
     UUID playerId = context.playerId();
-    if (!store.contains(playerId)) {
+    if (!activeAbilities.containsKey(playerId)) {
       return List.of();
     }
-    SuperAbilityType type = store.get(playerId);
+    SuperAbilityType type = activeAbilities.get(playerId);
     BigDecimal amount = boostAmounts.get(type);
     if (amount == null) {
       return List.of();
@@ -85,22 +85,23 @@ public class McmmoBoostSourceImpl implements BoostSource {
   }
 
   /**
-   * Listens for McMMO super ability lifecycle events and updates the active-ability store.
+   * Listens for McMMO super ability lifecycle events and updates the active-ability map.
    *
-   * @param store store updated when players activate or deactivate super abilities
+   * @param activeAbilities map updated when players activate or deactivate super abilities
    */
-  public record McmmoController(Store<UUID, SuperAbilityType> store) implements Listener {
+  public record McmmoController(@NotNull Map<UUID, SuperAbilityType> activeAbilities)
+      implements Listener {
 
     /** Stores the ability just activated by the player. */
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onAbilityOn(final McMMOPlayerAbilityActivateEvent event) {
-      store.add(event.getPlayer().getUniqueId(), event.getAbility());
+    public void onAbilityOn(@NotNull final McMMOPlayerAbilityActivateEvent event) {
+      activeAbilities.put(event.getPlayer().getUniqueId(), event.getAbility());
     }
 
     /** Removes the player's active ability on deactivation. */
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onAbilityOff(final McMMOPlayerAbilityDeactivateEvent event) {
-      store.remove(event.getPlayer().getUniqueId());
+    public void onAbilityOff(@NotNull final McMMOPlayerAbilityDeactivateEvent event) {
+      activeAbilities.remove(event.getPlayer().getUniqueId());
     }
   }
 
@@ -120,7 +121,7 @@ public class McmmoBoostSourceImpl implements BoostSource {
    * @return description indicating that boosts are active during McMMO super abilities
    */
   @Override
-  public String description() {
+  public @NotNull String description() {
     return "McMMO super ability boosts - Active during McMMO super abilities";
   }
 }

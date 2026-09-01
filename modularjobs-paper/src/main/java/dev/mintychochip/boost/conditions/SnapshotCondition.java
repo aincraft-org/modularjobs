@@ -2,21 +2,28 @@ package dev.mintychochip.boost.conditions;
 
 import dev.mintychochip.container.BoostContext;
 import dev.mintychochip.container.boost.Condition;
-import dev.mintychochip.databag.ConditionContext;
+import dev.mintychochip.databag.condition.ConditionContext;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 
 /**
- * Adapts a Paper-free {@link dev.mintychochip.databag.Condition} onto the boost {@link Condition}
- * interface by reading {@link BoostContext#conditions()}.
+ * Adapts a Paper-free {@link dev.mintychochip.databag.condition.Condition} onto the boost {@link
+ * Condition} interface by reading {@link BoostContext#conditions()}.
  */
-public record SnapshotCondition(dev.mintychochip.databag.Condition delegate) implements Condition {
+public record SnapshotCondition(@NotNull dev.mintychochip.databag.condition.Condition delegate)
+    implements Condition {
 
   /** Wrap. */
-  public static Condition wrap(dev.mintychochip.databag.Condition delegate) {
+  @Contract(pure = true)
+  public static @NotNull Condition wrap(
+      @NotNull dev.mintychochip.databag.condition.Condition delegate) {
     return new SnapshotCondition(delegate);
   }
 
   /** Unwraps a boost condition to the snapshot graph, wrapping lambdas as snapshot predicates. */
-  public static dev.mintychochip.databag.Condition unwrap(Condition condition) {
+  @Contract(pure = true)
+  public static @NotNull dev.mintychochip.databag.condition.Condition unwrap(
+      @NotNull Condition condition) {
     if (condition instanceof SnapshotCondition snapshot) {
       return snapshot.delegate();
     }
@@ -24,7 +31,8 @@ public record SnapshotCondition(dev.mintychochip.databag.Condition delegate) imp
   }
 
   @Override
-  public boolean applies(BoostContext context) {
+  @Contract(pure = true)
+  public boolean applies(@NotNull BoostContext context) {
     ConditionContext snapshot = context.conditions();
     if (snapshot == null) {
       snapshot = ConditionContext.absent();

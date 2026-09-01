@@ -26,13 +26,13 @@ public final class ExpressionCurves {
           Map<LevelingCurve.Parameters, BigDecimal> memo = new ConcurrentHashMap<>();
           return new LevelingCurve() {
             @Override
-            public BigDecimal evaluate(Parameters params) {
+            public @NotNull BigDecimal evaluate(@NotNull Parameters params) {
               return memo.computeIfAbsent(
                   params, p -> BigDecimal.valueOf(exp.setVariable("level", p.level()).evaluate()));
             }
 
             @Override
-            public String toString() {
+            public @NotNull String toString() {
               return expr;
             }
           };
@@ -48,7 +48,7 @@ public final class ExpressionCurves {
           Map<PayableCurve.Parameters, BigDecimal> memo = new ConcurrentHashMap<>();
           return new PayableCurve() {
             @Override
-            public BigDecimal evaluate(Parameters params) {
+            public @NotNull BigDecimal evaluate(@NotNull Parameters params) {
               return memo.computeIfAbsent(
                   params,
                   p ->
@@ -60,7 +60,7 @@ public final class ExpressionCurves {
             }
 
             @Override
-            public String toString() {
+            public @NotNull String toString() {
               return expr;
             }
           };

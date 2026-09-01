@@ -36,7 +36,7 @@ constructed manually:
 ```
 ModularJobsBootstrap
   └─ PluginContext
-       ├─ DomainWiring        (jobs, progression, tasks, mappers)
+       ├─ DomainWiring        (job trees, player states, node tasks)
        ├─ PayableWiring       (economy provider, payables)
        ├─ PaymentWiring       (boost engine, payment listeners)
        ├─ KeyResolvers        (key → job/task resolution)
@@ -46,12 +46,13 @@ ModularJobsBootstrap
 
 ## Layering
 
-- **Domain layer**: job / JobProgression / JobTask / Payable services with
-  `DomainMapper<Domain, Record>` conversion.
-- **Repository pattern**: `JobRepository`, `JobProgressionRepository`,
-  `TimedBoostRepository`, `UserUpgradeRepository` against MySQL (HikariCP).
-- **Service layer**: `JobService`, `ProgressionService`, `UpgradeService`,
-  `EditorService`.
+- **Domain layer**: complete `Job` trees, `JobNode` definitions,
+  `PlayerJobState` snapshots, node-owned tasks, and payables.
+- **Repository pattern**: config-backed job trees plus
+  `PlayerJobStateRepository`, `RelationalJobTaskRepositoryImpl`,
+  `TimedBoostRepository`, and `PlayerUpgradeRepository`.
+- **Service layer**: `JobService`, `PlayerJobStateService`, `UpgradeService`,
+  and `EditorService`.
 - **Serialization**: Gson JSON; Kryo codecs were removed from the conditions /
   boost path (conditions API owns ser/de).
 - **Commands**: Paper Brigadier, themed text via `dev.mintychochip.util.Messages`.

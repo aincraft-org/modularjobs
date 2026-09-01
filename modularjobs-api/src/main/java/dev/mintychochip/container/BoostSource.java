@@ -28,7 +28,7 @@ public interface BoostSource extends Keyed {
    * @return a list of boosts from this boostSource (never {@code null})
    */
   @NotNull
-  List<Boost> evaluate(BoostContext context);
+  List<Boost> evaluate(@NotNull BoostContext context);
 
   /**
    * Get the description of this boost source.

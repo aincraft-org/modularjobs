@@ -12,6 +12,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.CraftItemEvent;
 import org.bukkit.event.inventory.InventoryType.SlotType;
 import org.bukkit.inventory.ItemStack;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Blocks crafting of registered unknown recipes according to configured profession rules.
@@ -23,7 +24,8 @@ public final class CraftRecipeGateListener implements Listener {
   private final ProfessionService professionService;
 
   /** Creates the gate with the recipe and profession services used to resolve craftability. */
-  public CraftRecipeGateListener(RecipeService recipeService, ProfessionService professionService) {
+  public CraftRecipeGateListener(
+      @NotNull RecipeService recipeService, @NotNull ProfessionService professionService) {
     this.recipeService = recipeService;
     this.professionService = professionService;
   }
@@ -33,7 +35,7 @@ public final class CraftRecipeGateListener implements Listener {
    * permit it. Unregistered recipes are always allowed.
    */
   @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
-  public void onCraft(CraftItemEvent event) {
+  public void onCraft(@NotNull CraftItemEvent event) {
     ItemStack result = event.getCurrentItem();
     if (event.getSlotType() != SlotType.RESULT || result == null || result.getType().isAir()) {
       return;

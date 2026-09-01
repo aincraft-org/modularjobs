@@ -2,6 +2,7 @@ package dev.mintychochip.test;
 
 import java.util.UUID;
 import org.bukkit.OfflinePlayer;
+import org.jetbrains.annotations.NotNull;
 import org.mockbukkit.mockbukkit.MockBukkit;
 import org.mockbukkit.mockbukkit.ServerMock;
 
@@ -20,7 +21,7 @@ public final class MockBukkitSupport {
    *
    * @return the active mock server
    */
-  public static ServerMock mockServer() {
+  public static @NotNull ServerMock mockServer() {
     if (MockBukkit.isMocked()) {
       return MockBukkit.getMock();
     }
@@ -35,7 +36,7 @@ public final class MockBukkitSupport {
   }
 
   /** Offline player backed by MockBukkit's player list (not a hand-rolled proxy). */
-  public static OfflinePlayer offlinePlayer(UUID id) {
+  public static @NotNull OfflinePlayer offlinePlayer(@NotNull UUID id) {
     return mockServer().getOfflinePlayer(id);
   }
 }

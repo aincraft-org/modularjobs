@@ -1,6 +1,7 @@
 package dev.mintychochip.service;
 
 import java.util.UUID;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Service for managing player preferences. Controls settings like entries per page for info
@@ -14,7 +15,7 @@ public interface PreferencesService {
    * @param playerId The player id to get the preference for
    * @return The number of entries per page (default: 10)
    */
-  int getEntriesPerPage(UUID playerId);
+  int getEntriesPerPage(@NotNull UUID playerId);
 
   /**
    * Sets the number of entries to display per page for the given player.
@@ -22,7 +23,7 @@ public interface PreferencesService {
    * @param playerId The player id to set the preference for
    * @param entries The number of entries per page
    */
-  void setEntriesPerPage(UUID playerId, int entries);
+  void setEntriesPerPage(@NotNull UUID playerId, int entries);
 
   /**
    * Gets the default entries per page for all players.
@@ -37,7 +38,7 @@ public interface PreferencesService {
    * @param playerId The player id to check
    * @return true if GUI mode is preferred, false for chat mode
    */
-  boolean prefersGuiMode(UUID playerId);
+  boolean prefersGuiMode(@NotNull UUID playerId);
 
   /**
    * Sets whether the player prefers GUI mode over chat mode.
@@ -45,5 +46,5 @@ public interface PreferencesService {
    * @param playerId The player id to set the preference for
    * @param guiMode true for GUI mode, false for chat mode
    */
-  void setGuiMode(UUID playerId, boolean guiMode);
+  void setGuiMode(@NotNull UUID playerId, boolean guiMode);
 }

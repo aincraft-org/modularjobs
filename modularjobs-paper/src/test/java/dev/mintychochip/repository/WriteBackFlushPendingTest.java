@@ -109,7 +109,7 @@ class WriteBackFlushPendingTest {
     assertEquals("9", loadFromDb("z"));
   }
 
-  private @Nullable String loadFromDb(String key) throws SQLException {
+  private @Nullable String loadFromDb(@NotNull String key) throws SQLException {
     try (PreparedStatement ps =
         connection.prepareStatement("SELECT v FROM kv_writeback_test WHERE k = ?")) {
       ps.setString(1, key);
@@ -124,34 +124,37 @@ class WriteBackFlushPendingTest {
 
   private static final class KvContext implements RelationalRepositoryContext<String, String> {
     @Override
-    public String getSelectQuery() {
+    public @NotNull String getSelectQuery() {
       return "SELECT v FROM kv_writeback_test WHERE k = ?";
     }
 
     @Override
-    public String getSaveQuery() {
+    public @NotNull String getSaveQuery() {
       return "INSERT INTO kv_writeback_test (k, v) VALUES (?, ?) "
           + "ON DUPLICATE KEY UPDATE v = VALUES(v)";
     }
 
     @Override
-    public String getDeleteQuery() {
+    public @NotNull String getDeleteQuery() {
       return "DELETE FROM kv_writeback_test WHERE k = ?";
     }
 
     @Override
-    public void setKey(PreparedStatement ps, String key) throws SQLException {
+    public void setKey(@NotNull PreparedStatement ps, @NotNull String key) throws SQLException {
       ps.setString(1, key);
     }
 
     @Override
-    public void setSaveValues(PreparedStatement ps, String key, String value) throws SQLException {
+    public void setSaveValues(
+        @NotNull PreparedStatement ps, @NotNull String key, @NotNull String value)
+        throws SQLException {
       ps.setString(1, key);
       ps.setString(2, value);
     }
 
     @Override
-    public String mapResult(ResultSet rs, String key) throws SQLException {
+    public @NotNull String mapResult(@NotNull ResultSet rs, @NotNull String key)
+        throws SQLException {
       return rs.getString("v");
     }
   }
@@ -159,7 +162,7 @@ class WriteBackFlushPendingTest {
   private static class FixedSource implements ConnectionSource {
     private final Connection connection;
 
-    FixedSource(Connection connection) {
+    FixedSource(@NotNull Connection connection) {
       this.connection = connection;
     }
 
@@ -177,7 +180,7 @@ class WriteBackFlushPendingTest {
     }
 
     @Override
-    public DatabaseType getType() {
+    public @NotNull DatabaseType getType() {
       return DatabaseType.MYSQL;
     }
 

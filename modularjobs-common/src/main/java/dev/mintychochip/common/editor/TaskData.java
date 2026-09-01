@@ -2,6 +2,7 @@ package dev.mintychochip.common.editor;
 
 import com.google.gson.annotations.SerializedName;
 import java.util.List;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -24,7 +25,8 @@ public record TaskData(
    * @param payables list of rewards for this task
    * @return new task data instance
    */
-  public static TaskData create(
+  @Contract(pure = true)
+  public static @NotNull TaskData create(
       @NotNull String actionTypeKey,
       @NotNull String contextKey,
       @NotNull List<PayableData> payables) {

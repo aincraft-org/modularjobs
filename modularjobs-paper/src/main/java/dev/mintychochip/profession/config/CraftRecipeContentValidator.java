@@ -1,8 +1,8 @@
 package dev.mintychochip.profession.config;
 
 import dev.mintychochip.Job;
+import dev.mintychochip.JobNode;
 import dev.mintychochip.JobTask;
-import dev.mintychochip.payment.CraftRecipeLookup;
 import dev.mintychochip.profession.content.CraftRecipeContentValidation;
 import dev.mintychochip.profession.content.CraftRecipeValidationReport;
 import dev.mintychochip.profession.content.CraftTaskSnapshot;
@@ -11,8 +11,10 @@ import dev.mintychochip.profession.content.RegisteredRecipeSnapshot;
 import dev.mintychochip.profession.content.RegisteredRecipeWithoutTaskFinding;
 import dev.mintychochip.service.JobService;
 import dev.mintychochip.service.RecipeService;
-import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import net.kyori.adventure.key.Key;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
@@ -43,20 +45,29 @@ public final class CraftRecipeContentValidator {
   }
 
   static @NotNull List<CraftTaskSnapshot> collectCraftTasks(@NotNull JobService jobService) {
-    List<CraftTaskSnapshot> craftTasks = new ArrayList<>();
+    Map<TaskDefinitionKey, JobTask> definitions = new LinkedHashMap<>();
     for (Job job : jobService.getJobs()) {
-      for (List<JobTask> tasks : jobService.getAllTasks(job).values()) {
-        for (JobTask task : tasks) {
-          if (!CRAFT_ACTION.equals(task.actionTypeKey())) {
-            continue;
+      List<JobNode> nodes =
+          job.nodes().values().stream()
+              .sorted(Comparator.comparing(node -> node.nodeKey().asString()))
+              .toList();
+      for (JobNode node : nodes) {
+        for (List<JobTask> tasks : jobService.getAllTasks(job, node.nodeKey()).values()) {
+          for (JobTask task : tasks) {
+            definitions.putIfAbsent(new TaskDefinitionKey(task.nodeKey(), task.key()), task);
           }
-          Key outputKey = CraftRecipeLookup.outputKeyFromMaterialKey(task.contextKey().asString());
-          craftTasks.add(new CraftTaskSnapshot(task.jobKey(), task.contextKey(), outputKey));
         }
       }
     }
-    return List.copyOf(craftTasks);
+
+    return definitions.values().stream()
+        .filter(task -> CRAFT_ACTION.equals(task.actionTypeKey()))
+        .map(task -> new CraftTaskSnapshot(task.nodeKey(), task.contextKey(), task.contextKey()))
+        .toList();
   }
+
+  private record TaskDefinitionKey(
+      @NotNull dev.mintychochip.JobNodeKey nodeKey, @NotNull JobTask.TaskKey taskKey) {}
 
   private static @NotNull List<RegisteredRecipeSnapshot> snapshotRecipes(
       @NotNull RecipeService recipeService) {
@@ -115,7 +126,7 @@ public final class CraftRecipeContentValidator {
       @NotNull Plugin plugin,
       @NotNull List<T> findings,
       int maxDetailLines,
-      java.util.function.Function<T, String> message) {
+      @NotNull java.util.function.Function<T, String> message) {
     if (findings.isEmpty()) {
       return;
     }

@@ -1,22 +1,25 @@
 package dev.mintychochip.domain;
 
 import dev.mintychochip.Job;
-import dev.mintychochip.JobProgression;
+import dev.mintychochip.JobNode;
+import dev.mintychochip.JobNodeKey;
 import dev.mintychochip.JobTask;
+import dev.mintychochip.PlayerJobState;
 import dev.mintychochip.container.Currency;
 import dev.mintychochip.container.Payable;
 import dev.mintychochip.container.PayableAmount;
 import dev.mintychochip.container.PayableType;
-import dev.mintychochip.domain.model.JobProgressionRecord;
-import dev.mintychochip.domain.model.JobRecord;
 import dev.mintychochip.domain.model.JobTaskRecord;
+import dev.mintychochip.domain.model.JobTreeRecord;
 import dev.mintychochip.domain.model.PayableRecord;
-import dev.mintychochip.registry.Registry;
+import dev.mintychochip.domain.model.PlayerJobStateRecord;
+import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import net.kyori.adventure.key.Key;
 import org.bukkit.NamespacedKey;
-import org.bukkit.plugin.Plugin;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Utility class for converting between domain objects and persistence records. This lives in paper
@@ -27,7 +30,8 @@ public final class PersistenceConverters {
   private PersistenceConverters() {}
 
   /** Converts to record. */
-  public static JobRecord toRecord(Job job) {
+  @Contract(pure = true)
+  public static @NotNull JobTreeRecord toRecord(@NotNull Job job) {
     if (!(job instanceof JobImpl jobImpl)) {
       throw new IllegalArgumentException("Job must be a JobImpl instance");
     }
@@ -35,65 +39,79 @@ public final class PersistenceConverters {
   }
 
   /** Converts to record. */
-  public static JobProgressionRecord toRecord(JobProgression progression) {
-    if (!(progression instanceof JobProgressionImpl progressionImpl)) {
-      throw new IllegalArgumentException("JobProgression must be a JobProgressionImpl instance");
+  @Contract(pure = true)
+  public static @NotNull PlayerJobStateRecord toRecord(@NotNull PlayerJobState state) {
+    Job job = state.job();
+    JobNode currentNode = state.currentNode();
+    if (!job.jobKey().equals(currentNode.jobKey())
+        || !currentNode.equals(job.node(currentNode.nodeKey()))) {
+      throw new IllegalArgumentException("Current node does not belong to the job tree");
     }
-    return progressionImpl.toRecord();
+    return new PlayerJobStateRecord(
+        state.playerId().toString(),
+        job.jobKey().asString(),
+        currentNode.nodeKey().asString(),
+        state.experience());
   }
 
   /** Converts to record. */
-  public static JobTaskRecord toRecord(JobTask task) {
+  @Contract(pure = true)
+  public static @NotNull JobTaskRecord toRecord(@NotNull JobTask task) {
     return new JobTaskRecord(
-        task.jobKey().toString(),
+        task.nodeKey().asString(),
         task.actionTypeKey().toString(),
         task.contextKey().toString(),
         task.payables().stream().map(PersistenceConverters::toRecord).collect(Collectors.toList()));
   }
 
   /** Converts to record. */
-  public static PayableRecord toRecord(Payable payable) {
+  @Contract(pure = true)
+  public static @NotNull PayableRecord toRecord(@NotNull Payable payable) {
+    Currency currency = payable.amount().currency().orElse(null);
     return new PayableRecord(
         payable.type().key().toString(),
         payable.amount().value(),
-        payable.amount().currency().map(Currency::identifier).orElse(null));
+        currency == null ? null : currency.identifier(),
+        currency == null ? null : currency.symbol());
   }
 
   /** From record. */
-  public static Job fromRecord(
-      JobRecord record, Plugin plugin, Registry<PayableType> payableTypeRegistry) {
-    return JobImpl.fromRecord(record, plugin, payableTypeRegistry);
+  @Contract(pure = true)
+  public static @NotNull PlayerJobState fromRecord(
+      @NotNull PlayerJobStateRecord record, @NotNull Job job) {
+    return PlayerJobStateImpl.fromRecord(record, job);
   }
 
   /** From record. */
-  public static JobProgression fromRecord(
-      JobProgressionRecord record, Plugin plugin, Registry<PayableType> payableTypeRegistry) {
-    return JobProgressionImpl.fromRecord(record, plugin, payableTypeRegistry);
-  }
-
-  /** From record. */
-  public static JobTask fromRecord(
-      JobTaskRecord record, Function<String, PayableType> typeResolver) {
+  @Contract(pure = true)
+  public static @NotNull JobTask fromRecord(
+      @NotNull JobTaskRecord record, @NotNull Function<String, PayableType> typeResolver) {
+    List<PayableRecord> payables = record.payables() == null ? List.of() : record.payables();
     return new JobTask(
-        Key.key(record.jobKey()),
+        new JobNodeKey(Key.key(record.nodeKey())),
         Key.key(record.actionTypeKey()),
         Key.key(record.contextKey()),
-        record.payables().stream()
-            .map(p -> fromRecord(p, typeResolver))
-            .collect(Collectors.toList()));
+        payables.stream().map(p -> fromRecord(p, typeResolver)).collect(Collectors.toList()));
   }
 
   /** From record. */
-  public static Payable fromRecord(
-      PayableRecord record, Function<String, PayableType> typeResolver) {
+  @Contract(pure = true)
+  public static @NotNull Payable fromRecord(
+      @NotNull PayableRecord record, @NotNull Function<String, PayableType> typeResolver) {
     NamespacedKey key = NamespacedKey.fromString(record.payableTypeKey());
     if (key == null) {
       throw new IllegalArgumentException("Invalid payable type key: " + record.payableTypeKey());
     }
     PayableType type = typeResolver.apply(record.payableTypeKey());
+    String currencyIdentifier = record.currencyIdentifier();
+    String currencySymbol = record.currencySymbol();
     PayableAmount amount =
-        record.currencyIdentifier() != null
-            ? PayableAmount.create(record.amount(), Currency.of(record.currencyIdentifier(), ""))
+        currencyIdentifier != null
+            ? PayableAmount.create(
+                record.amount(),
+                Currency.of(
+                    currencyIdentifier,
+                    currencySymbol == null ? currencyIdentifier : currencySymbol))
             : PayableAmount.create(record.amount());
     return new Payable(type, amount);
   }

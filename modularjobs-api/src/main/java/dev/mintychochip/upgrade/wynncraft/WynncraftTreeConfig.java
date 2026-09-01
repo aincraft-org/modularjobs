@@ -1,7 +1,7 @@
 package dev.mintychochip.upgrade.wynncraft;
 
 import dev.mintychochip.upgrade.PerkPolicy;
-import dev.mintychochip.upgrade.Position;
+import dev.mintychochip.upgrade.rendering.Position;
 import java.util.List;
 import java.util.Map;
 import org.jetbrains.annotations.NotNull;

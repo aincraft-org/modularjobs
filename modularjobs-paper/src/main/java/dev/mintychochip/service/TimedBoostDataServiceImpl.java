@@ -11,6 +11,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * {@link TimedBoostDataService} backed by a {@link TimedBoostRepository}.
@@ -26,7 +27,7 @@ public class TimedBoostDataServiceImpl implements TimedBoostDataService {
   private final TimedBoostRepository timedBoostRepository;
 
   /** Timed boost data service impl. */
-  public TimedBoostDataServiceImpl(TimedBoostRepository timedBoostRepository) {
+  public TimedBoostDataServiceImpl(@NotNull TimedBoostRepository timedBoostRepository) {
     this.timedBoostRepository = timedBoostRepository;
   }
 
@@ -35,7 +36,7 @@ public class TimedBoostDataServiceImpl implements TimedBoostDataService {
    * global boosts. Expired boosts encountered are removed from storage.
    */
   @Override
-  public List<ActiveBoostData> findApplicableBoosts(Target target) {
+  public @NotNull List<ActiveBoostData> findApplicableBoosts(@NotNull Target target) {
     List<ActiveBoostData> allBoosts = new ArrayList<>(loadBoosts(target));
     // Include global boosts for player targets
     if (target instanceof PlayerTarget) {
@@ -57,13 +58,14 @@ public class TimedBoostDataServiceImpl implements TimedBoostDataService {
 
   /** Returns all boosts targeting {@code target} without pruning expired entries. */
   @Override
-  public List<ActiveBoostData> findBoosts(Target target) {
+  public @NotNull List<ActiveBoostData> findBoosts(@NotNull Target target) {
     return List.copyOf(loadBoosts(target));
   }
 
   /** Persists a new time-based boost for {@code target}. */
   @Override
-  public <T extends TimedBoostData & SerializableBoostData> void addData(T data, Target target) {
+  public <T extends TimedBoostData & SerializableBoostData> void addData(
+      @NotNull T data, @NotNull Target target) {
     String targetIdentifier =
         target instanceof PlayerTarget playerTarget
             ? playerTarget.playerId().toString()
@@ -82,7 +84,7 @@ public class TimedBoostDataServiceImpl implements TimedBoostDataService {
    * @return whether a matching boost existed and was removed
    */
   @Override
-  public boolean removeBoost(Target target, String sourceIdentifier) {
+  public boolean removeBoost(@NotNull Target target, @NotNull String sourceIdentifier) {
     String targetIdentifier =
         target instanceof PlayerTarget playerTarget
             ? playerTarget.playerId().toString()
@@ -98,7 +100,7 @@ public class TimedBoostDataServiceImpl implements TimedBoostDataService {
   }
 
   /** Loads stored boosts for {@code target}, mapping global targets to the global identifier. */
-  private List<ActiveBoostData> loadBoosts(Target target) {
+  private @NotNull List<ActiveBoostData> loadBoosts(@NotNull Target target) {
     if (target instanceof GlobalTarget) {
       return timedBoostRepository.findAllBoosts(GLOBAL_IDENTIFIER);
     }
@@ -106,7 +108,7 @@ public class TimedBoostDataServiceImpl implements TimedBoostDataService {
     return timedBoostRepository.findAllBoosts(playerIdentifier);
   }
 
-  private static String getPlayerIdentifier(PlayerTarget playerTarget) {
+  private static @NotNull String getPlayerIdentifier(@NotNull PlayerTarget playerTarget) {
     UUID uniqueId = playerTarget.playerId();
     return uniqueId.toString();
   }

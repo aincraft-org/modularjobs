@@ -103,15 +103,35 @@ payable:
 
 | File | Content |
 | --- | --- |
-| `jobs.yml` | Job catalog: display-name (MiniMessage), description, max-level, upgrade-level, leveling-curve, payable-curves, perk-unlocks |
-| `job_tasks.yml` | Task payables: `<job> → <action> → <context> → experience/economy` |
-| `job_tasks.csv` | Row per payable: `job_key,action_type_key,context_key,payable_type_key,amount,currency`; seeds an empty task table |
+| `jobs.yml` | Flat job-node catalog. Roots own display, max-level, leveling-curve, payable-curves, and perks; children set `parent` and may add node presentation/perks |
 | `boost_sources_default.json` | 19 starter boost sources with rule priority / conditions / boost |
 | `upgrade_trees/*.json` | Skill-tree graphs (see the [skill trees guide](../../guides/skill-trees/)) |
 | `exploit-config.yml` | Anti-farm protections (see the [anti-exploit guide](../../guides/anti-exploit/)) |
 
+<Callout type="info" title="Job trees and inheritance">
+Each root section defines one complete `Job` tree. A child section stays
+top-level, sets `parent: <node-key>`, and must not redeclare `max-level`,
+`leveling-curve`, or `payable-curves`. Those rules and player XP belong to the
+root tree. Direct tasks inherit down the parent chain; the nearest child task
+with the same action/context key replaces the complete ancestor task.
+</Callout>
+
+```yaml
+miner:
+  display-name: "<gray>Miner"
+  max-level: 100
+  leveling-curve: level * level * 100
+  payable-curves:
+    experience: base + (base * (level - 1) * 0.01)
+
+prospector:
+  parent: miner
+  display-name: "<gold>Prospector"
+  description: "Specializes in valuable ores."
+```
+
 <Callout type="warn" title="Task data ownership">
-`job_tasks.csv` seeds only an **empty** task table. Changing the packaged CSV
-does not overwrite live task data — apply task changes through the
-[editor](../../guides/editor/) or an explicit reviewed SQL operation.
+No task seed file is bundled. An empty MySQL task table remains empty until the
+[editor](../../guides/editor/) / repository path or an explicit reviewed SQL
+operation writes task definitions.
 </Callout>

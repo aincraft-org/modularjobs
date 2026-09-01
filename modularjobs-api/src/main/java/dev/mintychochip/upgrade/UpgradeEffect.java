@@ -3,6 +3,7 @@ package dev.mintychochip.upgrade;
 import dev.mintychochip.container.BoostSource;
 import java.math.BigDecimal;
 import java.util.List;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 /** Represents an effect granted by an upgrade node. */
@@ -38,12 +39,13 @@ public sealed interface UpgradeEffect
    */
   record PermissionEffect(@NotNull List<String> permissions) implements UpgradeEffect {
     /** Convenience constructor for a single permission. */
-    public PermissionEffect(String permission) {
+    public PermissionEffect(@NotNull String permission) {
       this(List.of(permission));
     }
 
     /** Get the first/primary permission (for backward compatibility). */
-    public String permission() {
+    @Contract(pure = true)
+    public @NotNull String permission() {
       return permissions.isEmpty() ? "" : permissions.get(0);
     }
   }

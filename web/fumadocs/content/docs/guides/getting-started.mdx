@@ -18,9 +18,9 @@ once so config files appear, apply the schema script, then restart.
 
 ## Everyday
 
-After that, operators edit `jobs.yml` and `job_tasks.yml`, let players join
-jobs, and look at `/jobs stats`. Starter amounts are examples, not a balance
-contract.
+After that, operators configure jobs, create task payables through the secure
+editor, let players join jobs, and inspect `/jobs stats`. The MySQL task table
+starts empty.
 
 ## Advanced
 
@@ -44,15 +44,14 @@ the first jobs work. Follow the other operator guides when you need them.
    - `config.yml` — payment, economy, editor, and progression settings
    - `database.yml` — MySQL connection sections
    - `jobs.yml` — job catalog (display names, curves, perks)
-   - `job_tasks.yml` / `job_tasks.csv` — task payables
    - `boost_sources_default.json` — boost source definitions
    - `exploit-config.yml` — anti-farm protections
    - `upgrade_trees/*.json` — skill trees
 
 <Callout type="warn" title="Starter content">
-The bundled YAML, JSON, and CSV files are **generic starter content**. Replace
-or extend them rather than treating the shipped amounts as a universal economy
-or progression balance.
+The bundled YAML and JSON files are **generic starter content**. Job task
+definitions are not bundled; create them through the editor after MySQL is
+configured.
 </Callout>
 
 ## 2. Provision the database

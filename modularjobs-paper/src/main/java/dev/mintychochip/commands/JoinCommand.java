@@ -4,7 +4,7 @@ import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import dev.mintychochip.Job;
-import dev.mintychochip.JobProgression;
+import dev.mintychochip.PlayerJobState;
 import dev.mintychochip.domain.JobResolver;
 import dev.mintychochip.service.JobService;
 import dev.mintychochip.service.JoinGate;
@@ -15,6 +15,7 @@ import io.papermc.paper.command.brigadier.Commands;
 import java.util.List;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.NotNull;
 
 /** {@code /jobs join <job>} command: adds the invoking player to the named job. */
 public final class JoinCommand implements JobsCommand {
@@ -25,7 +26,10 @@ public final class JoinCommand implements JobsCommand {
   private static final String DEFAULT_NAMESPACE = "modularjobs";
 
   /** Creates the join command with the job service, resolver, and join gate. */
-  public JoinCommand(JobService jobService, JobResolver jobResolver, JoinGate joinGate) {
+  public JoinCommand(
+      @NotNull JobService jobService,
+      @NotNull JobResolver jobResolver,
+      @NotNull JoinGate joinGate) {
     this.jobService = jobService;
     this.jobResolver = jobResolver;
     this.joinGate = joinGate;
@@ -38,7 +42,7 @@ public final class JoinCommand implements JobsCommand {
    * @return the Brigadier command tree for joining a job
    */
   @Override
-  public LiteralArgumentBuilder<CommandSourceStack> build() {
+  public @NotNull LiteralArgumentBuilder<CommandSourceStack> build() {
     return Commands.literal("join")
         .then(
             Commands.argument("job", StringArgumentType.string())
@@ -74,7 +78,7 @@ public final class JoinCommand implements JobsCommand {
                       }
 
                       String playerId = player.getUniqueId().toString();
-                      if (jobService.getProgression(playerId, job.key().toString()) != null) {
+                      if (jobService.getPlayerJobState(playerId, job.key().toString()) != null) {
                         Messages.send(
                             player,
                             "<neutral>You are already in</neutral> <secondary>"
@@ -83,8 +87,8 @@ public final class JoinCommand implements JobsCommand {
                         return Command.SINGLE_SUCCESS;
                       }
 
-                      List<JobProgression> current =
-                          jobService.getProgressions(player.getUniqueId());
+                      List<PlayerJobState> current =
+                          jobService.getPlayerJobStates(player.getUniqueId());
                       JoinResult result = joinGate.canJoin(player, job, current);
                       switch (result) {
                         case MAX_JOBS ->

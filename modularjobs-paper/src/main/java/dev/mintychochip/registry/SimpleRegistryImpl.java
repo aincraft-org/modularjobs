@@ -20,13 +20,13 @@ public final class SimpleRegistryImpl<T extends Keyed> implements Registry<T> {
 
   /** Looks up an object without throwing when the key is absent. */
   @Override
-  public @NotNull Optional<T> get(Key key) {
+  public @NotNull Optional<T> get(@NotNull Key key) {
     return Optional.ofNullable(registry.get(key));
   }
 
   /** Looks up an object and rejects keys that are not registered. */
   @Override
-  public @NotNull T getOrThrow(Key key) {
+  public @NotNull T getOrThrow(@NotNull Key key) {
     Preconditions.checkArgument(isRegistered(key));
     readWriteLock.readLock().lock();
     try {
@@ -38,7 +38,7 @@ public final class SimpleRegistryImpl<T extends Keyed> implements Registry<T> {
 
   /** Returns whether an object is registered under the key. */
   @Override
-  public boolean isRegistered(Key key) {
+  public boolean isRegistered(@NotNull Key key) {
     readWriteLock.readLock().lock();
     try {
       return registry.containsKey(key);
@@ -49,7 +49,7 @@ public final class SimpleRegistryImpl<T extends Keyed> implements Registry<T> {
 
   /** Streams the currently registered objects. */
   @Override
-  public Stream<T> stream() {
+  public @NotNull Stream<T> stream() {
     return registry.values().stream();
   }
 
@@ -64,14 +64,13 @@ public final class SimpleRegistryImpl<T extends Keyed> implements Registry<T> {
     }
   }
 
-  @NotNull
   @Override
-  public Iterator<T> iterator() {
+  public @NotNull Iterator<T> iterator() {
     return registry.values().iterator();
   }
 
   @Override
-  public String toString() {
+  public @NotNull String toString() {
     return registry.toString();
   }
 }

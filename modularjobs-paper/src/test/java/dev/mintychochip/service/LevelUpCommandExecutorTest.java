@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import dev.mintychochip.config.LevelUpCommandsConfig;
 import dev.mintychochip.config.LevelUpCommandsConfig.LevelUpCommand;
 import java.util.List;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 
 class LevelUpCommandExecutorTest {
@@ -40,7 +41,7 @@ class LevelUpCommandExecutorTest {
   private static final class RecordingExecutor {
     final List<String> commands = new java.util.ArrayList<>();
 
-    void dispatch(String command) {
+    void dispatch(@NotNull String command) {
       commands.add(command);
     }
   }

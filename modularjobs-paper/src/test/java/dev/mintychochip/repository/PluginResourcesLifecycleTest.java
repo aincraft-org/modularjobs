@@ -10,6 +10,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -94,7 +95,7 @@ class PluginResourcesLifecycleTest {
     private final List<String> order;
     private boolean closed;
 
-    TrackingSource(List<String> order) {
+    TrackingSource(@NotNull List<String> order) {
       this.order = order;
     }
 
@@ -105,7 +106,7 @@ class PluginResourcesLifecycleTest {
     }
 
     @Override
-    public DatabaseType getType() {
+    public @NotNull DatabaseType getType() {
       return DatabaseType.MYSQL;
     }
 
@@ -115,7 +116,7 @@ class PluginResourcesLifecycleTest {
     }
 
     @Override
-    public Connection getConnection() throws SQLException {
+    public @NotNull Connection getConnection() throws SQLException {
       throw new UnsupportedOperationException();
     }
 

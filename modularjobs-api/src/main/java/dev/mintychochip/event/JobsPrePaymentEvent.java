@@ -5,6 +5,8 @@ import dev.mintychochip.JobTask;
 import dev.mintychochip.container.Payable;
 import java.util.Objects;
 import java.util.UUID;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 
 /** Fired before a jobs payment is processed. */
 public final class JobsPrePaymentEvent implements Cancellable {
@@ -16,26 +18,34 @@ public final class JobsPrePaymentEvent implements Cancellable {
   private boolean cancelled;
 
   /** Jobs pre payment event. */
-  public JobsPrePaymentEvent(UUID playerId, Payable payable, Job job, JobTask jobTask) {
+  public JobsPrePaymentEvent(
+      @NotNull UUID playerId,
+      @NotNull Payable payable,
+      @NotNull Job job,
+      @NotNull JobTask jobTask) {
     this.playerId = Objects.requireNonNull(playerId, "playerId");
     this.payable = payable;
     this.job = job;
     this.jobTask = jobTask;
   }
 
-  public UUID getPlayerId() {
+  @Contract(pure = true)
+  public @NotNull UUID getPlayerId() {
     return playerId;
   }
 
-  public Payable getPayable() {
+  @Contract(pure = true)
+  public @NotNull Payable getPayable() {
     return payable;
   }
 
-  public Job getJob() {
+  @Contract(pure = true)
+  public @NotNull Job getJob() {
     return job;
   }
 
-  public JobTask getJobTask() {
+  @Contract(pure = true)
+  public @NotNull JobTask getJobTask() {
     return jobTask;
   }
 

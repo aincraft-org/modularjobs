@@ -6,8 +6,8 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import dev.mintychochip.Job;
-import dev.mintychochip.domain.ProgressionService;
-import dev.mintychochip.domain.model.JobProgressionRecord;
+import dev.mintychochip.domain.PlayerJobStateService;
+import dev.mintychochip.domain.model.PlayerJobStateRecord;
 import dev.mintychochip.service.JobService;
 import dev.mintychochip.util.Messages;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
@@ -18,6 +18,7 @@ import java.math.BigDecimal;
 import org.bukkit.NamespacedKey;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * {@code /jobs experience} admin command: sets, adds, or subtracts experience for a player in a job
@@ -26,12 +27,15 @@ import org.bukkit.entity.Player;
 public final class ExperienceCommand implements JobsCommand {
 
   private final JobService jobService;
-  private final ProgressionService progressionService;
+  private final PlayerJobStateService playerJobStateService;
 
-  /** Creates the experience command with the services that resolve jobs and persist progression. */
-  public ExperienceCommand(JobService jobService, ProgressionService progressionService) {
+  /**
+   * Creates the experience command with the services that resolve jobs and persist player state.
+   */
+  public ExperienceCommand(
+      @NotNull JobService jobService, @NotNull PlayerJobStateService playerJobStateService) {
     this.jobService = jobService;
-    this.progressionService = progressionService;
+    this.playerJobStateService = playerJobStateService;
   }
 
   /**
@@ -41,7 +45,7 @@ public final class ExperienceCommand implements JobsCommand {
    * @return the Brigadier command tree for experience administration
    */
   @Override
-  public LiteralArgumentBuilder<CommandSourceStack> build() {
+  public @NotNull LiteralArgumentBuilder<CommandSourceStack> build() {
     return Commands.literal("experience")
         .requires(source -> source.getSender().hasPermission("modularjobs.admin"))
         .then(
@@ -123,9 +127,9 @@ public final class ExperienceCommand implements JobsCommand {
 
   /** Sets the selected player's experience in the given job to the supplied amount. */
   private int executeSet(
-      CommandSourceStack source,
-      PlayerSelectorArgumentResolver playerResolver,
-      String jobKeyValue,
+      @NotNull CommandSourceStack source,
+      @NotNull PlayerSelectorArgumentResolver playerResolver,
+      @NotNull String jobKeyValue,
       double amount)
       throws CommandSyntaxException {
     CommandSender sender = source.getSender();
@@ -147,7 +151,8 @@ public final class ExperienceCommand implements JobsCommand {
     }
 
     String playerId = targetPlayer.getUniqueId().toString();
-    JobProgressionRecord currentRecord = progressionService.load(playerId, jobKey.toString());
+    PlayerJobStateRecord currentRecord =
+        playerJobStateService.load(playerId, job.jobKey().asString());
 
     if (currentRecord == null) {
       Messages.send(
@@ -161,10 +166,11 @@ public final class ExperienceCommand implements JobsCommand {
     }
 
     BigDecimal newExperience = BigDecimal.valueOf(amount);
-    JobProgressionRecord newRecord =
-        new JobProgressionRecord(playerId, currentRecord.jobRecord(), newExperience);
+    PlayerJobStateRecord newRecord =
+        new PlayerJobStateRecord(
+            playerId, currentRecord.jobKey(), currentRecord.currentNodeKey(), newExperience);
 
-    if (progressionService.save(newRecord)) {
+    if (playerJobStateService.save(newRecord)) {
       Messages.send(
           sender,
           "<primary>✓ Set</primary> <secondary>"
@@ -184,16 +190,16 @@ public final class ExperienceCommand implements JobsCommand {
       return Command.SINGLE_SUCCESS;
     } else {
       Messages.send(
-          sender, "<error>Failed to update progression. Please check server logs.</error>");
+          sender, "<error>Failed to update player job state. Please check server logs.</error>");
       return 0;
     }
   }
 
-  /** Adds the supplied experience amount to the selected player's job progression. */
+  /** Adds the supplied experience amount to the selected player's job state. */
   private int executeAdd(
-      CommandSourceStack source,
-      PlayerSelectorArgumentResolver playerResolver,
-      String jobKeyValue,
+      @NotNull CommandSourceStack source,
+      @NotNull PlayerSelectorArgumentResolver playerResolver,
+      @NotNull String jobKeyValue,
       double amount)
       throws CommandSyntaxException {
     CommandSender sender = source.getSender();
@@ -215,7 +221,8 @@ public final class ExperienceCommand implements JobsCommand {
     }
 
     String playerId = targetPlayer.getUniqueId().toString();
-    JobProgressionRecord currentRecord = progressionService.load(playerId, jobKey.toString());
+    PlayerJobStateRecord currentRecord =
+        playerJobStateService.load(playerId, job.jobKey().asString());
 
     if (currentRecord == null) {
       Messages.send(
@@ -229,10 +236,11 @@ public final class ExperienceCommand implements JobsCommand {
     }
 
     BigDecimal newExperience = currentRecord.experience().add(BigDecimal.valueOf(amount));
-    JobProgressionRecord newRecord =
-        new JobProgressionRecord(playerId, currentRecord.jobRecord(), newExperience);
+    PlayerJobStateRecord newRecord =
+        new PlayerJobStateRecord(
+            playerId, currentRecord.jobKey(), currentRecord.currentNodeKey(), newExperience);
 
-    if (progressionService.save(newRecord)) {
+    if (playerJobStateService.save(newRecord)) {
       Messages.send(
           sender,
           "<primary>✓ Added</primary> <secondary>"
@@ -256,19 +264,18 @@ public final class ExperienceCommand implements JobsCommand {
       return Command.SINGLE_SUCCESS;
     } else {
       Messages.send(
-          sender, "<error>Failed to update progression. Please check server logs.</error>");
+          sender, "<error>Failed to update player job state. Please check server logs.</error>");
       return 0;
     }
   }
 
   /**
-   * Subtracts the supplied experience amount from the selected player's job progression (floor at
-   * zero).
+   * Subtracts the supplied experience amount from the selected player's job state (floor at zero).
    */
   private int executeSubtract(
-      CommandSourceStack source,
-      PlayerSelectorArgumentResolver playerResolver,
-      String jobKeyValue,
+      @NotNull CommandSourceStack source,
+      @NotNull PlayerSelectorArgumentResolver playerResolver,
+      @NotNull String jobKeyValue,
       double amount)
       throws CommandSyntaxException {
     CommandSender sender = source.getSender();
@@ -290,7 +297,8 @@ public final class ExperienceCommand implements JobsCommand {
     }
 
     String playerId = targetPlayer.getUniqueId().toString();
-    JobProgressionRecord currentRecord = progressionService.load(playerId, jobKey.toString());
+    PlayerJobStateRecord currentRecord =
+        playerJobStateService.load(playerId, job.jobKey().asString());
 
     if (currentRecord == null) {
       Messages.send(
@@ -308,10 +316,11 @@ public final class ExperienceCommand implements JobsCommand {
       newExperience = BigDecimal.ZERO;
     }
 
-    JobProgressionRecord newRecord =
-        new JobProgressionRecord(playerId, currentRecord.jobRecord(), newExperience);
+    PlayerJobStateRecord newRecord =
+        new PlayerJobStateRecord(
+            playerId, currentRecord.jobKey(), currentRecord.currentNodeKey(), newExperience);
 
-    if (progressionService.save(newRecord)) {
+    if (playerJobStateService.save(newRecord)) {
       Messages.send(
           sender,
           "<primary>✗ Subtracted</primary> <secondary>"
@@ -335,7 +344,7 @@ public final class ExperienceCommand implements JobsCommand {
       return Command.SINGLE_SUCCESS;
     } else {
       Messages.send(
-          sender, "<error>Failed to update progression. Please check server logs.</error>");
+          sender, "<error>Failed to update player job state. Please check server logs.</error>");
       return 0;
     }
   }

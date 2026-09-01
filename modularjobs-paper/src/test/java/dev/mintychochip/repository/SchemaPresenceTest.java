@@ -10,6 +10,8 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
+import java.util.Map;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -88,9 +90,33 @@ class SchemaPresenceTest {
     assertTrue(SchemaPresence.tableExists(connection, DatabaseType.MYSQL, "job_tasks"));
     SchemaPresence.requireTables(
         connection, DatabaseType.MYSQL, List.of("job_tasks", "job_task_payables"));
+    SchemaPresence.requireColumns(connection, DatabaseType.MYSQL, SchemaPresence.REQUIRED_COLUMNS);
   }
 
-  private static String envOr(String key, String defaultValue) {
+  @Test
+  void missingColumnThrowsWithMigrationHint() throws Exception {
+    String probe = "mj_schema_column_probe_" + System.nanoTime();
+    try (Statement st = connection.createStatement()) {
+      st.execute("CREATE TABLE " + probe + " (id INT PRIMARY KEY)");
+    }
+    try {
+      SchemaPresence.SchemaOutdatedException ex =
+          assertThrows(
+              SchemaPresence.SchemaOutdatedException.class,
+              () ->
+                  SchemaPresence.requireColumns(
+                      connection, DatabaseType.MYSQL, Map.of(probe, List.of("current_node_key"))));
+
+      assertTrue(ex.getMissingColumns().contains(probe + ".current_node_key"));
+      assertTrue(ex.getMessage().contains("migrate-add-current-node-key.sql"));
+    } finally {
+      try (Statement st = connection.createStatement()) {
+        st.execute("DROP TABLE " + probe);
+      }
+    }
+  }
+
+  private static @NotNull String envOr(@NotNull String key, @NotNull String defaultValue) {
     String v = System.getenv(key);
     return v == null || v.isBlank() ? defaultValue : v;
   }

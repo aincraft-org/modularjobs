@@ -3,6 +3,8 @@ package dev.mintychochip.repository;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Adapter decoupling a temporary SQL-backed simple key/value repository from the database dialect
@@ -15,20 +17,25 @@ import java.sql.SQLException;
 public interface RelationalRepositoryContext<K, V> {
 
   /** Returns the select query. */
+  @NotNull
   String getSelectQuery();
 
   /** Returns the save query. */
+  @NotNull
   String getSaveQuery();
 
   /** Returns the delete query. */
+  @NotNull
   String getDeleteQuery();
 
   /** Sets the key. */
-  void setKey(PreparedStatement ps, K key) throws SQLException;
+  void setKey(@NotNull PreparedStatement ps, @NotNull K key) throws SQLException;
 
   /** Sets the save values. */
-  void setSaveValues(PreparedStatement ps, K key, V value) throws SQLException;
+  void setSaveValues(@NotNull PreparedStatement ps, @NotNull K key, @NotNull V value)
+      throws SQLException;
 
   /** Map result. */
-  V mapResult(ResultSet rs, K key) throws SQLException;
+  @Nullable
+  V mapResult(@NotNull ResultSet rs, @NotNull K key) throws SQLException;
 }

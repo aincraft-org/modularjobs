@@ -6,6 +6,7 @@ import java.util.Locale;
 import java.util.Map;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.plugin.Plugin;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -20,12 +21,13 @@ public record ProgressionLimitsConfig(
     int maxJobs, @NotNull List<String> autoJoinJobs, boolean worldJoinRestriction) {
 
   /** Defaults. */
-  public static ProgressionLimitsConfig defaults() {
+  @Contract(pure = true)
+  public static @NotNull ProgressionLimitsConfig defaults() {
     return new ProgressionLimitsConfig(0, List.of(), true);
   }
 
-  /** Parses from a raw map (used by tests and {@link #fromPlugin}). */
-  public static ProgressionLimitsConfig fromMap(@NotNull Map<?, ?> source) {
+  @Contract(pure = true)
+  public static @NotNull ProgressionLimitsConfig fromMap(@NotNull Map<?, ?> source) {
     int maxJobs = 0;
     Object rawMax = source.get("max-jobs");
     if (rawMax instanceof Number n) {
@@ -49,7 +51,7 @@ public record ProgressionLimitsConfig(
   }
 
   /** Loads from {@code config.yml}. */
-  public static ProgressionLimitsConfig fromPlugin(@NotNull Plugin plugin) {
+  public static @NotNull ProgressionLimitsConfig fromPlugin(@NotNull Plugin plugin) {
     ConfigurationSection section = plugin.getConfig().getConfigurationSection("progression-limits");
     if (section == null) {
       return defaults();

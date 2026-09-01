@@ -8,6 +8,9 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.ComponentLike;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /** Ephemeral sidebar scoreboard backed by native Paper surfaces. */
 public final class TextScoreboard {
@@ -20,18 +23,20 @@ public final class TextScoreboard {
   private final String title;
   private final String[] lines = new String[MAX_LINES];
 
-  private TextScoreboard(PaperSurfaces surfaces, String title) {
+  private TextScoreboard(@NotNull PaperSurfaces surfaces, @NotNull String title) {
     this.surfaces = surfaces;
     this.title = title;
   }
 
   /** Creates a text scoreboard for the supplied display name. */
-  public static TextScoreboard create(PaperSurfaces surfaces, Component displayName) {
+  @Contract(pure = true)
+  public static @NotNull TextScoreboard create(
+      @NotNull PaperSurfaces surfaces, @NotNull Component displayName) {
     return new TextScoreboard(surfaces, PLAIN.serialize(displayName));
   }
 
   /** Sets the line. */
-  public void setLine(int index, ComponentLike prefix, ComponentLike suffix) {
+  public void setLine(int index, @Nullable ComponentLike prefix, @Nullable ComponentLike suffix) {
     if (index < 0 || index >= MAX_LINES) {
       throw new IndexOutOfBoundsException("scoreboard line " + index);
     }
@@ -41,12 +46,12 @@ public final class TextScoreboard {
   }
 
   /** Show. */
-  public void show(Player player, Duration duration) {
+  public void show(@NotNull Player player, @NotNull Duration duration) {
     setCurrent(player);
   }
 
   /** Sets the current. */
-  public void setCurrent(Player player) {
+  public void setCurrent(@Nullable Player player) {
     if (player == null) {
       return;
     }

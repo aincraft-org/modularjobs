@@ -1,7 +1,7 @@
 # Jobs progression — Living Spec
 
 > Status: active  
-> Last updated: 2026-08-21  
+> Last updated: 2026-08-31  
 > Owners: modularjobs maintainers
 
 ## Intent
@@ -15,13 +15,13 @@ reliable multi-payable accumulation under concurrency.
 
 ### In scope
 
-- Job / JobTask / JobProgression models (`api` + `paper` domain)
+- Complete Job trees / JobNode / JobTask / PlayerJobState models (`api` + `paper`)
 - Action type registry (40+ action types)
 - Payment pipeline: listeners → eligibility → payables + XP → write-back
 - Payment settings: creative, riding, disabled worlds, kill contribution, furnace range
 - Place→break anti-farm (`exploit-config.yml`)
 - Commands: browse, list, stats, archive, leaveall, admin level/exp
-- PlaceholderAPI expansion for progression display
+- PlaceholderAPI expansion for player-state display
 
 ### Out of scope / non-goals
 
@@ -32,8 +32,13 @@ reliable multi-payable accumulation under concurrency.
 
 ## Invariants
 
-- Multi-XP awards in one payment must **reload progression per payable** so awards accumulate.
-- Write-back flush failure **re-queues** with max-experience merge (no older-XP clobber).
+- One `PlayerJobState` row exists per player and root `Job` tree; its active
+  `JobNode` may change without splitting or resetting tree-wide XP.
+- Root nodes own max level, leveling curve, and payout curves.
+- Tasks inherit root-to-active-node. The nearest matching action/context
+  definition replaces the complete ancestor task; unrelated ancestor tasks remain.
+- Multi-XP awards in one payment must **reload player state per payable** so awards accumulate.
+- Write-back flush failure must retain pending state.
 - Kill multi-damage pays each qualifying **contributor** above cutoff.
 - Payment rules honor `PaymentSettings` from config.
 - Job task definitions may be edited via secure editor + apply; runtime authority for tasks is Paper repositories after apply.
@@ -47,14 +52,15 @@ reliable multi-payable accumulation under concurrency.
 
 ### Explicit do-nots
 
-- Do not skip progression reload when applying multiple XP payables in one flow.
+- Do not skip player-state reload when applying multiple XP payables in one flow.
 - Do not pay in disabled worlds / forbidden creative-riding combos when settings forbid it.
 - Do not bypass repository cache rules when applying editor task changes.
 
 ## Current
 
-- [x] Job join/leave, progression persistence, archive
-- [x] Action type system + task payables
+- [x] Complete rooted Job trees with inherited node definitions
+- [x] PlayerJobState persistence, active-node restore, join/leave, and archive
+- [x] Action type system + node task payables
 - [x] PaymentSettings wired (creative, riding, worlds, kill cutoff)
 - [x] Place→break anti-farm beyond stone (`exploit-config.yml`)
 - [x] Multi-payable XP accumulation + write-back re-queue merge
@@ -69,8 +75,9 @@ reliable multi-payable accumulation under concurrency.
 
 ### Current notes
 
-Core progression is production-readiness grade (1.1.0 cut). New work usually
-touches adjacent domains (economy, gates, editor) rather than rewriting the pipeline.
+The payment and player-state pipeline is production-readiness grade. New work
+usually touches adjacent domains (economy, gates, editor) rather than splitting
+tree state back into per-node rows.
 
 ## Next
 
@@ -89,10 +96,12 @@ touches adjacent domains (economy, gates, editor) rather than rewriting the pipe
 | Date | Decision | Why |
 |------|----------|-----|
 | 1.1.0 | PaymentSettings + expand anti-farm | Production fairness / security |
-| 1.1.0 | Reload progression per payable | Multi-XP correctness |
+| 1.1.0 | Reload player state per payable | Multi-XP correctness |
 | 1.1.0 | Kill contribution pays all qualifiers | Fair multi-fighter rewards |
 | 2026-08-21 | Recipe XP depreciation by profession vs recipe level | Reward crafting at appropriate tier; config `recipe-experience-depreciation` |
 | 2026-08-21 | Warn-only craft task ↔ `recipes.yml` cross-validation | Separate canonical files; catch drift at startup (`content-validation.craft-recipes`) |
+| 2026-08-31 | `Job` is the complete tree; `PlayerJobState` owns active node + tree XP | Separate immutable definition from player state and preserve progress across specializations |
+| 2026-08-31 | Nearest descendant task replaces matching ancestor task | Deterministic specialization inheritance without merging reward fragments |
 
 ## Open questions
 

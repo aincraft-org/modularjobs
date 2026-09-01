@@ -3,6 +3,7 @@ package dev.mintychochip.util;
 import net.kyori.adventure.key.Key;
 import org.bukkit.NamespacedKey;
 import org.bukkit.plugin.Plugin;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 /** Key utils. */
@@ -17,6 +18,7 @@ public final class KeyUtils {
    * Parses a key string into a Key instance. Supports both "namespace:value" and "value" formats.
    * If no namespace is provided, uses the plugin's namespace.
    */
+  @Contract(pure = true)
   public static @NotNull Key parseKey(@NotNull Plugin plugin, @NotNull String raw) {
     String[] split = raw.split(":");
     int length = split.length;

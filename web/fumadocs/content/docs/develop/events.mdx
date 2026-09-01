@@ -14,7 +14,7 @@ no unsubscribe. Subscribers receive every published event and filter by type.
 var bus = Bridge.bridge().eventBus();
 bus.subscribe(event -> {
   if (event instanceof JobLevelEvent level) {
-    // level.playerId(), level.job(), level.newLevel()
+    // level.getPlayerId(), level.getJob(), level.getNewLevel()
   }
 });
 ```
@@ -23,17 +23,17 @@ bus.subscribe(event -> {
 
 | Event | Payload | Mutable? |
 | --- | --- | --- |
-| `JobJoinEvent` | `playerId()`, `job()`, `getLevel()`, `isRejoin()` | no |
-| `JobLeaveEvent` | `playerId()`, `job()`, `getFinalLevel()` | no |
-| `JobLevelEvent` | `playerId()`, `job()`, `previousLevel()`, `newLevel()`, `reason()` (`EXPERIENCE` / `ADMIN_COMMAND` / `OTHER`) | no |
+| `JobJoinEvent` | `getPlayerId()`, `getJob()`, `getPlayerJobState()`, `isRejoin()` | no |
+| `JobLeaveEvent` | `getPlayerId()`, `getJob()`, `getPlayerJobState()` | no |
+| `JobLevelEvent` | `getPlayerId()`, `getJob()`, `getPlayerJobState()`, `getOldLevel()`, `getNewLevel()`, `getReason()` (`EXPERIENCE` / `ADMIN_COMMAND` / `OTHER`) | no |
 
 ## Experience & payment events
 
 | Event | Payload | Mutable? |
 | --- | --- | --- |
-| `JobExperienceGainEvent` | `playerId()`, `job()`, `progression()`, `experienceGained()` | **yes** — veto or alter the gain |
-| `JobsPrePaymentEvent` | `playerId()`, `job()`, `progression()`, `payable()` | **yes** — pre-payment veto hook |
-| `JobsPaymentEvent` | `playerId()`, `job()`, `progression()`, `base()` | **yes** — post-payment contract |
+| `JobExperienceGainEvent` | `getPlayerId()`, `getJob()`, `getPlayerJobState()`, `getExperienceGained()` / `setExperienceGained(...)` | **yes** — veto or alter the gain |
+| `JobsPrePaymentEvent` | `getPlayerId()`, `getJob()`, `getJobTask()`, `getPayable()` | **yes** — pre-payment veto hook |
+| `JobsPaymentEvent` | `getPlayerId()`, `getBase()` | **yes** — delivered-payment notification |
 
 All three implement `Cancellable` (`isCancelled()` / `setCancelled(boolean)`).
 The XP and pre-payment hooks are the main behavioral integration points.
@@ -44,7 +44,7 @@ The plugin registers Bukkit services available to dependent plugins:
 
 | Service | Registered | Notes |
 | --- | --- | --- |
-| `ProfessionService` | **always** | Core catalog/progression facade |
+| `ProfessionService` | **always** | Core catalog/player-state facade |
 | `RecipeService` | `profession-apis.register-bukkit-services: true` | Learned recipes (`knows`, `learn`, `recipes`) |
 | `BuffService` | same flag | Food/combat consumable buffs (`BuffSlot.FOOD`/`COMBAT`) |
 | `StationService` | same flag | Station-level crafting/gathering gates |
@@ -54,9 +54,8 @@ The plugin registers Bukkit services available to dependent plugins:
 var svc = Bukkit.getServicesManager().load(ProfessionService.class);
 ```
 
-`ProfessionService`: `tracks()`, `getProgression(UUID, String)`,
-`join(UUID, String)`, `leave(UUID, String)`, `hasProfession`,
-`getLevel(UUID, String)`, `addExperience(UUID, String, BigDecimal)`.
+`ProfessionService`: `tracks()`, `resolve(String)`, `level(UUID, String)`,
+`experience(UUID, String)`, and `ensureTrack(UUID, String)`.
 
 ## Service facade (api)
 
@@ -64,7 +63,7 @@ The `Bridge` also exposes the plain interfaces integrators use directly:
 
 | Interface | Purpose |
 | --- | --- |
-| `JobService` | Jobs, progression, join/leave, XP operations |
+| `JobService` | Complete job trees, node-inherited tasks, player states, and join/leave operations |
 | `PreferencesService` | Player page-size preference (`getPageSize` / `setPageSize`) |
 | `ExploitProtectionStore` | Protections tracked per object (timers) |
 | `TimedBoostDataService` | Sealed `Target` (`GlobalTarget` / `PlayerTarget`) + `ActiveBoostData` find/add/remove |

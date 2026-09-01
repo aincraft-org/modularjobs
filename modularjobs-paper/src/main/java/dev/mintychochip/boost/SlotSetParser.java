@@ -1,6 +1,8 @@
 package dev.mintychochip.boost;
 
 import java.util.BitSet;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 
 /** Utility for parsing slot set specifications. */
 public final class SlotSetParser {
@@ -20,7 +22,8 @@ public final class SlotSetParser {
    * @return the parsed BitSet
    * @throws IllegalArgumentException if the specification is invalid
    */
-  public static BitSet parse(String spec) {
+  @Contract(value = "null -> fail", pure = true)
+  public static @NotNull BitSet parse(@NotNull String spec) {
     if (spec == null || spec.isBlank()) {
       throw new IllegalArgumentException("Slot specification cannot be null or blank");
     }
@@ -45,7 +48,7 @@ public final class SlotSetParser {
     return bitSet;
   }
 
-  private static void parseCustom(BitSet bitSet, String spec) {
+  private static void parseCustom(@NotNull BitSet bitSet, @NotNull String spec) {
     if (spec.contains(",")) {
       // Comma-separated slots: "0,9,36"
       String[] parts = spec.split(",");
@@ -66,7 +69,7 @@ public final class SlotSetParser {
     }
   }
 
-  private static void parseRange(BitSet bitSet, String range) {
+  private static void parseRange(@NotNull BitSet bitSet, @NotNull String range) {
     String[] parts = range.split("-");
     if (parts.length != 2) {
       throw new IllegalArgumentException("Invalid range format: " + range);
@@ -79,7 +82,8 @@ public final class SlotSetParser {
     setRange(bitSet, start, end);
   }
 
-  private static int parseSlot(String slot) {
+  @Contract(pure = true)
+  private static int parseSlot(@NotNull String slot) {
     try {
       int slotNum = Integer.parseInt(slot);
       if (slotNum < 0 || slotNum > 40) {
@@ -91,7 +95,7 @@ public final class SlotSetParser {
     }
   }
 
-  private static void setRange(BitSet bitSet, int start, int end) {
+  private static void setRange(@NotNull BitSet bitSet, int start, int end) {
     for (int i = start; i <= end; i++) {
       bitSet.set(i);
     }

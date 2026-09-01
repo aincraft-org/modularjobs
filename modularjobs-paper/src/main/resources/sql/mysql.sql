@@ -2,17 +2,19 @@
 
 CREATE TABLE IF NOT EXISTS job_progression
 (
-    player_id  VARCHAR(191)   NOT NULL,
-    job_key    VARCHAR(191)   NOT NULL,
-    experience DECIMAL(38, 10) NOT NULL DEFAULT 0.0,
+    player_id       VARCHAR(191)    NOT NULL,
+    job_key         VARCHAR(191)    NOT NULL,
+    current_node_key VARCHAR(191)   NOT NULL,
+    experience      DECIMAL(38, 10) NOT NULL DEFAULT 0.0,
     PRIMARY KEY (player_id, job_key)
 ) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS archive_job_progression
 (
-    player_id  VARCHAR(191)    NOT NULL,
-    job_key    VARCHAR(191)    NOT NULL,
-    experience DECIMAL(38, 10) NOT NULL,
+    player_id       VARCHAR(191)    NOT NULL,
+    job_key         VARCHAR(191)    NOT NULL,
+    current_node_key VARCHAR(191)   NOT NULL,
+    experience      DECIMAL(38, 10) NOT NULL,
     PRIMARY KEY (player_id, job_key)
 ) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -58,6 +60,7 @@ CREATE TABLE IF NOT EXISTS job_task_payables
     payable_type_key    VARCHAR(191)    NOT NULL,
     amount              DECIMAL(38, 10) NOT NULL,
     currency_identifier VARCHAR(191)    NULL,
+    currency_symbol     VARCHAR(191)    NULL,
     FOREIGN KEY (job_task_id) REFERENCES job_tasks (task_id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 

@@ -1,12 +1,13 @@
 package dev.mintychochip.commands.top;
 
-import dev.mintychochip.JobProgression;
+import dev.mintychochip.PlayerJobState;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.ComponentLike;
 import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -15,27 +16,29 @@ import org.jetbrains.annotations.NotNull;
  */
 final class LevelComponent implements ComponentLike {
 
-  private final JobProgression progression;
+  private final PlayerJobState state;
 
-  LevelComponent(JobProgression progression) {
-    this.progression = progression;
+  LevelComponent(@NotNull PlayerJobState state) {
+    this.state = state;
   }
 
-  static LevelComponent of(JobProgression progression) {
-    return new LevelComponent(progression);
+  @Contract(pure = true)
+  static @NotNull LevelComponent of(@NotNull PlayerJobState state) {
+    return new LevelComponent(state);
   }
 
   /**
    * {@inheritDoc}
    *
    * <p>Computes {@code XP / next-level XP} progress, marking the level as {@code MAX} when the
-   * progression has reached the job's maximum level.
+   * player state has reached the job's maximum level.
    */
   @Override
+  @Contract(pure = true)
   public @NotNull Component asComponent() {
-    int level = progression.level();
-    BigDecimal experience = progression.experience();
-    int maxLevel = progression.job().maxLevel();
+    int level = state.level();
+    BigDecimal experience = state.experience();
+    int maxLevel = state.job().maxLevel();
 
     Component hover;
     if (level >= maxLevel) {
@@ -50,8 +53,8 @@ final class LevelComponent implements ComponentLike {
               .build();
     } else {
       // Calculate progress to next level
-      BigDecimal currentLevelXp = progression.experienceForLevel(level);
-      BigDecimal nextLevelXp = progression.experienceForLevel(level + 1);
+      BigDecimal currentLevelXp = state.experienceForLevel(level);
+      BigDecimal nextLevelXp = state.experienceForLevel(level + 1);
       BigDecimal progressXp = experience.subtract(currentLevelXp);
       BigDecimal neededXp = nextLevelXp.subtract(currentLevelXp);
 

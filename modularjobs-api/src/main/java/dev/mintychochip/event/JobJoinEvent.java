@@ -1,36 +1,38 @@
 package dev.mintychochip.event;
 
 import dev.mintychochip.Job;
+import dev.mintychochip.PlayerJobState;
 import java.util.Objects;
 import java.util.UUID;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 
 /** Event fired when a player joins or rejoins a job. */
 public final class JobJoinEvent {
 
-  private final UUID playerId;
-  private final Job job;
-  private final int level;
+  private final PlayerJobState state;
   private final boolean rejoin;
 
-  /** Job join event. */
-  public JobJoinEvent(UUID playerId, Job job, int level, boolean rejoin) {
-    this.playerId = Objects.requireNonNull(playerId, "playerId");
-    this.job = job;
-    this.level = level;
+  /** Creates a join transition for a complete player job state. */
+  public JobJoinEvent(@NotNull PlayerJobState state, boolean rejoin) {
+    this.state = Objects.requireNonNull(state, "state");
     this.rejoin = rejoin;
   }
 
-  public UUID getPlayerId() {
-    return playerId;
+  @Contract(pure = true)
+  public @NotNull UUID getPlayerId() {
+    return state.playerId();
   }
 
-  public Job getJob() {
-    return job;
+  @Contract(pure = true)
+  public @NotNull Job getJob() {
+    return state.job();
   }
 
-  /** Gets the player's level (1 for new joins, restored level for rejoins). */
-  public int getLevel() {
-    return level;
+  /** Returns the joined state, including its active specialization node. */
+  @Contract(pure = true)
+  public @NotNull PlayerJobState getPlayerJobState() {
+    return state;
   }
 
   /** Whether this is a rejoin (player previously left this job). */

@@ -10,6 +10,8 @@ import java.util.Set;
 import org.bukkit.GameMode;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -87,7 +89,9 @@ class PaymentEligibilityTest {
     assertTrue(eligibility.blocksPay(player));
   }
 
-  private static Player playerStub(World world, GameMode mode, boolean insideVehicle) {
+  @Contract(pure = true)
+  private static @NotNull Player playerStub(
+      @NotNull World world, @NotNull GameMode mode, boolean insideVehicle) {
     return (Player)
         Proxy.newProxyInstance(
             Thread.currentThread().getContextClassLoader(),

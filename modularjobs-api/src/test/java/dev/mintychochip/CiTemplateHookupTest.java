@@ -9,6 +9,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.TimeUnit;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 
 @SuppressWarnings("PMD.AvoidUsingHardCodedIP")
@@ -163,19 +165,21 @@ class CiTemplateHookupTest {
     assertTrue(build.contains("GITHUB_TOKEN"), build);
   }
 
-  private static boolean publishesPackagesOrRelease(String text) {
+  @Contract(pure = true)
+  private static boolean publishesPackagesOrRelease(@NotNull String text) {
     return text.contains("ToGitHubPackages")
         || text.contains("softprops/action-gh-release")
         || text.contains("gh release create");
   }
 
-  private static boolean isScheduleOrManualOnly(String text) {
+  @Contract(pure = true)
+  private static boolean isScheduleOrManualOnly(@NotNull String text) {
     return !text.contains("\n  push:")
         && !text.contains("\n  pull_request:")
         && !text.contains("\n  tags:");
   }
 
-  private static String requiredProperty(String name) {
+  private static @NotNull String requiredProperty(@NotNull String name) {
     String value = System.getProperty(name);
     assertTrue(value != null && !value.isBlank(), "missing system property " + name);
     return value;

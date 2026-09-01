@@ -1,6 +1,9 @@
 package dev.mintychochip.container;
 
+import java.util.Objects;
+import net.kyori.adventure.key.Key;
 import org.jetbrains.annotations.ApiStatus.NonExtendable;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Pure payment/action context (no Bukkit types). Paper maps Bukkit objects via {@code
@@ -14,32 +17,40 @@ public sealed interface Context
         Context.EnchantmentContext,
         Context.EntityContext,
         Context.ItemContext,
+        Context.KeyContext,
         Context.MaterialContext,
         Context.PotionContext {
 
-  /** Block at location; materialKey like "minecraft:stone". */
-  record BlockContext(String worldName, int x, int y, int z, String materialKey)
+  /** Block at location. */
+  record BlockContext(@NotNull Key worldKey, int x, int y, int z, @NotNull Key materialKey)
       implements Context {}
 
   /** Item material key (+ amount). */
-  record ItemContext(String materialKey, int amount) implements Context {}
+  record ItemContext(@NotNull Key materialKey, int amount) implements Context {}
 
   /** Type. */
   @Deprecated
-  record MaterialContext(String materialKey) implements Context {}
+  record MaterialContext(@NotNull Key materialKey) implements Context {}
 
-  /** Entity type key like "minecraft:zombie". */
-  record EntityContext(String entityTypeKey) implements Context {}
+  /** Entity type. */
+  record EntityContext(@NotNull Key entityTypeKey) implements Context {}
 
-  /** Dye context. */
-  record DyeContext(String dyeColorName) implements Context {}
+  /** Dye color. */
+  record DyeContext(@NotNull Key dyeColorKey) implements Context {}
 
   /** Enchantment context. */
-  record EnchantmentContext(String enchantmentKey, int level) implements Context {}
+  record EnchantmentContext(@NotNull Key enchantmentKey, int level) implements Context {}
 
   /** Potion context. */
-  record PotionContext(String potionTypeKey) implements Context {}
+  record PotionContext(@NotNull Key potionTypeKey) implements Context {}
 
   /** Chunk context. */
-  record ChunkContext(String worldName, int chunkX, int chunkZ) implements Context {}
+  record ChunkContext(@NotNull Key worldKey, int chunkX, int chunkZ) implements Context {}
+
+  /** Arbitrary context key supplied by an integration. */
+  record KeyContext(@NotNull Key key) implements Context {
+    public KeyContext {
+      Objects.requireNonNull(key, "key");
+    }
+  }
 }

@@ -7,6 +7,7 @@ import java.util.Locale;
 import java.util.Set;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.Plugin;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 /** Payment rule knobs loaded from {@code config.yml}. */
@@ -24,7 +25,8 @@ public record PaymentSettings(
    * Default settings: creative pay enabled, riding pay disabled, no disabled worlds, and default
    * kill-contribution cutoff / furnace distance.
    */
-  public static PaymentSettings defaults() {
+  @Contract(pure = true)
+  public static @NotNull PaymentSettings defaults() {
     return new PaymentSettings(
         true, false, Set.of(), DEFAULT_KILL_CONTRIBUTION_CUTOFF, DEFAULT_FURNACE_MAX_DISTANCE);
   }
@@ -33,7 +35,7 @@ public record PaymentSettings(
    * Loads payment settings from {@code config.yml}, validating ranges and normalizing disabled
    * world names to lowercase.
    */
-  public static PaymentSettings fromPlugin(@NotNull Plugin plugin) {
+  public static @NotNull PaymentSettings fromPlugin(@NotNull Plugin plugin) {
     FileConfiguration config = plugin.getConfig();
     final boolean payInCreative = config.getBoolean("pay-in-creative", true);
     final boolean payWhileRiding = config.getBoolean("pay-while-riding", false);
@@ -81,11 +83,13 @@ public record PaymentSettings(
    *
    * @return true when {@code worldName} (case-insensitive) is in the disabled-worlds set
    */
+  @Contract(pure = true)
   public boolean isWorldDisabled(@NotNull String worldName) {
     return disabledWorlds.contains(worldName.toLowerCase(Locale.ROOT));
   }
 
   /** Squared distance for furnace proximity checks (avoids sqrt). */
+  @Contract(pure = true)
   public double furnaceMaxDistanceSquared() {
     return furnaceMaxDistance * furnaceMaxDistance;
   }

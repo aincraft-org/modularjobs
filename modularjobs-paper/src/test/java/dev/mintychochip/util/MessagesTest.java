@@ -7,12 +7,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 
 /** Verifies the shipped {@link Messages} themed MiniMessage tags (replacing Mint messaging). */
 class MessagesTest {
 
-  private static final PlainTextComponentSerializer PLAIN =
+  private static final @NotNull PlainTextComponentSerializer PLAIN =
       PlainTextComponentSerializer.plainText();
 
   /** Verifies null and empty strings produce empty components. */
@@ -59,8 +61,8 @@ class MessagesTest {
     assertFalse(plain.contains("<"), "tags must be resolved, not left as literal text");
   }
 
-  /** Returns whether {@code component} or any child uses {@code expected}. */
-  private static boolean hasColor(Component component, NamedTextColor expected) {
+  @Contract(pure = true)
+  private static boolean hasColor(@NotNull Component component, @NotNull NamedTextColor expected) {
     if (expected.equals(component.color())) {
       return true;
     }

@@ -4,6 +4,8 @@ import dev.mintychochip.container.Context;
 import java.util.HashMap;
 import java.util.Map;
 import net.kyori.adventure.key.Key;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Resolves context objects to stable keys used by task persistence.
@@ -21,7 +23,7 @@ public final class KeyResolver {
    * @param context context to resolve
    * @return resolved key, or {@code null} when no strategy is registered
    */
-  public Key resolve(Context context) {
+  public @Nullable Key resolve(@NotNull Context context) {
     Class<? extends Context> objectClass = context.getClass();
     KeyResolvingStrategy<?> raw = strategies.get(objectClass);
     if (raw == null) {
@@ -31,7 +33,8 @@ public final class KeyResolver {
   }
 
   @SuppressWarnings("unchecked")
-  private static <T extends Context> Key resolve(KeyResolvingStrategy<?> raw, Context object) {
+  private static <T extends Context> @Nullable Key resolve(
+      @NotNull KeyResolvingStrategy<?> raw, @NotNull Context object) {
     KeyResolvingStrategy<T> strategy = (KeyResolvingStrategy<T>) raw;
     T casted = (T) object;
     return strategy.resolve(casted);
@@ -43,7 +46,8 @@ public final class KeyResolver {
    * @param clazz exact context class handled by the strategy
    * @param strategy resolver invoked for matching contexts
    */
-  public <T extends Context> void addStrategy(Class<T> clazz, KeyResolvingStrategy<T> strategy) {
+  public <T extends Context> void addStrategy(
+      @NotNull Class<T> clazz, @NotNull KeyResolvingStrategy<T> strategy) {
     strategies.put(clazz, strategy);
   }
 
@@ -61,6 +65,7 @@ public final class KeyResolver {
      * @param object context instance
      * @return key, or {@code null} when it cannot be resolved
      */
-    Key resolve(T object);
+    @Nullable
+    Key resolve(@NotNull T object);
   }
 }

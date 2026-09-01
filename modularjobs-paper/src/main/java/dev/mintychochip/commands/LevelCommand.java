@@ -7,9 +7,9 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import dev.mintychochip.Bridge;
 import dev.mintychochip.Job;
-import dev.mintychochip.JobProgression;
-import dev.mintychochip.domain.ProgressionService;
-import dev.mintychochip.domain.model.JobProgressionRecord;
+import dev.mintychochip.PlayerJobState;
+import dev.mintychochip.domain.PlayerJobStateService;
+import dev.mintychochip.domain.model.PlayerJobStateRecord;
 import dev.mintychochip.event.JobLevelEvent;
 import dev.mintychochip.paper.event.PaperEventBridge;
 import dev.mintychochip.service.JobService;
@@ -23,6 +23,7 @@ import java.util.List;
 import org.bukkit.NamespacedKey;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Unified command for managing player job levels.
@@ -33,16 +34,17 @@ import org.bukkit.entity.Player;
 public final class LevelCommand implements JobsCommand {
 
   private final JobService jobService;
-  private final ProgressionService progressionService;
+  private final PlayerJobStateService playerJobStateService;
 
   /** Level command. */
-  public LevelCommand(JobService jobService, ProgressionService progressionService) {
+  public LevelCommand(
+      @NotNull JobService jobService, @NotNull PlayerJobStateService playerJobStateService) {
     this.jobService = jobService;
-    this.progressionService = progressionService;
+    this.playerJobStateService = playerJobStateService;
   }
 
   @Override
-  public LiteralArgumentBuilder<CommandSourceStack> build() {
+  public @NotNull LiteralArgumentBuilder<CommandSourceStack> build() {
     return Commands.literal("level")
         .requires(source -> source.getSender().hasPermission("modularjobs.admin"))
         // /jobs level set
@@ -126,9 +128,9 @@ public final class LevelCommand implements JobsCommand {
   }
 
   private int executeSet(
-      CommandSourceStack source,
-      PlayerSelectorArgumentResolver playerResolver,
-      String jobKeyValue,
+      @NotNull CommandSourceStack source,
+      @NotNull PlayerSelectorArgumentResolver playerResolver,
+      @NotNull String jobKeyValue,
       int targetLevel)
       throws CommandSyntaxException {
     CommandSender sender = source.getSender();
@@ -166,7 +168,8 @@ public final class LevelCommand implements JobsCommand {
 
     // Check if player has the job
     String playerId = targetPlayer.getUniqueId().toString();
-    JobProgressionRecord currentRecord = progressionService.load(playerId, jobKey.toString());
+    PlayerJobStateRecord currentRecord =
+        playerJobStateService.load(playerId, job.jobKey().asString());
 
     if (currentRecord == null) {
       Messages.send(
@@ -180,37 +183,31 @@ public final class LevelCommand implements JobsCommand {
     }
 
     // Get current level before change
-    List<JobProgression> progressions = jobService.getProgressions(targetPlayer.getUniqueId());
+    List<PlayerJobState> states = jobService.getPlayerJobStates(targetPlayer.getUniqueId());
     int oldLevel =
-        progressions.stream()
-            .filter(p -> p.job().key().toString().equals(jobKey.toString()))
+        states.stream()
+            .filter(p -> p.job().jobKey().equals(job.jobKey()))
             .findFirst()
-            .map(JobProgression::level)
+            .map(PlayerJobState::level)
             .orElse(1);
 
     // Calculate required experience for target level
     BigDecimal requiredExperience =
         job.levelingCurve().evaluate(new dev.mintychochip.LevelingCurve.Parameters(targetLevel));
 
-    // Create new progression record with updated experience
-    JobProgressionRecord newRecord =
-        new JobProgressionRecord(playerId, currentRecord.jobRecord(), requiredExperience);
+    PlayerJobStateRecord newRecord =
+        new PlayerJobStateRecord(
+            playerId, currentRecord.jobKey(), currentRecord.currentNodeKey(), requiredExperience);
 
-    // Save the updated progression
-    if (progressionService.save(newRecord)) {
+    if (playerJobStateService.save(newRecord)) {
       // Fire JobLevelEvent so listeners (like UpgradeLevelUpListener) can handle level changes
       if (targetLevel != oldLevel) {
-        JobProgression updatedProgression = jobService.getProgression(playerId, jobKey.toString());
-        if (updatedProgression != null) {
+        PlayerJobState updatedState = jobService.getPlayerJobState(playerId, jobKey.toString());
+        if (updatedState != null) {
           new PaperEventBridge(Bridge.bridge().eventBus())
               .publishLevel(
                   new JobLevelEvent(
-                      targetPlayer.getUniqueId(),
-                      job,
-                      oldLevel,
-                      targetLevel,
-                      updatedProgression,
-                      JobLevelEvent.Reason.ADMIN_COMMAND),
+                      updatedState, oldLevel, targetLevel, JobLevelEvent.Reason.ADMIN_COMMAND),
                   targetPlayer);
         }
       }
@@ -234,15 +231,15 @@ public final class LevelCommand implements JobsCommand {
       return Command.SINGLE_SUCCESS;
     } else {
       Messages.send(
-          sender, "<error>Failed to update progression. Please check server logs.</error>");
+          sender, "<error>Failed to update player job state. Please check server logs.</error>");
       return 0;
     }
   }
 
   private int executeAdd(
-      CommandSourceStack source,
-      PlayerSelectorArgumentResolver playerResolver,
-      String jobKeyValue,
+      @NotNull CommandSourceStack source,
+      @NotNull PlayerSelectorArgumentResolver playerResolver,
+      @NotNull String jobKeyValue,
       int amount)
       throws CommandSyntaxException {
     CommandSender sender = source.getSender();
@@ -266,7 +263,8 @@ public final class LevelCommand implements JobsCommand {
 
     // Check if player has the job
     String playerId = targetPlayer.getUniqueId().toString();
-    JobProgressionRecord currentRecord = progressionService.load(playerId, jobKey.toString());
+    PlayerJobStateRecord currentRecord =
+        playerJobStateService.load(playerId, job.jobKey().asString());
 
     if (currentRecord == null) {
       Messages.send(
@@ -279,13 +277,13 @@ public final class LevelCommand implements JobsCommand {
       return 0;
     }
 
-    // Get current level from JobProgression
-    List<JobProgression> progressions = jobService.getProgressions(targetPlayer.getUniqueId());
+    // Get current level from PlayerJobState
+    List<PlayerJobState> states = jobService.getPlayerJobStates(targetPlayer.getUniqueId());
     int currentLevel =
-        progressions.stream()
-            .filter(p -> p.job().key().toString().equals(jobKey.toString()))
+        states.stream()
+            .filter(p -> p.job().jobKey().equals(job.jobKey()))
             .findFirst()
-            .map(JobProgression::level)
+            .map(PlayerJobState::level)
             .orElse(1);
 
     // Calculate new level, capped at max level
@@ -308,26 +306,20 @@ public final class LevelCommand implements JobsCommand {
     BigDecimal requiredExperience =
         job.levelingCurve().evaluate(new dev.mintychochip.LevelingCurve.Parameters(newLevel));
 
-    // Create new progression record with updated experience
-    JobProgressionRecord newRecord =
-        new JobProgressionRecord(playerId, currentRecord.jobRecord(), requiredExperience);
+    PlayerJobStateRecord newRecord =
+        new PlayerJobStateRecord(
+            playerId, currentRecord.jobKey(), currentRecord.currentNodeKey(), requiredExperience);
 
-    // Save the updated progression
-    if (progressionService.save(newRecord)) {
+    if (playerJobStateService.save(newRecord)) {
       // Fire JobLevelEvent so listeners (like UpgradeLevelUpListener) can handle level changes
       int levelsAdded = newLevel - currentLevel;
       if (levelsAdded > 0) {
-        JobProgression updatedProgression = jobService.getProgression(playerId, jobKey.toString());
-        if (updatedProgression != null) {
+        PlayerJobState updatedState = jobService.getPlayerJobState(playerId, jobKey.toString());
+        if (updatedState != null) {
           new PaperEventBridge(Bridge.bridge().eventBus())
               .publishLevel(
                   new JobLevelEvent(
-                      targetPlayer.getUniqueId(),
-                      job,
-                      currentLevel,
-                      newLevel,
-                      updatedProgression,
-                      JobLevelEvent.Reason.ADMIN_COMMAND),
+                      updatedState, currentLevel, newLevel, JobLevelEvent.Reason.ADMIN_COMMAND),
                   targetPlayer);
         }
       }
@@ -355,15 +347,15 @@ public final class LevelCommand implements JobsCommand {
       return Command.SINGLE_SUCCESS;
     } else {
       Messages.send(
-          sender, "<error>Failed to update progression. Please check server logs.</error>");
+          sender, "<error>Failed to update player job state. Please check server logs.</error>");
       return 0;
     }
   }
 
   private int executeSubtract(
-      CommandSourceStack source,
-      PlayerSelectorArgumentResolver playerResolver,
-      String jobKeyValue,
+      @NotNull CommandSourceStack source,
+      @NotNull PlayerSelectorArgumentResolver playerResolver,
+      @NotNull String jobKeyValue,
       int amount)
       throws CommandSyntaxException {
     CommandSender sender = source.getSender();
@@ -387,7 +379,8 @@ public final class LevelCommand implements JobsCommand {
 
     // Check if player has the job
     String playerId = targetPlayer.getUniqueId().toString();
-    JobProgressionRecord currentRecord = progressionService.load(playerId, jobKey.toString());
+    PlayerJobStateRecord currentRecord =
+        playerJobStateService.load(playerId, job.jobKey().asString());
 
     if (currentRecord == null) {
       Messages.send(
@@ -400,13 +393,13 @@ public final class LevelCommand implements JobsCommand {
       return 0;
     }
 
-    // Get current level from JobProgression
-    List<JobProgression> progressions = jobService.getProgressions(targetPlayer.getUniqueId());
+    // Get current level from PlayerJobState
+    List<PlayerJobState> states = jobService.getPlayerJobStates(targetPlayer.getUniqueId());
     int currentLevel =
-        progressions.stream()
-            .filter(p -> p.job().key().toString().equals(jobKey.toString()))
+        states.stream()
+            .filter(p -> p.job().jobKey().equals(job.jobKey()))
             .findFirst()
-            .map(JobProgression::level)
+            .map(PlayerJobState::level)
             .orElse(1);
 
     // Calculate new level, floored at level 1
@@ -427,26 +420,20 @@ public final class LevelCommand implements JobsCommand {
     BigDecimal requiredExperience =
         job.levelingCurve().evaluate(new dev.mintychochip.LevelingCurve.Parameters(newLevel));
 
-    // Create new progression record with updated experience
-    JobProgressionRecord newRecord =
-        new JobProgressionRecord(playerId, currentRecord.jobRecord(), requiredExperience);
+    PlayerJobStateRecord newRecord =
+        new PlayerJobStateRecord(
+            playerId, currentRecord.jobKey(), currentRecord.currentNodeKey(), requiredExperience);
 
-    // Save the updated progression
-    if (progressionService.save(newRecord)) {
+    if (playerJobStateService.save(newRecord)) {
       // Fire JobLevelEvent so listeners (like UpgradeLevelUpListener) can handle level changes
       int levelsSubtracted = currentLevel - newLevel;
       if (levelsSubtracted > 0) {
-        JobProgression updatedProgression = jobService.getProgression(playerId, jobKey.toString());
-        if (updatedProgression != null) {
+        PlayerJobState updatedState = jobService.getPlayerJobState(playerId, jobKey.toString());
+        if (updatedState != null) {
           new PaperEventBridge(Bridge.bridge().eventBus())
               .publishLevel(
                   new JobLevelEvent(
-                      targetPlayer.getUniqueId(),
-                      job,
-                      currentLevel,
-                      newLevel,
-                      updatedProgression,
-                      JobLevelEvent.Reason.ADMIN_COMMAND),
+                      updatedState, currentLevel, newLevel, JobLevelEvent.Reason.ADMIN_COMMAND),
                   targetPlayer);
         }
       }
@@ -474,7 +461,7 @@ public final class LevelCommand implements JobsCommand {
       return Command.SINGLE_SUCCESS;
     } else {
       Messages.send(
-          sender, "<error>Failed to update progression. Please check server logs.</error>");
+          sender, "<error>Failed to update player job state. Please check server logs.</error>");
       return 0;
     }
   }

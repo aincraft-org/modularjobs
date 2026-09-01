@@ -10,7 +10,6 @@ import dev.mintychochip.registry.Registry;
 import dev.mintychochip.upgrade.NodeEffect;
 import dev.mintychochip.upgrade.NodeLevel;
 import dev.mintychochip.upgrade.PerkPolicy;
-import dev.mintychochip.upgrade.Position;
 import dev.mintychochip.upgrade.Requirement;
 import dev.mintychochip.upgrade.Requirements.NodeLevelRequirement;
 import dev.mintychochip.upgrade.SkillNode;
@@ -20,6 +19,7 @@ import dev.mintychochip.upgrade.SkillTree;
 import dev.mintychochip.upgrade.UpgradeEffect;
 import dev.mintychochip.upgrade.UpgradeNode;
 import dev.mintychochip.upgrade.UpgradeTree;
+import dev.mintychochip.upgrade.rendering.Position;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -39,6 +39,7 @@ import java.util.Set;
 import java.util.logging.Level;
 import net.kyori.adventure.key.Key;
 import org.bukkit.plugin.Plugin;
+import org.jetbrains.annotations.NotNull;
 
 /** Loads upgrade trees from JSON configuration files. */
 public final class UpgradeTreeLoader {
@@ -58,12 +59,12 @@ public final class UpgradeTreeLoader {
 
   /** Upgrade tree loader. */
   public UpgradeTreeLoader(
-      Plugin plugin,
-      Gson gson,
-      Registry<UpgradeTree> registry,
-      Registry<SkillTree> skillTreeRegistry,
-      ConditionFactory conditionFactory,
-      BoostFactory boostFactory) {
+      @NotNull Plugin plugin,
+      @NotNull Gson gson,
+      @NotNull Registry<UpgradeTree> registry,
+      @NotNull Registry<SkillTree> skillTreeRegistry,
+      @NotNull ConditionFactory conditionFactory,
+      @NotNull BoostFactory boostFactory) {
     this.plugin = plugin;
     this.gson = gson;
     this.legacyParser = new UpgradeTreeConfigParser(conditionFactory, boostFactory);
@@ -116,7 +117,7 @@ public final class UpgradeTreeLoader {
    * @param folder the folder containing tree JSON files
    * @return number of upgrade trees loaded
    */
-  public int loadFromFolder(File folder) {
+  public int loadFromFolder(@NotNull File folder) {
     int count = 0;
     File[] files = folder.listFiles((dir, name) -> name.endsWith(".json"));
 
@@ -205,7 +206,7 @@ public final class UpgradeTreeLoader {
     return load();
   }
 
-  private int loadFromReader(Reader reader) {
+  private int loadFromReader(@NotNull Reader reader) {
     JsonObject root = gson.fromJson(reader, JsonObject.class);
     if (root == null) {
       plugin.getLogger().warning("Failed to parse JSON configuration");
@@ -247,7 +248,7 @@ public final class UpgradeTreeLoader {
    * consumed here; mixed legacy entries belong in the {@code upgrade_trees} wrapper handled by
    * {@link #loadLegacyFormat}.
    */
-  private int loadNestedV2Format(JsonObject root) {
+  private int loadNestedV2Format(@NotNull JsonObject root) {
     int count = 0;
     for (Map.Entry<String, JsonElement> entry : root.entrySet()) {
       if (!entry.getValue().isJsonObject() || !isV2(entry.getValue().getAsJsonObject())) {
@@ -270,7 +271,7 @@ public final class UpgradeTreeLoader {
     return count;
   }
 
-  private static boolean hasV2Children(JsonObject root) {
+  private static boolean hasV2Children(@NotNull JsonObject root) {
     for (Map.Entry<String, JsonElement> entry : root.entrySet()) {
       if (entry.getValue().isJsonObject() && isV2(entry.getValue().getAsJsonObject())) {
         return true;
@@ -280,7 +281,7 @@ public final class UpgradeTreeLoader {
   }
 
   /** Load Wynncraft-style format (with "layout" array). */
-  private int loadWynncraftFormat(JsonObject root) {
+  private int loadWynncraftFormat(@NotNull JsonObject root) {
     try {
       plugin.getLogger().info("Detected Wynncraft format - using WynncraftTreeConfigParser");
 
@@ -314,7 +315,7 @@ public final class UpgradeTreeLoader {
   }
 
   /** Load flat Wynncraft format where tree_id, job, layout are at root level. */
-  private int loadFlatWynncraftFormat(JsonObject root) {
+  private int loadFlatWynncraftFormat(@NotNull JsonObject root) {
     try {
       plugin.getLogger().info("Loading flat Wynncraft format");
 
@@ -357,7 +358,7 @@ public final class UpgradeTreeLoader {
   }
 
   /** Load nested Wynncraft format where tree entries are keyed by tree ID. */
-  private int loadNestedWynncraftFormat(JsonObject root) {
+  private int loadNestedWynncraftFormat(@NotNull JsonObject root) {
     try {
       plugin.getLogger().info("Loading nested Wynncraft format");
 
@@ -434,7 +435,7 @@ public final class UpgradeTreeLoader {
    * Load legacy format (with "upgrade_trees" object). Also handles hybrid format where trees inside
    * use Wynncraft-style layout.
    */
-  private int loadLegacyFormat(JsonObject root) {
+  private int loadLegacyFormat(@NotNull JsonObject root) {
     if (!root.has("upgrade_trees")) {
       plugin.getLogger().warning("No 'upgrade_trees' key found in configuration");
       return 0;
@@ -544,7 +545,7 @@ public final class UpgradeTreeLoader {
    * @param json the JSON content to write
    * @return true if saved successfully
    */
-  public boolean saveTree(String treeId, String json) {
+  public boolean saveTree(@NotNull String treeId, @NotNull String json) {
     File treesFolder = new File(plugin.getDataFolder(), TREES_FOLDER);
     if (!treesFolder.exists()) {
       treesFolder.mkdirs();
@@ -578,7 +579,7 @@ public final class UpgradeTreeLoader {
    *
    * @return the upgrade_trees folder
    */
-  public File getTreesFolder() {
+  public @NotNull File getTreesFolder() {
     File folder = new File(plugin.getDataFolder(), TREES_FOLDER);
     if (!folder.exists()) {
       folder.mkdirs();
@@ -592,7 +593,7 @@ public final class UpgradeTreeLoader {
    * @param treeId the tree ID (filename without .json extension)
    * @return the loaded tree, or empty if not found
    */
-  public java.util.Optional<UpgradeTree> loadSingleTree(String treeId) {
+  public @NotNull java.util.Optional<UpgradeTree> loadSingleTree(@NotNull String treeId) {
     File treeFile = new File(getTreesFolder(), treeId + ".json");
     if (!treeFile.exists()) {
       return java.util.Optional.empty();
@@ -656,7 +657,7 @@ public final class UpgradeTreeLoader {
     }
   }
 
-  private static boolean isV2(JsonObject treeObj) {
+  private static boolean isV2(@NotNull JsonObject treeObj) {
     if (!treeObj.has("version") || !treeObj.get("version").isJsonPrimitive()) {
       return false;
     }
@@ -686,7 +687,7 @@ public final class UpgradeTreeLoader {
    * carry over. Tree-level walk paths ({@link UpgradeTree#paths()}) and state writes have no
    * per-node v2 equivalent, so they are not migrated.
    */
-  public SkillTree convertLegacy(UpgradeTree legacy) {
+  public @NotNull SkillTree convertLegacy(@NotNull UpgradeTree legacy) {
     Map<String, String> perkByNodeKey = new LinkedHashMap<>();
     for (UpgradeNode node : legacy.allNodes()) {
       String nodeKey = node.key().value();
@@ -735,12 +736,12 @@ public final class UpgradeTreeLoader {
     return tree;
   }
 
-  private SkillNode convertPerk(
-      UpgradeTree legacy,
-      String perk,
-      List<UpgradeNode> group,
-      Map<String, String> perkByNodeKey,
-      Map<String, Integer> maxLevelByPerk) {
+  private @NotNull SkillNode convertPerk(
+      @NotNull UpgradeTree legacy,
+      @NotNull String perk,
+      @NotNull List<UpgradeNode> group,
+      @NotNull Map<String, String> perkByNodeKey,
+      @NotNull Map<String, Integer> maxLevelByPerk) {
     final UpgradeNode base = group.get(0);
     boolean isRoot = Objects.equals(perk, perkByNodeKey.get(legacy.rootNodeKey()));
     SkillNodeKind kind = isRoot ? SkillNodeKind.ROOT : SkillNodeKind.SKILL;
@@ -823,7 +824,7 @@ public final class UpgradeTreeLoader {
         List.of());
   }
 
-  private static List<NodeEffect> mapEffects(List<UpgradeEffect> legacyEffects) {
+  private static @NotNull List<NodeEffect> mapEffects(@NotNull List<UpgradeEffect> legacyEffects) {
     List<NodeEffect> mapped = new ArrayList<>();
     for (UpgradeEffect effect : legacyEffects) {
       if (effect instanceof UpgradeEffect.BoostEffect boost) {
@@ -838,7 +839,7 @@ public final class UpgradeTreeLoader {
     return mapped;
   }
 
-  private void createDefaultConfig(File configFile) {
+  private void createDefaultConfig(@NotNull File configFile) {
     try {
       if (!plugin.getDataFolder().exists()) {
         plugin.getDataFolder().mkdirs();
