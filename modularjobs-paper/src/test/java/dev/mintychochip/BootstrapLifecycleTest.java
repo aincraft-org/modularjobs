@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import dev.mintychochip.editor.EditorConfig;
 import dev.mintychochip.gui.PaperSurfaces;
 import dev.mintychochip.gui.PaperUiHost;
+import dev.mintychochip.paper.event.LifecycleEventBus;
 import dev.mintychochip.repository.ConnectionSource;
 import dev.mintychochip.repository.DatabaseType;
 import dev.mintychochip.repository.PluginResources;
@@ -23,6 +24,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import net.kyori.adventure.bossbar.BossBar.Color;
+import org.aincraft.event.EventBuses;
 import net.kyori.adventure.text.Component;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
@@ -218,9 +220,10 @@ class BootstrapLifecycleTest {
       surfaces.showScoreboard(player.getUniqueId(), "Lifecycle", List.of("line"));
       surfaces.showBossBar(player.getUniqueId(), "lifecycle", "Lifecycle", 0.5, Color.BLUE);
 
+      LifecycleEventBus eventBus = new LifecycleEventBus(EventBuses.create());
       PluginContext context =
           new PluginContext(
-              null, source, resources, host, surfaces, null, Set.of(), Set.of(), null);
+              null, eventBus, source, resources, host, surfaces, null, Set.of(), Set.of(), null);
 
       context.shutdown();
       context.shutdown();
