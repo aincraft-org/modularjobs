@@ -11,7 +11,6 @@ import java.sql.NClob;
 import java.sql.PreparedStatement;
 import java.sql.SQLClientInfoException;
 import java.sql.SQLException;
-import org.jetbrains.annotations.NotNull;
 import java.sql.SQLWarning;
 import java.sql.SQLXML;
 import java.sql.Savepoint;
@@ -23,6 +22,7 @@ import java.util.Properties;
 import java.util.concurrent.Executor;
 import org.aincraft.db.sql.SqlDatabase;
 import org.jdbi.v3.core.Handle;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * {@link ConnectionSource} backed by the Utilities SQL {@link SqlDatabase} lifecycle.

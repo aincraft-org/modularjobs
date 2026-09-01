@@ -13,8 +13,8 @@ import dev.mintychochip.service.ProfessionService;
 import dev.mintychochip.service.RecipeService;
 import dev.mintychochip.service.StationService;
 import java.util.Optional;
-import org.jetbrains.annotations.NotNull;
 import org.aincraft.api.event.EventBus;
+import org.jetbrains.annotations.NotNull;
 
 /** Bridge. */
 public interface Bridge {

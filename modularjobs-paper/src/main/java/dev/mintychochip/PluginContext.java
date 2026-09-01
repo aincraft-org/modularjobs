@@ -24,7 +24,6 @@ import dev.mintychochip.commands.StatsCommand;
 import dev.mintychochip.commands.TopCommand;
 import dev.mintychochip.commands.TreeEditorCommand;
 import dev.mintychochip.commands.UpgradesCommand;
-import dev.mintychochip.common.event.EventBusImpl;
 import dev.mintychochip.config.LevelUpCommandsConfig;
 import dev.mintychochip.config.ProgressionLimitsConfig;
 import dev.mintychochip.config.YamlConfiguration;

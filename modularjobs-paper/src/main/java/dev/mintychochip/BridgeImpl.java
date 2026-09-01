@@ -13,9 +13,9 @@ import dev.mintychochip.service.ProfessionService;
 import dev.mintychochip.service.RecipeService;
 import dev.mintychochip.service.StationService;
 import java.util.Optional;
+import org.aincraft.api.event.EventBus;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
-import org.aincraft.api.event.EventBus;
 import org.jetbrains.annotations.Nullable;
 
 /** Immutable bridge assembled by the composition root for public plugin integrations. */

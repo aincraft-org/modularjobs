@@ -56,7 +56,6 @@ public final class ConnectionSourceFactory {
     }
   }
 
-
   static void verifySchemaOrClose(@NotNull ConnectionSource source, @NotNull DatabaseType type) {
     try (SourceOwnership ownership = new SourceOwnership(source)) {
       if (SchemaPolicy.shouldVerifySchemaPresent(type)) {
