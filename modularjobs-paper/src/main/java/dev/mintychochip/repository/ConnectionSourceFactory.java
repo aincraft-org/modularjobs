@@ -56,16 +56,6 @@ public final class ConnectionSourceFactory {
     }
   }
 
-  private static void closeAfterFailure(ConnectionSource source, Throwable failure) {
-    if (source == null) {
-      return;
-    }
-    try {
-      source.shutdown();
-    } catch (SQLException closeFailure) {
-      failure.addSuppressed(closeFailure);
-    }
-  }
 
   static void verifySchemaOrClose(@NotNull ConnectionSource source, @NotNull DatabaseType type) {
     try (SourceOwnership ownership = new SourceOwnership(source)) {
