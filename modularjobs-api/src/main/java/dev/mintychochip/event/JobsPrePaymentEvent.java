@@ -9,7 +9,7 @@ import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 /** Fired before a jobs payment is processed. */
-public final class JobsPrePaymentEvent implements Cancellable {
+public final class JobsPrePaymentEvent implements Cancellable, org.aincraft.api.event.Event {
 
   private final UUID playerId;
   private final Payable payable;

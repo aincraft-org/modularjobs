@@ -1,31 +1,50 @@
 package dev.mintychochip.repository;
 
 import com.zaxxer.hikari.HikariConfig;
-import com.zaxxer.hikari.HikariDataSource;
+import java.sql.Array;
+import java.sql.Blob;
+import java.sql.CallableStatement;
+import java.sql.Clob;
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.NClob;
+import java.sql.PreparedStatement;
+import java.sql.SQLClientInfoException;
 import java.sql.SQLException;
 import org.jetbrains.annotations.NotNull;
+import java.sql.SQLWarning;
+import java.sql.SQLXML;
+import java.sql.Savepoint;
+import java.sql.ShardingKey;
+import java.sql.Statement;
+import java.sql.Struct;
+import java.util.Map;
+import java.util.Properties;
+import java.util.concurrent.Executor;
+import org.aincraft.db.sql.SqlDatabase;
+import org.jdbi.v3.core.Handle;
 
 /**
- * {@link ConnectionSource} backed by a HikariCP {@link HikariDataSource}.
+ * {@link ConnectionSource} backed by the Utilities SQL {@link SqlDatabase} lifecycle.
  *
- * <p>Owns the {@link HikariDataSource} lifecycle: {@link #shutdown()} closes the pool (idempotent),
- * and {@link #getConnection()} delegates to the pool to borrow a connection the caller must close.
+ * <p>The utility owns the Hikari pool and Jdbi handle lifecycle. Each connection returned here is a
+ * handle-backed view whose {@link Connection#close()} closes its Jdbi handle, returning the pooled
+ * connection without exposing a second pool or leaking handles.
  */
 final class HikariSourceImpl implements ConnectionSource {
 
-  private final HikariDataSource source;
+  private final SqlDatabase source;
 
   private final DatabaseType type;
 
-  HikariSourceImpl(@NotNull HikariConfig config, @NotNull DatabaseType type) {
-    this.source = new HikariDataSource(config);
+  HikariSourceImpl(HikariConfig config, DatabaseType type) {
+    this.source = SqlDatabase.create(config, "classpath:modularjobs-no-runtime-migrations");
     this.type = type;
   }
 
   @Override
   public void shutdown() throws SQLException {
-    if (source.isClosed()) {
+    if (source.closed()) {
       return;
     }
     source.close();
@@ -38,16 +57,388 @@ final class HikariSourceImpl implements ConnectionSource {
 
   @Override
   public boolean isClosed() {
-    return source.isClosed();
+    return source.closed();
   }
 
   @Override
-  public @NotNull Connection getConnection() throws SQLException {
-    return source.getConnection();
+  public Connection getConnection() throws SQLException {
+    if (source.closed()) {
+      throw new SQLException("database connection source is closed");
+    }
+    final Handle handle;
+    try {
+      handle = source.jdbi().open();
+    } catch (RuntimeException failure) {
+      throw new SQLException("failed to acquire database connection", failure);
+    }
+    try {
+      return new HikariHandleConnection(handle);
+    } catch (RuntimeException failure) {
+      try {
+        handle.close();
+      } catch (RuntimeException closeFailure) {
+        failure.addSuppressed(closeFailure);
+      }
+      throw new SQLException("failed to acquire database connection", failure);
+    }
   }
 
   @Override
   public boolean isSetup() {
     return true;
+  }
+
+  /** JDBC view that closes its Jdbi handle when callers close the connection. */
+  private static final class HikariHandleConnection implements Connection {
+
+    private final Handle handle;
+
+    private final Connection delegate;
+
+    private volatile boolean closed;
+
+    HikariHandleConnection(Handle handle) {
+      this.handle = handle;
+      this.delegate = handle.getConnection();
+    }
+
+    @Override
+    public Statement createStatement() throws SQLException {
+      return delegate.createStatement();
+    }
+
+    @Override
+    public PreparedStatement prepareStatement(String sql) throws SQLException {
+      return delegate.prepareStatement(sql);
+    }
+
+    @Override
+    public CallableStatement prepareCall(String sql) throws SQLException {
+      return delegate.prepareCall(sql);
+    }
+
+    @Override
+    public String nativeSQL(String sql) throws SQLException {
+      return delegate.nativeSQL(sql);
+    }
+
+    @Override
+    public void setAutoCommit(boolean autoCommit) throws SQLException {
+      delegate.setAutoCommit(autoCommit);
+    }
+
+    @Override
+    public boolean getAutoCommit() throws SQLException {
+      return delegate.getAutoCommit();
+    }
+
+    @Override
+    public void commit() throws SQLException {
+      delegate.commit();
+    }
+
+    @Override
+    public void rollback() throws SQLException {
+      delegate.rollback();
+    }
+
+    @Override
+    public void close() throws SQLException {
+      synchronized (this) {
+        if (!closed) {
+          closed = true;
+          try {
+            handle.close();
+          } catch (RuntimeException failure) {
+            throw new SQLException("failed to close database connection", failure);
+          }
+        }
+      }
+    }
+
+    @Override
+    public boolean isClosed() throws SQLException {
+      return closed || handle.isClosed() || delegate.isClosed();
+    }
+
+    @Override
+    public DatabaseMetaData getMetaData() throws SQLException {
+      return delegate.getMetaData();
+    }
+
+    @Override
+    public void setReadOnly(boolean readOnly) throws SQLException {
+      delegate.setReadOnly(readOnly);
+    }
+
+    @Override
+    public boolean isReadOnly() throws SQLException {
+      return delegate.isReadOnly();
+    }
+
+    @Override
+    public void setCatalog(String catalog) throws SQLException {
+      delegate.setCatalog(catalog);
+    }
+
+    @Override
+    public String getCatalog() throws SQLException {
+      return delegate.getCatalog();
+    }
+
+    @Override
+    public void setTransactionIsolation(int level) throws SQLException {
+      delegate.setTransactionIsolation(level);
+    }
+
+    @Override
+    public int getTransactionIsolation() throws SQLException {
+      return delegate.getTransactionIsolation();
+    }
+
+    @Override
+    public SQLWarning getWarnings() throws SQLException {
+      return delegate.getWarnings();
+    }
+
+    @Override
+    public void clearWarnings() throws SQLException {
+      delegate.clearWarnings();
+    }
+
+    @Override
+    public Statement createStatement(int resultSetType, int resultSetConcurrency)
+        throws SQLException {
+      return delegate.createStatement(resultSetType, resultSetConcurrency);
+    }
+
+    @Override
+    public PreparedStatement prepareStatement(
+        String sql, int resultSetType, int resultSetConcurrency) throws SQLException {
+      return delegate.prepareStatement(sql, resultSetType, resultSetConcurrency);
+    }
+
+    @Override
+    public CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency)
+        throws SQLException {
+      return delegate.prepareCall(sql, resultSetType, resultSetConcurrency);
+    }
+
+    @Override
+    public Map<String, Class<?>> getTypeMap() throws SQLException {
+      return delegate.getTypeMap();
+    }
+
+    @Override
+    public void setTypeMap(Map<String, Class<?>> map) throws SQLException {
+      delegate.setTypeMap(map);
+    }
+
+    @Override
+    public void setHoldability(int holdability) throws SQLException {
+      delegate.setHoldability(holdability);
+    }
+
+    @Override
+    public int getHoldability() throws SQLException {
+      return delegate.getHoldability();
+    }
+
+    @Override
+    public Savepoint setSavepoint() throws SQLException {
+      return delegate.setSavepoint();
+    }
+
+    @Override
+    public Savepoint setSavepoint(String name) throws SQLException {
+      return delegate.setSavepoint(name);
+    }
+
+    @Override
+    public void rollback(Savepoint savepoint) throws SQLException {
+      delegate.rollback(savepoint);
+    }
+
+    @Override
+    public void releaseSavepoint(Savepoint savepoint) throws SQLException {
+      delegate.releaseSavepoint(savepoint);
+    }
+
+    @Override
+    public Statement createStatement(
+        int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException {
+      return delegate.createStatement(resultSetType, resultSetConcurrency, resultSetHoldability);
+    }
+
+    @Override
+    public PreparedStatement prepareStatement(
+        String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability)
+        throws SQLException {
+      return delegate.prepareStatement(
+          sql, resultSetType, resultSetConcurrency, resultSetHoldability);
+    }
+
+    @Override
+    public CallableStatement prepareCall(
+        String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability)
+        throws SQLException {
+      return delegate.prepareCall(sql, resultSetType, resultSetConcurrency, resultSetHoldability);
+    }
+
+    @Override
+    public PreparedStatement prepareStatement(String sql, int autoGeneratedKeys)
+        throws SQLException {
+      return delegate.prepareStatement(sql, autoGeneratedKeys);
+    }
+
+    @Override
+    public PreparedStatement prepareStatement(String sql, int[] columnIndexes) throws SQLException {
+      return delegate.prepareStatement(sql, columnIndexes);
+    }
+
+    @Override
+    public PreparedStatement prepareStatement(String sql, String[] columnNames)
+        throws SQLException {
+      return delegate.prepareStatement(sql, columnNames);
+    }
+
+    @Override
+    public Clob createClob() throws SQLException {
+      return delegate.createClob();
+    }
+
+    @Override
+    public Blob createBlob() throws SQLException {
+      return delegate.createBlob();
+    }
+
+    @Override
+    public NClob createNClob() throws SQLException {
+      return delegate.createNClob();
+    }
+
+    @Override
+    public SQLXML createSQLXML() throws SQLException {
+      return delegate.createSQLXML();
+    }
+
+    @Override
+    public boolean isValid(int timeout) throws SQLException {
+      return delegate.isValid(timeout);
+    }
+
+    @Override
+    public void setClientInfo(String name, String value) throws SQLClientInfoException {
+      delegate.setClientInfo(name, value);
+    }
+
+    @Override
+    public void setClientInfo(Properties properties) throws SQLClientInfoException {
+      delegate.setClientInfo(properties);
+    }
+
+    @Override
+    public String getClientInfo(String name) throws SQLException {
+      return delegate.getClientInfo(name);
+    }
+
+    @Override
+    public Properties getClientInfo() throws SQLException {
+      return delegate.getClientInfo();
+    }
+
+    @Override
+    public Array createArrayOf(String typeName, Object[] elements) throws SQLException {
+      return delegate.createArrayOf(typeName, elements);
+    }
+
+    @Override
+    public Struct createStruct(String typeName, Object[] attributes) throws SQLException {
+      return delegate.createStruct(typeName, attributes);
+    }
+
+    @Override
+    public void setSchema(String schema) throws SQLException {
+      delegate.setSchema(schema);
+    }
+
+    @Override
+    public String getSchema() throws SQLException {
+      return delegate.getSchema();
+    }
+
+    @Override
+    public void abort(Executor executor) throws SQLException {
+      SQLException failure = null;
+      try {
+        delegate.abort(executor);
+      } catch (SQLException abortFailure) {
+        failure = abortFailure;
+      }
+      try {
+        close();
+      } catch (SQLException closeFailure) {
+        if (failure == null) {
+          failure = closeFailure;
+        } else {
+          failure.addSuppressed(closeFailure);
+        }
+      }
+      if (failure != null) {
+        throw failure;
+      }
+    }
+
+    @Override
+    public void setNetworkTimeout(Executor executor, int milliseconds) throws SQLException {
+      delegate.setNetworkTimeout(executor, milliseconds);
+    }
+
+    @Override
+    public int getNetworkTimeout() throws SQLException {
+      return delegate.getNetworkTimeout();
+    }
+
+    @Override
+    public void beginRequest() throws SQLException {
+      delegate.beginRequest();
+    }
+
+    @Override
+    public void endRequest() throws SQLException {
+      delegate.endRequest();
+    }
+
+    @Override
+    public boolean setShardingKeyIfValid(
+        ShardingKey shardingKey, ShardingKey superShardingKey, int timeout) throws SQLException {
+      return delegate.setShardingKeyIfValid(shardingKey, superShardingKey, timeout);
+    }
+
+    @Override
+    public boolean setShardingKeyIfValid(ShardingKey shardingKey, int timeout) throws SQLException {
+      return delegate.setShardingKeyIfValid(shardingKey, timeout);
+    }
+
+    @Override
+    public void setShardingKey(ShardingKey shardingKey, ShardingKey superShardingKey)
+        throws SQLException {
+      delegate.setShardingKey(shardingKey, superShardingKey);
+    }
+
+    @Override
+    public void setShardingKey(ShardingKey shardingKey) throws SQLException {
+      delegate.setShardingKey(shardingKey);
+    }
+
+    @Override
+    public <T> T unwrap(Class<T> iface) throws SQLException {
+      return delegate.unwrap(iface);
+    }
+
+    @Override
+    public boolean isWrapperFor(Class<?> iface) throws SQLException {
+      return delegate.isWrapperFor(iface);
+    }
   }
 }

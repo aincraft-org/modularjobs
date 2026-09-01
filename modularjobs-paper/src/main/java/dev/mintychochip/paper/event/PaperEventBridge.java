@@ -1,6 +1,5 @@
 package dev.mintychochip.paper.event;
 
-import dev.mintychochip.event.EventBus;
 import dev.mintychochip.event.JobExperienceGainEvent;
 import dev.mintychochip.event.JobJoinEvent;
 import dev.mintychochip.event.JobLeaveEvent;
@@ -8,6 +7,7 @@ import dev.mintychochip.event.JobLevelEvent;
 import dev.mintychochip.event.JobsPaymentEvent;
 import dev.mintychochip.event.JobsPrePaymentEvent;
 import java.util.Objects;
+import org.aincraft.api.event.EventBus;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
@@ -28,9 +28,8 @@ public final class PaperEventBridge {
   }
 
   /** Publish level. */
-  public @NotNull JobLevelEvent publishLevel(
-      @NotNull JobLevelEvent pure, @Nullable Player playerForBukkit) {
-    bus.publish(pure);
+  public JobLevelEvent publishLevel(JobLevelEvent pure, @Nullable Player playerForBukkit) {
+    bus.post(pure);
     if (playerForBukkit != null) {
       Bukkit.getPluginManager().callEvent(new BukkitJobLevelEvent(playerForBukkit, pure));
     }
@@ -38,9 +37,8 @@ public final class PaperEventBridge {
   }
 
   /** Publish join. */
-  public @NotNull JobJoinEvent publishJoin(
-      @NotNull JobJoinEvent pure, @Nullable Player playerForBukkit) {
-    bus.publish(pure);
+  public JobJoinEvent publishJoin(JobJoinEvent pure, @Nullable Player playerForBukkit) {
+    bus.post(pure);
     if (playerForBukkit != null) {
       Bukkit.getPluginManager().callEvent(new BukkitJobJoinEvent(playerForBukkit, pure));
     }
@@ -48,9 +46,8 @@ public final class PaperEventBridge {
   }
 
   /** Publish leave. */
-  public @NotNull JobLeaveEvent publishLeave(
-      @NotNull JobLeaveEvent pure, @Nullable Player playerForBukkit) {
-    bus.publish(pure);
+  public JobLeaveEvent publishLeave(JobLeaveEvent pure, @Nullable Player playerForBukkit) {
+    bus.post(pure);
     if (playerForBukkit != null) {
       Bukkit.getPluginManager().callEvent(new BukkitJobLeaveEvent(playerForBukkit, pure));
     }
@@ -58,9 +55,9 @@ public final class PaperEventBridge {
   }
 
   /** Publish experience gain. */
-  public @NotNull JobExperienceGainEvent publishExperienceGain(
-      @NotNull JobExperienceGainEvent pure, @Nullable Player playerForBukkit) {
-    bus.publish(pure);
+  public JobExperienceGainEvent publishExperienceGain(
+      JobExperienceGainEvent pure, @Nullable Player playerForBukkit) {
+    bus.post(pure);
     if (playerForBukkit != null) {
       Bukkit.getPluginManager().callEvent(new BukkitJobExperienceGainEvent(playerForBukkit, pure));
     }
@@ -68,9 +65,9 @@ public final class PaperEventBridge {
   }
 
   /** Publish payment. */
-  public @NotNull JobsPaymentEvent publishPayment(
-      @NotNull JobsPaymentEvent pure, @Nullable OfflinePlayer playerForBukkit) {
-    bus.publish(pure);
+  public JobsPaymentEvent publishPayment(
+      JobsPaymentEvent pure, @Nullable OfflinePlayer playerForBukkit) {
+    bus.post(pure);
     if (playerForBukkit != null) {
       Bukkit.getPluginManager().callEvent(new BukkitJobsPaymentEvent(playerForBukkit, pure));
     }
@@ -78,9 +75,9 @@ public final class PaperEventBridge {
   }
 
   /** Publish pre payment. */
-  public @NotNull JobsPrePaymentEvent publishPrePayment(
-      @NotNull JobsPrePaymentEvent pure, @Nullable OfflinePlayer playerForBukkit) {
-    bus.publish(pure);
+  public JobsPrePaymentEvent publishPrePayment(
+      JobsPrePaymentEvent pure, @Nullable OfflinePlayer playerForBukkit) {
+    bus.post(pure);
     if (playerForBukkit != null) {
       Bukkit.getPluginManager().callEvent(new BukkitJobsPrePaymentEvent(playerForBukkit, pure));
     }

@@ -9,7 +9,7 @@ import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 /** Fired before experience is applied; listeners may cancel or mutate the amount. */
-public final class JobExperienceGainEvent implements Cancellable {
+public final class JobExperienceGainEvent implements Cancellable, org.aincraft.api.event.Event {
 
   private final PlayerJobState state;
   private BigDecimal experienceGained;

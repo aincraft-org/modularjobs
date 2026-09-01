@@ -7,7 +7,7 @@ import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 /** Fired when a jobs payment is delivered. */
-public final class JobsPaymentEvent implements Cancellable {
+public final class JobsPaymentEvent implements Cancellable, org.aincraft.api.event.Event {
 
   private final UUID playerId;
   private final Payable base;

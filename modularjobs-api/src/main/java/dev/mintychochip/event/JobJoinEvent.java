@@ -8,7 +8,7 @@ import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 /** Event fired when a player joins or rejoins a job. */
-public final class JobJoinEvent {
+public final class JobJoinEvent implements org.aincraft.api.event.Event {
 
   private final PlayerJobState state;
   private final boolean rejoin;

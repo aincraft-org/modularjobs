@@ -41,7 +41,6 @@ import dev.mintychochip.editor.EditorService;
 import dev.mintychochip.editor.EditorSessionStore;
 import dev.mintychochip.editor.RestSessionClient;
 import dev.mintychochip.editor.json.GsonProvider;
-import dev.mintychochip.event.EventBus;
 import dev.mintychochip.gui.JobBrowseGui;
 import dev.mintychochip.gui.JobInfoGui;
 import dev.mintychochip.gui.PaperSurfaces;
@@ -49,6 +48,7 @@ import dev.mintychochip.gui.PaperUiHost;
 import dev.mintychochip.gui.StatsGui;
 import dev.mintychochip.listener.AutoJoinListener;
 import dev.mintychochip.listener.LevelUpCommandListener;
+import dev.mintychochip.paper.event.LifecycleEventBus;
 import dev.mintychochip.payable.PayableWiring;
 import dev.mintychochip.payment.PaymentSettings;
 import dev.mintychochip.payment.PaymentWiring;
@@ -101,6 +101,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import org.aincraft.event.EventBuses;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.event.Listener;
@@ -112,6 +113,7 @@ import org.jetbrains.annotations.Nullable;
 public final class PluginContext {
 
   public final Bridge bridge;
+  private final LifecycleEventBus eventBus;
 
   /** Primary payable ConnectionSource (also first entry in {@link #resources}). */
   public final ConnectionSource connectionSource;
@@ -132,6 +134,7 @@ public final class PluginContext {
 
   PluginContext(
       @NotNull Bridge bridge,
+      @NotNull LifecycleEventBus eventBus,
       @NotNull ConnectionSource connectionSource,
       @NotNull PluginResources resources,
       @NotNull PaperUiHost paperUiHost,
@@ -141,6 +144,7 @@ public final class PluginContext {
       @NotNull Set<JobsCommand> commands,
       @Nullable PlaceholderExpansionHandle placeholderExpansion) {
     this.bridge = bridge;
+    this.eventBus = eventBus;
     this.connectionSource = connectionSource;
     this.resources = resources;
     this.paperUiHost = paperUiHost;
@@ -158,6 +162,7 @@ public final class PluginContext {
   public void shutdown() throws SQLException {
     paperUiHost.closeAll();
     paperSurfaces.closeAll();
+    eventBus.close();
     resources.shutdown();
   }
 
@@ -396,7 +401,7 @@ public final class PluginContext {
         new UpgradePermissionRestoreListener(
             upgradeService, effectApplier, permissionManager, skillTreeRegistry));
 
-    EventBus eventBus = new EventBusImpl();
+    LifecycleEventBus eventBus = new LifecycleEventBus(EventBuses.create());
     Bridge bridge =
         new BridgeImpl(
             registryContainer,
@@ -419,6 +424,7 @@ public final class PluginContext {
 
     return new PluginContext(
         bridge,
+        eventBus,
         connectionSource,
         resources,
         paperUiHost,

@@ -8,7 +8,7 @@ import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 /** Event fired when a player leaves a job. */
-public final class JobLeaveEvent {
+public final class JobLeaveEvent implements org.aincraft.api.event.Event {
 
   private final PlayerJobState state;
 

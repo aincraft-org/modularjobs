@@ -9,7 +9,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /** Fired when a player's job level changes. */
-public final class JobLevelEvent {
+public final class JobLevelEvent implements org.aincraft.api.event.Event {
 
   /** Reason. */
   public enum Reason {

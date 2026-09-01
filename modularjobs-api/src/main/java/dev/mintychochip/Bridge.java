@@ -4,7 +4,6 @@ import dev.mintychochip.container.EconomyProvider;
 import dev.mintychochip.container.boost.TimedBoostDataService;
 import dev.mintychochip.container.boost.factories.BoostFactory;
 import dev.mintychochip.container.boost.factories.ConditionFactory;
-import dev.mintychochip.event.EventBus;
 import dev.mintychochip.registry.RegistryContainer;
 import dev.mintychochip.service.ActionService;
 import dev.mintychochip.service.BuffService;
@@ -15,6 +14,7 @@ import dev.mintychochip.service.RecipeService;
 import dev.mintychochip.service.StationService;
 import java.util.Optional;
 import org.jetbrains.annotations.NotNull;
+import org.aincraft.api.event.EventBus;
 
 /** Bridge. */
 public interface Bridge {
@@ -72,7 +72,9 @@ public interface Bridge {
   @NotNull
   NodeHarvestService nodeHarvestService();
 
-  /** Event bus. */
+  /**
+   * Synchronous utility event bus; callers may retain subscriptions and unregister them on disable.
+   */
   @NotNull
   EventBus eventBus();
 }

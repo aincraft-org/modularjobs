@@ -5,13 +5,18 @@ plugins {
 
 dependencies {
     implementation(libs.guava)
+    implementation("org.aincraft:utilities-common:2026.08.27") {
+        isTransitive = false
+    }
+    // Utilities owns the SQL/Jdbi/Hikari lifecycle; ModularJobs remains JDBC-facing at its
+    // ConnectionSource boundary so existing repositories and transactions keep their contracts.
+    implementation("org.aincraft:utilities-db-sql:2026.08.27")
     implementation(project(":modularjobs-api"))
     implementation(project(":modularjobs-common"))
     implementation(libs.databag.api)
     implementation(libs.databag.common)
     implementation(libs.databag.paper)
     implementation(libs.exp4j)
-    implementation(libs.hikaricp)
     implementation(libs.caffeine)
     implementation(libs.gson)
     implementation(libs.configurate.core)
