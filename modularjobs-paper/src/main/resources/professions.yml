@@ -1,0 +1,63 @@
+# Profession identity mapped onto jobs.yml progression keys.
+# This file is copied to the plugin data folder once; restart after editing it.
+professions:
+  - id: mining
+    storage-key: miner
+    category: gathering
+    display-name: Mining
+  - id: woodcutting
+    storage-key: lumberjack
+    category: gathering
+    display-name: Woodcutting
+  - id: herbalism
+    storage-key: herbalism
+    category: gathering
+    display-name: Herbalism
+  - id: farming
+    storage-key: farmer
+    category: gathering
+    display-name: Farming
+  - id: fishing
+    storage-key: fisherman
+    category: gathering
+    display-name: Fishing
+  - id: smelting
+    storage-key: smelting
+    category: processing
+    display-name: Smelting
+  - id: milling
+    storage-key: milling
+    category: processing
+    display-name: Milling
+  - id: tanning
+    storage-key: tanning
+    category: processing
+    display-name: Tanning
+  - id: refining
+    storage-key: refining
+    category: processing
+    display-name: Refining
+  - id: cooking
+    storage-key: cooking
+    category: crafting
+    display-name: Cooking
+  - id: alchemy
+    storage-key: alchemist
+    category: crafting
+    display-name: Alchemy
+  - id: armorsmithing
+    storage-key: armorsmithing
+    category: crafting
+    display-name: Armorsmithing
+  - id: weaponsmithing
+    storage-key: blacksmith
+    category: crafting
+    display-name: Weaponsmithing
+  - id: tailoring
+    storage-key: tailoring
+    category: crafting
+    display-name: Tailoring
+  - id: engineering
+    storage-key: engineering
+    category: crafting
+    display-name: Engineering
