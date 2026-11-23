@@ -14,12 +14,16 @@ import dev.mintychochip.container.PayableAmount;
 import dev.mintychochip.container.PayableHandler;
 import dev.mintychochip.container.PayableHandler.PayableContext;
 import dev.mintychochip.container.PayableType;
+import dev.mintychochip.event.JobsPrePaymentEvent;
+import dev.mintychochip.paper.event.PaperEventBridge;
 import dev.mintychochip.service.JobService;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Supplier;
 import net.kyori.adventure.key.Key;
+import org.aincraft.api.event.EventBus;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
@@ -31,9 +35,9 @@ import org.jetbrains.annotations.Nullable;
  *
  * <p>For each payable, the base amount is run through the job's {@link PayableCurve} (when
  * present), then recipe experience depreciation (when configured), then boosted via {@link
- * BoostEngine}, and finally handed to the payable type's {@link PayableHandler}. State is reloaded
- * per payable so sequential XP awards accumulate instead of last-write-wins against a single
- * snapshot.
+ * BoostEngine}, offered to listeners as a cancellable, replaceable {@link JobsPrePaymentEvent}, and
+ * finally handed to the payable type's {@link PayableHandler}. State is reloaded per payable so
+ * sequential XP awards accumulate instead of last-write-wins against a single snapshot.
  */
 public final class JobsPaymentHandler {
 
@@ -43,14 +47,18 @@ public final class JobsPaymentHandler {
   private final BoostEngine boostEngine;
   private final JobService jobService;
   private final @Nullable RecipeExperienceDepreciationApplier recipeDepreciation;
+  private final Supplier<EventBus> events;
 
   /**
    * Creates the handler with the boost engine and job service used to compute and persist each
-   * payable.
+   * payable, and the event bus pre-payment events are posted on.
    */
   public JobsPaymentHandler(
-      @NotNull Plugin plugin, @NotNull BoostEngine boostEngine, @NotNull JobService jobService) {
-    this(plugin, boostEngine, jobService, null);
+      @NotNull Plugin plugin,
+      @NotNull BoostEngine boostEngine,
+      @NotNull JobService jobService,
+      @NotNull Supplier<EventBus> events) {
+    this(plugin, boostEngine, jobService, null, events);
   }
 
   /**
@@ -60,11 +68,13 @@ public final class JobsPaymentHandler {
       @NotNull Plugin plugin,
       @NotNull BoostEngine boostEngine,
       @NotNull JobService jobService,
-      @Nullable RecipeExperienceDepreciationApplier recipeDepreciation) {
+      @Nullable RecipeExperienceDepreciationApplier recipeDepreciation,
+      @NotNull Supplier<EventBus> events) {
     Objects.requireNonNull(plugin, "plugin");
     this.boostEngine = boostEngine;
     this.jobService = jobService;
     this.recipeDepreciation = recipeDepreciation;
+    this.events = Objects.requireNonNull(events, "events");
   }
 
   /**
@@ -105,8 +115,15 @@ public final class JobsPaymentHandler {
         BigDecimal boostedAmount = BoostEngine.applyBoosts(baseAmount, boosts);
 
         Payable finalPayable = new Payable(payableType, copyWithValue(amount, boostedAmount));
+        JobsPrePaymentEvent prePayment =
+            new PaperEventBridge(events.get())
+                .publishPrePayment(
+                    new JobsPrePaymentEvent(player.getUniqueId(), finalPayable, job, task), player);
+        if (prePayment.isCancelled()) {
+          continue;
+        }
         PayableHandler handler = payableType.handler();
-        handler.pay(new PayableContext(player.getUniqueId(), finalPayable, state));
+        handler.pay(new PayableContext(player.getUniqueId(), prePayment.getPayable(), state));
       }
     }
   }

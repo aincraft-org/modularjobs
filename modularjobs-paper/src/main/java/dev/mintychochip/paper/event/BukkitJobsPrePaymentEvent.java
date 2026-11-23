@@ -38,6 +38,11 @@ public final class BukkitJobsPrePaymentEvent extends Event implements Cancellabl
     return pure.getPayable();
   }
 
+  /** Replaces the payable that will be paid; see {@link JobsPrePaymentEvent#setPayable}. */
+  public void setPayable(@NotNull Payable payable) {
+    pure.setPayable(payable);
+  }
+
   public @NotNull Job getJob() {
     return pure.getJob();
   }

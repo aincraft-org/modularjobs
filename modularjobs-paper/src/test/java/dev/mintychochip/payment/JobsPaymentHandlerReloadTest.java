@@ -81,7 +81,9 @@ class JobsPaymentHandlerReloadTest {
             return reloaded;
           }
         };
-    JobsPaymentHandler handler = new JobsPaymentHandler(plugin, unusedBoostEngine(), service);
+    JobsPaymentHandler handler =
+        new JobsPaymentHandler(
+            plugin, unusedBoostEngine(), service, org.aincraft.event.EventBuses::create);
     PlayerJobState result =
         handler.reloadState(player.getUniqueId().toString(), "modularjobs:miner", snapshot);
     assertSame(reloaded, result);
@@ -140,7 +142,9 @@ class JobsPaymentHandlerReloadTest {
         };
 
     // Offline player → BoostEngine.evaluate returns empty without needing services
-    JobsPaymentHandler handler = new JobsPaymentHandler(plugin, unusedBoostEngine(), service);
+    JobsPaymentHandler handler =
+        new JobsPaymentHandler(
+            plugin, unusedBoostEngine(), service, org.aincraft.event.EventBuses::create);
     handler.pay(player, blockBreak, new MaterialContext(Key.key("minecraft", "stone")));
 
     assertEquals(2, getStateCalls.get(), "one reload per payable");
@@ -189,10 +193,68 @@ class JobsPaymentHandlerReloadTest {
           }
         };
 
-    new JobsPaymentHandler(plugin, unusedBoostEngine(), service)
+    new JobsPaymentHandler(
+            plugin, unusedBoostEngine(), service, org.aincraft.event.EventBuses::create)
         .pay(player, blockBreak, new MaterialContext(Key.key("minecraft", "stone")));
 
     assertEquals(List.of(new BigDecimal("20")), paid);
+  }
+
+  @Test
+  void prePaymentListenersCanScaleOrCancelEachPayable() {
+    List<BigDecimal> paid = new ArrayList<>();
+    OfflinePlayer player = MockBukkitSupport.offlinePlayer(UUID.randomUUID());
+    PayableType experience = experienceType(ctx -> paid.add(ctx.payable().amount().value()));
+    TestPlayerJobState state = state(player, BigDecimal.ZERO);
+    ActionType blockBreak = actionType("block_break");
+    JobTask task =
+        new JobTask(
+            state.currentNodeKey(),
+            blockBreak.key(),
+            Key.key("minecraft", "stone"),
+            List.of(
+                new Payable(experience, PayableAmount.create(BigDecimal.TEN)),
+                new Payable(experience, PayableAmount.create(BigDecimal.ONE))));
+    JobService service =
+        new StubJobService() {
+          @Override
+          public @NotNull Job getJob(@NotNull String ignored) {
+            return state.job();
+          }
+
+          @Override
+          public @NotNull List<PlayerJobState> getPlayerJobStates(@NotNull UUID playerId) {
+            return List.of(state);
+          }
+
+          @Override
+          public @NotNull JobTask getTask(
+              @NotNull Job job,
+              @NotNull JobNodeKey nodeKey,
+              @NotNull ActionType type,
+              @NotNull Context context) {
+            return task;
+          }
+        };
+    org.aincraft.api.event.EventBus bus = org.aincraft.event.EventBuses.create();
+    bus.subscribe(
+        dev.mintychochip.event.JobsPrePaymentEvent.class,
+        event -> {
+          Payable payable = event.getPayable();
+          if (payable.amount().value().compareTo(BigDecimal.ONE) == 0) {
+            event.setCancelled(true);
+            return;
+          }
+          event.setPayable(
+              new Payable(
+                  payable.type(),
+                  PayableAmount.create(payable.amount().value().multiply(BigDecimal.valueOf(3)))));
+        });
+
+    new JobsPaymentHandler(plugin, unusedBoostEngine(), service, () -> bus)
+        .pay(player, blockBreak, new MaterialContext(Key.key("minecraft", "stone")));
+
+    assertEquals(List.of(new BigDecimal("30")), paid);
   }
 
   @Test
@@ -245,7 +307,12 @@ class JobsPaymentHandlerReloadTest {
             new RecordingProfessionService(30));
 
     JobsPaymentHandler handler =
-        new JobsPaymentHandler(plugin, unusedBoostEngine(), service, depreciation);
+        new JobsPaymentHandler(
+            plugin,
+            unusedBoostEngine(),
+            service,
+            depreciation,
+            org.aincraft.event.EventBuses::create);
     handler.pay(player, craft, new Context.ItemContext(output, 1));
 
     assertEquals(output, recipes.lastCraftOutputLookup());
@@ -332,6 +399,12 @@ class JobsPaymentHandlerReloadTest {
 
     @Override
     public boolean ensureTrack(@NotNull UUID playerId, @NotNull String professionIdOrAlias) {
+      return false;
+    }
+
+    @Override
+    public boolean grantExperience(
+        @NotNull UUID playerId, @NotNull String professionIdOrAlias, @NotNull BigDecimal amount) {
       return false;
     }
   }

@@ -1,6 +1,7 @@
 package dev.mintychochip.payment;
 
 import com.google.common.cache.CacheLoader;
+import dev.mintychochip.Bridge;
 import dev.mintychochip.container.boost.TimedBoostDataService;
 import dev.mintychochip.payment.ExploitService.ExploitProtectionType;
 import dev.mintychochip.profession.RecipeExperienceDepreciationPolicy;
@@ -102,8 +103,10 @@ public final class PaymentWiring {
             new RecipeExperienceDepreciationApplier(policy, recipeService, professionService);
       }
     }
+    // The Bridge (and its event bus) registers after wiring; resolve it per payment.
     JobsPaymentHandler paymentHandler =
-        new JobsPaymentHandler(plugin, boostEngine, jobService, recipeDepreciation);
+        new JobsPaymentHandler(
+            plugin, boostEngine, jobService, recipeDepreciation, () -> Bridge.bridge().eventBus());
     ExploitService exploitService = createExploitService(plugin);
     HopperPayDisableStore hopperStore = new HopperPayDisableStore();
 

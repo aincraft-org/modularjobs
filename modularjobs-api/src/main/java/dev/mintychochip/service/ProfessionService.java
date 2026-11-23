@@ -31,4 +31,15 @@ public interface ProfessionService {
    * @return true if joined or already present
    */
   boolean ensureTrack(@NotNull UUID playerId, @NotNull String professionIdOrAlias);
+
+  /**
+   * Grants raw experience to a player who already holds this profession's track, through the same
+   * experience handler task payments use: the experience-gain event (mutable, cancellable),
+   * level-up events and level-up commands fire, and the experience bar updates.
+   *
+   * @return false when the profession is unknown, the player has no state row, or {@code amount} is
+   *     not positive
+   */
+  boolean grantExperience(
+      @NotNull UUID playerId, @NotNull String professionIdOrAlias, @NotNull BigDecimal amount);
 }

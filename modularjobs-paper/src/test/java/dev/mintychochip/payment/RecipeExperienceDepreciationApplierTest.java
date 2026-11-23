@@ -184,5 +184,13 @@ class RecipeExperienceDepreciationApplierTest {
     public boolean ensureTrack(@NotNull UUID playerId, @NotNull String professionIdOrAlias) {
       return false;
     }
+
+    @Override
+    public boolean grantExperience(
+        @NotNull UUID playerId,
+        @NotNull String professionIdOrAlias,
+        @NotNull java.math.BigDecimal amount) {
+      return false;
+    }
   }
 }

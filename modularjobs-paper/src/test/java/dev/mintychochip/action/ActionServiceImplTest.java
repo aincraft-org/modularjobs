@@ -368,7 +368,9 @@ class ActionServiceImplTest {
   }
 
   private @NotNull ActionService actionService(@NotNull JobService jobs) {
-    JobsPaymentHandler paymentHandler = new JobsPaymentHandler(plugin, unusedBoostEngine(), jobs);
+    JobsPaymentHandler paymentHandler =
+        new JobsPaymentHandler(
+            plugin, unusedBoostEngine(), jobs, org.aincraft.event.EventBuses::create);
     return new ActionServiceImpl(registry, paymentHandler);
   }
 
