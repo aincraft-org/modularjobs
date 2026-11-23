@@ -56,6 +56,9 @@ tasks.test {
 tasks {
     shadowJar {
         mergeServiceFiles()
+        // Paper provides Adventure and SLF4J; bundled copies (pulled in by the api module's
+        // Adventure dependency) shadow the server's newer ones on any shared classpath.
+        exclude("net/kyori/**", "org/slf4j/**")
     }
 
     build {
