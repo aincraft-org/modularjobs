@@ -50,34 +50,15 @@ class EconomyProviderFactoryTest {
   }
 
   @Test
-  void tryCreateReturnsNullWithoutMint() {
+  void tryCreateReturnsNullWithoutVault() {
     assertNull(EconomyProviderFactory.tryCreate(plugin));
   }
 
   @Test
-  void tryCreateSelectsMint2BeforeItsServiceRegisters() {
-    Plugin mint2 = MockBukkit.createMockPlugin("Mint2");
-    MockBukkit.getMock().getPluginManager().enablePlugin(mint2);
-
-    EconomyProvider provider = EconomyProviderFactory.tryCreate(plugin);
-    assertInstanceOf(MintEconomyProvider.class, provider);
-    assertFalse(provider.isCurrencySupported());
-  }
-
-  @Test
-  void tryCreateSelectsVaultWhenMint2IsAbsent() {
+  void tryCreateSelectsRegisteredVaultEconomy() {
     registerVaultEconomy();
 
     assertInstanceOf(VaultEconomyProvider.class, EconomyProviderFactory.tryCreate(plugin));
-  }
-
-  @Test
-  void tryCreatePrefersMint2WhenVaultIsAlsoAvailable() {
-    registerVaultEconomy();
-    Plugin mint2 = MockBukkit.createMockPlugin("Mint2");
-    MockBukkit.getMock().getPluginManager().enablePlugin(mint2);
-
-    assertInstanceOf(MintEconomyProvider.class, EconomyProviderFactory.tryCreate(plugin));
   }
 
   @Test

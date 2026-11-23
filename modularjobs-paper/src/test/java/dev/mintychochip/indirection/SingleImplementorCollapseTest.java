@@ -24,11 +24,9 @@ import org.junit.jupiter.api.Test;
 class SingleImplementorCollapseTest {
 
   @Test
-  void collapsedTypesAreConcreteClassesNotInterfaces() throws ClassNotFoundException {
+  void collapsedTypesAreConcreteClassesNotInterfaces() {
     assertConcrete(JobResolver.class);
     assertConcrete(ItemBoostDataService.class);
-    // package-private payable helper — load by name
-    assertConcrete(Class.forName("dev.mintychochip.payable.ExperienceBarColorProvider"));
   }
 
   @Test

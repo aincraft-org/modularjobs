@@ -76,7 +76,6 @@ import dev.mintychochip.service.ActionService;
 import dev.mintychochip.service.ItemBoostDataService;
 import dev.mintychochip.service.JoinGate;
 import dev.mintychochip.service.LevelUpCommandExecutor;
-import dev.mintychochip.service.PreferencesIntegration;
 import dev.mintychochip.service.PreferencesService;
 import dev.mintychochip.service.PreferencesServiceImpl;
 import dev.mintychochip.service.TimedBoostDataServiceImpl;
@@ -235,20 +234,8 @@ public final class PluginContext {
     final PaperUiHost paperUiHost = new PaperUiHost();
     final PaperSurfaces paperSurfaces = new PaperSurfaces();
 
-    // Soft-depend: register the XP bar color preference with the external Preferences plugin
-    // when present; falls back to green when absent.
-    final PreferencesIntegration.Wiring preferencesWiring = PreferencesIntegration.wire(plugin);
-    if (preferencesWiring.onDisable() != null) {
-      resources.onFlush(preferencesWiring.onDisable());
-    }
-
     final PayableWiring payables =
-        PayableWiring.create(
-            plugin,
-            domain.jobService,
-            payableTypeRegistry,
-            paperSurfaces,
-            preferencesWiring.experienceBarColor());
+        PayableWiring.create(plugin, domain.jobService, payableTypeRegistry, paperSurfaces);
 
     RegistryContainerImpl registryContainer = new RegistryContainerImpl();
     registryContainer.addRegistry(RegistryKeys.ACTION_TYPES.key(), actionTypeRegistry);

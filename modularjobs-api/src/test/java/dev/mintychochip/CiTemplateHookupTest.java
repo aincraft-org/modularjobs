@@ -67,29 +67,20 @@ class CiTemplateHookupTest {
   }
 
   @Test
-  void databagSnapshotsResolveOnlyFromSiblingMavenRepo() throws IOException {
-    String text =
-        Files.readString(Path.of(requiredProperty("project.root")).resolve("settings.gradle.kts"));
-    assertTrue(
-        text.contains("exclusiveContent"),
-        "databag SNAPSHOT must be exclusiveContent so remote metadata 401/DNS cannot fail CI");
-    assertTrue(text.contains("dev.mintychochip.databag"), text);
-    assertFalse(
-        text.contains("repo.incendo.org"),
-        "incendo DNS failures must not participate in SNAPSHOT metadata lookup");
-    String ci = Files.readString(Path.of(requiredProperty("ci.workflow")));
-    assertTrue(
-        ci.contains("dev/mintychochip/databag/databag-api"),
-        "CI must verify the mintychochip databag-api GAV, not the legacy dev.databag artifact");
-    assertFalse(
-        ci.contains("aincraft-org/conditions"),
-        "do not publish unused conditions (legacy dev.databag GAV)");
-    String nightly =
-        Files.readString(
-            Path.of(requiredProperty("project.root")).resolve(".github/workflows/nightly.yml"));
-    assertFalse(
-        nightly.contains("aincraft-org/conditions"),
-        "nightly must not publish the unused conditions sibling");
+  void cleanCloneBuildsWithoutSiblingCheckouts() throws IOException {
+    Path root = Path.of(requiredProperty("project.root"));
+    String settings = Files.readString(root.resolve("settings.gradle.kts"));
+    assertFalse(settings.contains("includeBuild("), "no included sibling builds");
+    assertFalse(settings.contains("\"../"), "no sibling Maven repositories");
+    assertFalse(settings.contains("mavenLocal()"), "no machine-local Maven repository");
+    assertFalse(settings.contains("maven.pkg.github.com"), "no token-gated repositories");
+    for (String workflow :
+        new String[] {
+          requiredProperty("ci.workflow"), root.resolve(".github/workflows/nightly.yml").toString()
+        }) {
+      String text = Files.readString(Path.of(workflow));
+      assertFalse(text.contains("$GITHUB_WORKSPACE/../"), workflow + " must not link siblings");
+    }
   }
 
   @Test

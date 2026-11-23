@@ -66,12 +66,6 @@ class BootstrapLifecycleTest {
     assertTrue(
         text.contains("new PreferencesServiceImpl(plugin)"),
         "PluginContext must construct the always-available local preference service");
-    assertTrue(
-        text.contains("PreferencesIntegration.wire(plugin)"),
-        "PluginContext must wire optional external XP bar color preference");
-    assertTrue(
-        text.contains("resources.onFlush(preferencesWiring.onDisable())"),
-        "PluginContext must unregister external preference on disable");
     assertFalse(
         text.contains("ExternalBackedPreferencesService"),
         "PluginContext must not depend on the removed external facade");
@@ -130,8 +124,8 @@ class BootstrapLifecycleTest {
     String payableCompact = payable.replaceAll("\\s+", " ");
     assertTrue(
         compact.contains(
-                "PayableWiring.create( plugin, domain.jobService, payableTypeRegistry,"
-                    + " paperSurfaces")
+                "PayableWiring.create(plugin, domain.jobService, payableTypeRegistry,"
+                    + " paperSurfaces)")
             && payable.contains("public final List<Listener> listeners;")
             && payableCompact.contains("new ExperienceBarControllerImpl(plugin, surfaces)")
             && payableCompact.contains("List<Listener> listeners = List.of(controller)"),

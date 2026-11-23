@@ -1,8 +1,8 @@
 dependencies {
     api(libs.adventure.api)
     api(libs.jetbrains.annotations)
-    api(libs.databag.api)
-    api("org.aincraft:utilities-api:2026.08.27")
+    api(project(":databag-api"))
+    api(project(":utilities-event"))
 
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")

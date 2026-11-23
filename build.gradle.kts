@@ -67,7 +67,22 @@ private fun Project.configureMavenPublication(componentName: String, pomDescript
     }
 }
 
-subprojects {
+// Vendored libraries (vendor/README.md): compile only, no first-party quality gates.
+val vendored = setOf("databag-common", "databag-api", "databag-paper", "utilities-event")
+
+configure(subprojects.filter { it.name in vendored }) {
+    group = "vendored"
+    version = rootProject.version
+    apply(plugin = "java-library")
+    configure<JavaPluginExtension> {
+        toolchain.languageVersion.set(JavaLanguageVersion.of(25))
+    }
+    tasks.withType<JavaCompile>().configureEach {
+        options.release.set(25)
+    }
+}
+
+configure(subprojects.filter { it.name !in vendored }) {
     group = rootProject.group
     version = rootProject.version
 

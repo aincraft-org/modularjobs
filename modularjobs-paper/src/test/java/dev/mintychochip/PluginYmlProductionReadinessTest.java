@@ -35,15 +35,9 @@ class PluginYmlProductionReadinessTest {
       assertEquals("26.2", api, "api-version must be Paper 26.2, got " + api);
 
       assertTrue(
-          yml.getStringList("softdepend").stream().anyMatch(s -> s.equalsIgnoreCase("Mint2")),
-          "softdepend must list Mint2");
-      assertTrue(
           yml.getStringList("softdepend").stream()
               .anyMatch(s -> s.equalsIgnoreCase("PlaceholderAPI")),
           "softdepend must list PlaceholderAPI");
-      assertTrue(
-          yml.getStringList("softdepend").stream().anyMatch(s -> s.equalsIgnoreCase("Preferences")),
-          "softdepend must list Preferences");
 
       assertNotNull(yml.getConfigurationSection("permissions.modularjobs.admin"));
       assertNotNull(yml.getConfigurationSection("permissions.jobs.command.browse"));

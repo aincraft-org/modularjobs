@@ -3,12 +3,11 @@ rootProject.name = "jobs2"
 
 include("modularjobs-api", "modularjobs-common", "modularjobs-paper")
 
-// Mint2 sibling checkout (../mint2): build mint-api/mint-common from source as the
-// compileOnly provider surface. Coordinate aliases are set in gradle/libs.versions.toml;
-// included-build dependency substitution replaces dev.mintychochip:mint-api / mint-common.
-includeBuild("../mint2")
-
-
+// Vendored libraries; source revisions in vendor/README.md.
+for (name in listOf("databag-common", "databag-api", "databag-paper", "utilities-event")) {
+    include(name)
+    project(":$name").projectDir = file("vendor/$name")
+}
 
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
@@ -19,48 +18,6 @@ dependencyResolutionManagement {
             name = "mockbukkitLocal"
             url = uri(rootDir.resolve("libs/mockbukkit-maven"))
         }
-        // Sibling SNAPSHOT: exclusive so Gradle 9.7 does not fail the whole
-        // resolve when a remote (GitHub Packages 401, incendo DNS) errors on
-        // maven-metadata.xml. Publish with:
-        //   ./gradlew -p ../databag publishAllPublicationsToLocalBuildRepoRepository
-        exclusiveContent {
-            forRepository {
-                maven {
-                    name = "databagLocal"
-                    url = uri(rootDir.resolve("../databag/build/maven-repo"))
-                }
-            }
-            filter {
-                includeGroup("dev.mintychochip.databag")
-            }
-        }
-        exclusiveContent {
-            forRepository {
-                maven {
-                    name = "conditionsLocal"
-                    url = uri(rootDir.resolve("../conditions/build/maven-repo"))
-                }
-            }
-            filter {
-                includeGroup("dev.conditions")
-            }
-        }
-        maven {
-            name = "utilitiesGitHubPackages"
-            url = uri("https://maven.pkg.github.com/mintychochip/Utilities")
-            credentials {
-                username = providers.gradleProperty("gpr.user")
-                    .orElse(providers.environmentVariable("GITHUB_ACTOR"))
-                    .getOrElse("")
-                password = providers.gradleProperty("gpr.key")
-                    .orElse(providers.environmentVariable("GITHUB_TOKEN"))
-                    .getOrElse("")
-            }
-            content {
-                includeGroup("org.aincraft")
-            }
-        }
-        mavenLocal()
         mavenCentral()
         maven("https://repo.papermc.io/repository/maven-public/")
         maven("https://jitpack.io")

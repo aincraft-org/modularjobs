@@ -5,13 +5,11 @@ authors: [ ModularJobs contributors ]
 api-version: '26.2'
 softdepend:
   - PlaceholderAPI
-  - Mint2
   - Vault
   - mcMMO
   - Bolt
   - LWC
   - Choco
-  - Preferences
 
 permissions:
   modularjobs.admin:

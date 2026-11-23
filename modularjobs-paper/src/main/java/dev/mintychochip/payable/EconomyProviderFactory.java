@@ -10,24 +10,15 @@ import org.jetbrains.annotations.Nullable;
 /** Selects the optional economy provider used by payable wiring. */
 public final class EconomyProviderFactory {
 
-  private static final String MINT2_PLUGIN = "Mint2";
   private static final String VAULT_PLUGIN = "Vault";
   private static final String REQUIRED_KEY = "economy.required";
   private static final String MISSING_PROVIDER_KEY = "economy.missing-provider";
 
   private EconomyProviderFactory() {}
 
-  /**
-   * Selects Mint2 when enabled, otherwise a registered Vault economy.
-   *
-   * <p>Mint2 wins before its service registers because its bridge resolves that service lazily at
-   * deposit time. Vault is considered only when Mint2 is absent.
-   */
+  /** Returns a registered Vault economy, or {@code null} when Vault or its economy is absent. */
   public static @Nullable EconomyProvider tryCreate(@NotNull Plugin plugin) {
     PluginManager pluginManager = plugin.getServer().getPluginManager();
-    if (pluginManager.isPluginEnabled(MINT2_PLUGIN)) {
-      return new MintEconomyProvider();
-    }
     if (!pluginManager.isPluginEnabled(VAULT_PLUGIN)) {
       return null;
     }
@@ -59,7 +50,7 @@ public final class EconomyProviderFactory {
       case BLACKHOLE -> new BlackholeEconomyProvider(plugin);
       case FAIL ->
           throw new IllegalStateException(
-              "No economy provider is available. Install Mint2 or Vault, or set "
+              "No economy provider is available. Install Vault, or set "
                   + MISSING_PROVIDER_KEY
                   + ": blackhole in config.yml.");
     };

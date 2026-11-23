@@ -10,39 +10,28 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.Tag;
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
-import org.bukkit.Bukkit;
-import org.bukkit.entity.Player;
 import org.jetbrains.annotations.ApiStatus.Internal;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 /**
  * Default {@link ExperienceBarFormatter} that composes an existing boss bar's name (via {@link
- * NameFormatter}), progress fraction, color (from {@link ExperienceBarColorProvider}), and the
- * configured overlay. Formatting never mutates the passed bar; it returns a new configured boss
- * bar.
+ * NameFormatter}), progress fraction, a green color, and the configured overlay. Formatting never
+ * mutates the passed bar; it returns a new configured boss bar.
  */
 public final class ExperienceBarFormatterImpl implements ExperienceBarFormatter {
-
-  private final ExperienceBarColorProvider colorProvider;
 
   private Overlay overlay = Overlay.PROGRESS;
 
   private final NameFormatter formatter = new NameFormatter();
 
-  ExperienceBarFormatterImpl(@NotNull ExperienceBarColorProvider colorProvider) {
-    this.colorProvider = colorProvider;
-  }
-
   @Override
   public @NotNull BossBar format(
       @NotNull BossBar bossBar, @NotNull ExperiencePayableHandler.ExperienceBarContext context) {
-    Player player = Bukkit.getPlayer(context.playerId());
-    BossBar.Color color = player != null ? colorProvider.getColor(player) : BossBar.Color.GREEN;
     return bossBar
         .name(formatter.format(context))
         .progress(progress(context.jobState()))
-        .color(color)
+        .color(BossBar.Color.GREEN)
         .overlay(overlay);
   }
 

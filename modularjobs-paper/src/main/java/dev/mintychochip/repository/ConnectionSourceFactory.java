@@ -9,8 +9,8 @@ import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Builds a supported {@link ConnectionSource} through the Utilities SQL lifecycle. Schema is never
- * applied here; operators provision the selected backend before startup.
+ * Builds a supported {@link ConnectionSource} (HikariCP). Schema is never applied here; operators
+ * provision the selected backend before startup.
  */
 public final class ConnectionSourceFactory {
 
@@ -47,9 +47,8 @@ public final class ConnectionSourceFactory {
     ClassLoader previousClassLoader = Thread.currentThread().getContextClassLoader();
     Thread.currentThread().setContextClassLoader(plugin.getClass().getClassLoader());
     try {
-      // SqlDatabase is deliberately given a non-existent migration location. ModularJobs owns an
-      // operator-applied SQL file rather than Flyway migrations, so utility startup must not scan
-      // or replay another plugin's classpath migrations.
+      // HikariCP resolves the JDBC driver through the context class loader; point it at the
+      // plugin's loader, which ships the MySQL driver.
       ConnectionSource source =
           new HikariSourceImpl(new HikariConfigProvider(configuration, type).create(), type);
 

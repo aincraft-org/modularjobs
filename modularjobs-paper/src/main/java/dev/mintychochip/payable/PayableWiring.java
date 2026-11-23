@@ -14,7 +14,6 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /** Manual composition for payable types and experience bar (replaces Guice PayableModule). */
 public final class PayableWiring {
@@ -44,12 +43,9 @@ public final class PayableWiring {
       @NotNull Plugin plugin,
       @NotNull JobService jobService,
       @NotNull Registry<PayableType> payableTypeRegistry,
-      @NotNull PaperSurfaces surfaces,
-      @Nullable ExperienceBarColorPreference experienceBarColorPreference) {
-    ExperienceBarColorProvider colorProvider =
-        new ExperienceBarColorProvider(experienceBarColorPreference);
+      @NotNull PaperSurfaces surfaces) {
     ExperienceBarControllerImpl controller = new ExperienceBarControllerImpl(plugin, surfaces);
-    ExperienceBarFormatter formatter = new ExperienceBarFormatterImpl(colorProvider);
+    ExperienceBarFormatter formatter = new ExperienceBarFormatterImpl();
     PayableHandler experienceHandler =
         new BufferedExperienceHandlerImpl(controller, formatter, jobService);
 

@@ -26,7 +26,7 @@ public final class BlackholeEconomyProvider implements EconomyProvider {
         .getLogger()
         .warning(
             "No economy provider is available; positive modularjobs:economy rewards will be"
-                + " discarded. Install Mint2 or Vault, or set economy.missing-provider: fail"
+                + " discarded. Install Vault, or set economy.missing-provider: fail"
                 + " if currency rewards are mandatory.");
   }
 
