@@ -80,18 +80,25 @@ Each entry runs as console on level-up when `min-level ≤ new level`.
 ### Progression limits
 
 - `max-jobs: 0` = unlimited; otherwise the maximum simultaneous jobs. Checked
-  by `/jobs join` and the browse GUI.
+  by `/jobs join` and join actions in every browse renderer.
 - `auto-join-jobs`: joined on login if not already in them.
 - `world-join-restriction`: reject joining while in a payout disabled-world.
 
 ## `database.yml`
 
-MySQL only, four pool sections (`payable`, `timed-boost`, `progression`,
-`upgrades`). Identical `jdbc-url` + `username` sections share one Hikari pool.
-See the [database guide](../../guides/database/).
+Four independently selectable sections exist: `payable`, `timed-boost`, `progression`,
+and `upgrades`. Each uses `type: mysql` or `type: sqlite`. Identical backend +
+`jdbc-url` + username sections share one Hikari pool. See the
+[database guide](../../guides/database/).
 
 ```yaml
+# Standalone server
 payable:
+  type: sqlite
+  jdbc-url: jdbc:sqlite:plugins/ModularJobs/modularjobs.db
+
+# Shared database
+progression:
   type: mysql
   jdbc-url: jdbc:mysql://127.0.0.1:3306/modularjobs
   username: modularjobs

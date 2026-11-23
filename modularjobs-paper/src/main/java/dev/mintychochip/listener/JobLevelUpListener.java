@@ -36,11 +36,11 @@ public final class JobLevelUpListener implements Listener {
   public void onLevelUp(@NotNull BukkitJobLevelEvent event) {
     Player player = event.getPlayer();
     PlayerJobState state = event.getPlayerJobState();
-    Job job = state.job();
+    Job job = event.getJob();
     int oldLevel = event.getOldLevel();
     int newLevel = event.getNewLevel();
 
-    Map<Integer, List<String>> unlocks = perkCatalog.unlocks(job, state.currentNode().nodeKey());
+    Map<Integer, List<String>> unlocks = perkCatalog.unlocks(job, state.currentNodeKey());
     for (int level = oldLevel + 1; level <= newLevel; level++) {
       List<String> perks = unlocks.get(level);
       if (perks == null) {
@@ -65,10 +65,10 @@ public final class JobLevelUpListener implements Listener {
   public void onJobJoin(@NotNull BukkitJobJoinEvent event) {
     Player player = event.getPlayer();
     PlayerJobState state = event.getPlayerJobState();
-    Job job = state.job();
+    Job job = event.getJob();
     int level = state.level();
 
-    Map<Integer, List<String>> unlocks = perkCatalog.unlocks(job, state.currentNode().nodeKey());
+    Map<Integer, List<String>> unlocks = perkCatalog.unlocks(job, state.currentNodeKey());
     for (Map.Entry<Integer, List<String>> entry : unlocks.entrySet()) {
       if (entry.getKey() <= level) {
         for (String perk : entry.getValue()) {
@@ -79,7 +79,7 @@ public final class JobLevelUpListener implements Listener {
       }
     }
     String highestStoragePerk =
-        perkCatalog.highestStorageUnlock(job, state.currentNode().nodeKey(), level).orElse(null);
+        perkCatalog.highestStorageUnlock(job, state.currentNodeKey(), level).orElse(null);
     if (highestStoragePerk != null) {
       permissions.grantPerkPermission(player, highestStoragePerk);
     }
@@ -101,8 +101,7 @@ public final class JobLevelUpListener implements Listener {
   @EventHandler(priority = EventPriority.MONITOR)
   public void onJobLeave(@NotNull BukkitJobLeaveEvent event) {
     Player player = event.getPlayer();
-    PlayerJobState state = event.getPlayerJobState();
-    Job job = state.job();
+    Job job = event.getJob();
 
     for (List<String> perks : perkCatalog.allUnlocks(job).values()) {
       for (String perk : perks) {

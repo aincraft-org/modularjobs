@@ -1,27 +1,36 @@
 package dev.mintychochip;
 
 import java.math.BigDecimal;
+import java.util.Objects;
 import java.util.UUID;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Immutable snapshot of one player's state within one complete {@link Job} tree.
+ * Immutable snapshot of one player's identity and progress within one complete {@link Job} tree.
  *
- * <p>Experience and level belong to the tree. {@link #currentNode()} identifies the player's active
- * specialization without splitting that shared progress into another job.
+ * <p>The state retains typed tree and active-node keys rather than embedding the aggregate. Its
+ * level is derived from {@link #experience()} using the tree-wide curve captured by the runtime
+ * implementation.
  */
 public interface PlayerJobState {
 
-  /** Complete job tree that owns this state. */
+  /** Typed identity of the complete job tree that owns this state. */
   @Contract(pure = true)
   @NotNull
-  Job job();
+  JobKey jobKey();
 
-  /** Active specialization node within {@link #job()}. */
+  /** Typed identity of the active root or specialization node. */
   @Contract(pure = true)
   @NotNull
-  JobNode currentNode();
+  JobNodeKey currentNodeKey();
+
+  /** Returns whether both typed keys resolve within the supplied aggregate. */
+  @Contract(pure = true)
+  default boolean belongsTo(@NotNull Job job) {
+    Objects.requireNonNull(job, "job");
+    return job.jobKey().equals(jobKey()) && job.node(currentNodeKey()) != null;
+  }
 
   /** Owning player. */
   @Contract(pure = true)
@@ -33,7 +42,7 @@ public interface PlayerJobState {
   @NotNull
   BigDecimal experience();
 
-  /** Level derived from {@link #experience()} and the job's tree-wide leveling curve. */
+  /** Level derived from {@link #experience()} and the owning tree's leveling curve. */
   @Contract(pure = true)
   int level();
 
@@ -46,11 +55,6 @@ public interface PlayerJobState {
   @Contract(pure = true)
   @NotNull
   PlayerJobState withExperience(@NotNull BigDecimal experience);
-
-  /** Returns an otherwise identical state with the supplied active node. */
-  @Contract(pure = true)
-  @NotNull
-  PlayerJobState withCurrentNode(@NotNull JobNodeKey nodeKey);
 
   /** Adds to the current tree-wide experience. */
   @Contract(pure = true)

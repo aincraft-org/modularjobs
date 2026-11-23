@@ -137,7 +137,7 @@ public final class JobInfoGui {
     }
 
     Map<Integer, ItemStack> items = panes();
-    Map<Integer, PaperUiHost.SlotAction> actions = new HashMap<>();
+    final Map<Integer, PaperUiHost.SlotAction> actions = new HashMap<>();
     List<String> headerLore = new ArrayList<>();
     headerLore.add(PLAIN.serialize(job.description()));
     headerLore.add("Max Level: " + job.maxLevel());

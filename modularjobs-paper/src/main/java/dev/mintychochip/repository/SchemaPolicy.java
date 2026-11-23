@@ -5,13 +5,13 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Schema ownership for ModularJobs (MySQL only).
+ * Schema ownership for every ModularJobs database backend.
  *
- * <p>The plugin process never runs DDL. Ops provision tables from {@code sql/mysql.sql} via {@code
- * scripts/apply-mysql-schema.sh} (or equivalent). On connect the plugin only verifies required
- * tables exist.
+ * <p>The plugin process never runs DDL. Operators provision the selected schema from {@code
+ * sql/mysql.sql} or {@code sql/sqlite.sql} before startup. On connect, the plugin verifies required
+ * tables and migration-sensitive columns.
  *
- * <p>Config key {@code auto-schema} is ignored (logged as a misconfiguration if present).
+ * <p>Config key {@code auto-schema} is ignored and logged as a misconfiguration.
  */
 public final class SchemaPolicy {
 
@@ -30,16 +30,16 @@ public final class SchemaPolicy {
   /**
    * Reports whether required tables must exist before the plugin uses the database.
    *
-   * @return true — fail fast when ops has not applied {@code sql/mysql.sql}
+   * @return true for every supported externally provisioned backend
    */
   public static boolean shouldVerifySchemaPresent(@NotNull DatabaseType type) {
-    return type == DatabaseType.MYSQL;
+    return true;
   }
 
   /**
    * Detects legacy {@code auto-schema} configuration that the plugin ignores.
    *
-   * @return true if config still sets {@code auto-schema} (unsupported; ops must apply DDL)
+   * @return true if config still sets {@code auto-schema}
    */
   public static boolean hasIgnoredRemoteAutoSchema(
       @NotNull DatabaseType type, @Nullable ConfigurationSection configuration) {

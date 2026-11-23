@@ -51,7 +51,11 @@ class SqlStatementsHikariRepositoryTest {
     String select = SqlStatements.load("player_upgrades/select.sql");
     assertFalse(select.isBlank());
     assertTrue(select.contains("player_upgrades"));
-    assertTrue(SqlStatements.load("job_progression/save.sql").contains("{table}"));
+    assertTrue(
+        SqlStatements.load(DatabaseType.MYSQL, "job_progression/save.sql").contains("{table}"));
+    assertTrue(
+        SqlStatements.load(DatabaseType.SQLITE, "job_progression/save.sql")
+            .contains("ON CONFLICT"));
     IllegalStateException missing =
         assertThrows(IllegalStateException.class, () -> SqlStatements.load("does-not-exist.sql"));
     assertTrue(missing.getMessage().contains("missing SQL resource"));

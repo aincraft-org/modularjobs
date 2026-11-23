@@ -27,30 +27,27 @@ class JobTreeContractTest {
     assertEquals(prospector, job.node(prospector.nodeKey()));
     assertEquals(List.of(root, prospector), job.pathTo(prospector.nodeKey()));
     assertEquals(100, job.maxLevel());
+    assertEquals(new BigDecimal("400"), job.experienceForLevel(4));
+    assertEquals(3, job.levelForExperience(new BigDecimal("350")));
     assertEquals(root.displayName(), job.displayName());
     assertNull(root.parentKey());
   }
 
   @Test
-  void playerStateTracksOneActiveNodeWithinTheWholeTree() {
+  void playerStateCarriesOnlyTreeAndNodeIdentityWithProgressValues() {
     JobKey jobKey = new JobKey(Key.key("modularjobs", "miner"));
-    JobNode root = node(jobKey, "miner", null);
-    JobNode prospector = node(jobKey, "prospector", root.nodeKey());
-    Job job =
-        new TestJob(jobKey, root, Map.of(root.nodeKey(), root, prospector.nodeKey(), prospector));
-    PlayerJobState initial =
+    JobNodeKey currentNodeKey = new JobNodeKey(Key.key("modularjobs", "prospector"));
+    PlayerJobState state =
         new TestPlayerJobState(
             UUID.fromString("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"),
-            job,
-            root,
+            jobKey,
+            currentNodeKey,
             BigDecimal.valueOf(350));
 
-    PlayerJobState specialized = initial.withCurrentNode(prospector.nodeKey());
-
-    assertEquals(job, specialized.job());
-    assertEquals(prospector, specialized.currentNode());
-    assertEquals(initial.experience(), specialized.experience());
-    assertEquals(3, specialized.level());
+    assertEquals(jobKey, state.jobKey());
+    assertEquals(currentNodeKey, state.currentNodeKey());
+    assertEquals(new BigDecimal("350"), state.experience());
+    assertEquals(3, state.level());
   }
 
   private static @NotNull JobNode node(
@@ -100,34 +97,24 @@ class JobTreeContractTest {
 
   private record TestPlayerJobState(
       @NotNull UUID playerId,
-      @NotNull Job job,
-      @NotNull JobNode currentNode,
+      @NotNull JobKey jobKey,
+      @NotNull JobNodeKey currentNodeKey,
       @NotNull BigDecimal experience)
       implements PlayerJobState {
 
     @Override
     public int level() {
-      int level = experience.divideToIntegralValue(BigDecimal.valueOf(100)).intValue();
-      return Math.max(1, Math.min(job.maxLevel(), level));
+      return Math.max(1, experience.divideToIntegralValue(BigDecimal.valueOf(100)).intValue());
     }
 
     @Override
     public @NotNull BigDecimal experienceForLevel(int level) {
-      return job.levelingCurve().evaluate(new LevelingCurve.Parameters(level));
+      return BigDecimal.valueOf(level * 100L);
     }
 
     @Override
     public @NotNull PlayerJobState withExperience(@NotNull BigDecimal experience) {
-      return new TestPlayerJobState(playerId, job, currentNode, experience);
-    }
-
-    @Override
-    public @NotNull PlayerJobState withCurrentNode(@NotNull JobNodeKey nodeKey) {
-      JobNode node = job.node(nodeKey);
-      if (node == null) {
-        throw new IllegalArgumentException("Unknown job node: " + nodeKey.asString());
-      }
-      return new TestPlayerJobState(playerId, job, node, experience);
+      return new TestPlayerJobState(playerId, jobKey, currentNodeKey, experience);
     }
   }
 }

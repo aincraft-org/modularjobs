@@ -7,17 +7,19 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Supported store for ModularJobs. MySQL only — schema is applied out-of-band ({@code
- * sql/mysql.sql} / {@code scripts/apply-mysql-schema.sh}).
+ * Supported ModularJobs stores. Schemas are applied out-of-band from {@code sql/mysql.sql} or
+ * {@code sql/sqlite.sql}.
  */
 public enum DatabaseType {
-  MYSQL("mysql", "com.mysql.cj.jdbc.Driver");
+  MYSQL("mysql", "com.mysql.cj.jdbc.Driver"),
+  SQLITE("sqlite", "org.sqlite.JDBC");
 
   @NotNull private final String identifier;
   private final String className;
@@ -154,22 +156,24 @@ public enum DatabaseType {
   /**
    * Resolves a configured database identifier, defaulting blank values to MySQL.
    *
-   * @throws IllegalArgumentException if identifier is not {@code mysql}
+   * @throws IllegalArgumentException if the identifier is unsupported
    */
   @Contract(value = "null -> !null", pure = true)
   public static @NotNull DatabaseType fromIdentifier(@Nullable String identifier) {
     if (identifier == null || identifier.isBlank()) {
       return getDefault();
     }
-    String id = identifier.trim().toLowerCase();
-    if (MYSQL.identifier.equals(id)) {
-      return MYSQL;
+    String id = identifier.trim().toLowerCase(Locale.ROOT);
+    for (DatabaseType type : values()) {
+      if (type.identifier.equals(id)) {
+        return type;
+      }
     }
     throw new IllegalArgumentException(
         "Unsupported database type '"
             + identifier
-            + "'. ModularJobs supports MySQL only (type: mysql). "
-            + "Provision schema with scripts/apply-mysql-schema.sh");
+            + "'. ModularJobs supports mysql and sqlite. "
+            + "Provision the selected schema externally before startup.");
   }
 
   @Contract(pure = true)

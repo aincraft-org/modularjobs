@@ -1,6 +1,7 @@
 package dev.mintychochip.payable;
 
 import dev.mintychochip.Bridge;
+import dev.mintychochip.Job;
 import dev.mintychochip.PlayerJobState;
 import dev.mintychochip.container.ExperiencePayableHandler;
 import dev.mintychochip.container.Payable;
@@ -48,6 +49,7 @@ final class BufferedExperienceHandlerImpl implements ExperiencePayableHandler {
     OfflinePlayer player = Bukkit.getOfflinePlayer(playerId);
     Player onlinePlayer = player.isOnline() ? player.getPlayer() : null;
     PlayerJobState state = context.jobState();
+    Job job = jobService.getJob(state);
     Payable payable = context.payable();
     PayableAmount amount = payable.amount();
     BigDecimal amountDecimal = amount.value();
@@ -56,7 +58,7 @@ final class BufferedExperienceHandlerImpl implements ExperiencePayableHandler {
     // Fire experience gain event (pre-calculation); pure + Bukkit dual-fire
     JobExperienceGainEvent expEvent =
         events.publishExperienceGain(
-            new JobExperienceGainEvent(state, amountDecimal), onlinePlayer);
+            new JobExperienceGainEvent(job, state, amountDecimal), onlinePlayer);
 
     if (expEvent.isCancelled()) {
       return;
@@ -66,7 +68,7 @@ final class BufferedExperienceHandlerImpl implements ExperiencePayableHandler {
     amountDecimal = expEvent.getExperienceGained();
 
     int oldLevel = state.level();
-    int maxLevel = state.job().maxLevel();
+    int maxLevel = job.maxLevel();
 
     // Don't add experience if already at max level
     if (oldLevel >= maxLevel) {
@@ -79,12 +81,12 @@ final class BufferedExperienceHandlerImpl implements ExperiencePayableHandler {
     if (jobService.update(updatedState)) {
       // Fire level up event if level changed
       if (newLevel > oldLevel) {
-        events.publishLevel(new JobLevelEvent(updatedState, oldLevel, newLevel), onlinePlayer);
+        events.publishLevel(new JobLevelEvent(job, updatedState, oldLevel, newLevel), onlinePlayer);
       }
 
       if (onlinePlayer != null) {
         controller.display(
-            new ExperienceBarContext(updatedState, playerId, amountDecimal), formatter);
+            new ExperienceBarContext(job, updatedState, playerId, amountDecimal), formatter);
       }
     }
   }

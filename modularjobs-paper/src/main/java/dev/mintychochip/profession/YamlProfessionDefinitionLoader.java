@@ -74,7 +74,7 @@ final class YamlProfessionDefinitionLoader {
     String storageKey =
         requiredString(fields, "storage-key", index).trim().toLowerCase(Locale.ROOT);
     String categoryValue = requiredString(fields, "category", index);
-    String displayName = requiredString(fields, "display-name", index).trim();
+    final String displayName = requiredString(fields, "display-name", index).trim();
 
     if (!KEY_PATTERN.matcher(id).matches()) {
       throw error(path + ".id", "must match [a-z0-9._/-]+");
@@ -87,9 +87,12 @@ final class YamlProfessionDefinitionLoader {
     try {
       category = ProfessionCategory.valueOf(categoryValue.toUpperCase(Locale.ROOT));
     } catch (IllegalArgumentException failure) {
-      throw error(
-          path + ".category",
-          "must be gathering, processing, or crafting; got '" + categoryValue + "'");
+      IllegalArgumentException ex =
+          error(
+              path + ".category",
+              "must be gathering, processing, or crafting; got '" + categoryValue + "'");
+      ex.initCause(failure);
+      throw ex;
     }
 
     if (!normalizedJobs.contains(storageKey)) {

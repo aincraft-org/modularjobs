@@ -267,6 +267,7 @@ public final class TreeEditorSettingsGui implements Listener {
     Bukkit.getScheduler().runTask(plugin, () -> handler.handle(input));
   }
 
+  /** Cleans up session state when a player disconnects. */
   @EventHandler
   public void onQuit(@NotNull PlayerQuitEvent event) {
     UUID playerId = event.getPlayer().getUniqueId();

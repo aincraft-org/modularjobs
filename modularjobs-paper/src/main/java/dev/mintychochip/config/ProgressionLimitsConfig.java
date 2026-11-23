@@ -26,6 +26,7 @@ public record ProgressionLimitsConfig(
     return new ProgressionLimitsConfig(0, List.of(), true);
   }
 
+  /** Builds a config from the raw {@code progression-limits} map section. */
   @Contract(pure = true)
   public static @NotNull ProgressionLimitsConfig fromMap(@NotNull Map<?, ?> source) {
     int maxJobs = 0;

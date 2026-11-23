@@ -1,6 +1,6 @@
 # Dynamic Profession Loading Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** Implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Remove the compiled `ProfessionCatalog` and load the same 15 profession definitions from an operator-editable `professions.yml` during Paper plugin startup.
 

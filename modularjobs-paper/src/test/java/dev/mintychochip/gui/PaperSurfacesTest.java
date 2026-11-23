@@ -38,8 +38,8 @@ class PaperSurfacesTest {
 
   @Test
   void scoreboardLimitsRowsAndMakesDuplicateEntriesUnique() throws Exception {
-    PlayerMock player = server.addPlayer("surface-scoreboard-" + UUID.randomUUID());
-    PaperSurfaces surfaces = new PaperSurfaces();
+    final PlayerMock player = server.addPlayer("surface-scoreboard-" + UUID.randomUUID());
+    final PaperSurfaces surfaces = new PaperSurfaces();
 
     List<String> lines = new ArrayList<>();
     lines.add("duplicate");

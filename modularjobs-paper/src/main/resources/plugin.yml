@@ -18,10 +18,10 @@ permissions:
     description: Admin commands for ModularJobs (level, experience, boost, editor, applyedits)
     default: op
   jobs.join.<job>:
-    description: Allows joining a specific job (checked by /jobs join and the browse GUI)
+    description: Allows joining a specific job (checked by /jobs join and browse actions)
     default: true
   jobs.command.browse:
-    description: Browse jobs GUI
+    description: Browse jobs through inventory, chat, or dialog
     default: true
   jobs.command.list:
     description: List available jobs

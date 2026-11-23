@@ -122,7 +122,7 @@ public final class TopCommand implements JobsCommand {
                                   int maxPages =
                                       Math.max(1, (ENTRIES_PER_QUERY + PAGE_SIZE - 1) / PAGE_SIZE);
                                   consumer.consume(
-                                      Component.text(jobKey),
+                                      jobService.getJob(key.asString()),
                                       resultProvider.getPage(key, page, PAGE_SIZE),
                                       sender,
                                       maxPages,
@@ -135,7 +135,7 @@ public final class TopCommand implements JobsCommand {
                               int maxPages =
                                   Math.max(1, (ENTRIES_PER_QUERY + PAGE_SIZE - 1) / PAGE_SIZE);
                               consumer.consume(
-                                  Component.text(jobKey),
+                                  jobService.getJob(key.asString()),
                                   resultProvider.getPage(key, page, PAGE_SIZE),
                                   sender,
                                   maxPages,
@@ -160,7 +160,7 @@ public final class TopCommand implements JobsCommand {
                           int maxPages =
                               Math.max(1, (ENTRIES_PER_QUERY + PAGE_SIZE - 1) / PAGE_SIZE);
                           consumer.consume(
-                              Component.text(jobKey),
+                              jobService.getJob(key.asString()),
                               resultProvider.getPage(key, page, PAGE_SIZE),
                               sender,
                               maxPages,
@@ -171,7 +171,7 @@ public final class TopCommand implements JobsCommand {
                       ChatJobsTopPageConsumerImpl consumer = new ChatJobsTopPageConsumerImpl();
                       int maxPages = Math.max(1, (ENTRIES_PER_QUERY + PAGE_SIZE - 1) / PAGE_SIZE);
                       consumer.consume(
-                          Component.text(jobKey),
+                          jobService.getJob(key.asString()),
                           resultProvider.getPage(key, page, PAGE_SIZE),
                           sender,
                           maxPages,

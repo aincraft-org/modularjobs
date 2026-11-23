@@ -78,7 +78,7 @@ public final class BoostEngine {
       return Map.of();
     }
 
-    String jobKey = state == null ? null : state.job().key().asString();
+    String jobKey = state == null ? null : state.jobKey().key().asString();
     DataBag extras = ModularJobsBags.extras(jobKey, state == null ? 0 : state.level());
     BoostContext boostContext =
         new BoostContext(
@@ -96,7 +96,7 @@ public final class BoostEngine {
         state == null
             ? List.of()
             : upgradeBoostDataService.getBoostSources(
-                onlinePlayer.getUniqueId(), state.job().key());
+                onlinePlayer.getUniqueId(), state.jobKey().key());
     return evaluateSources(boostContext, itemSources, timedBoosts, upgradeSources);
   }
 

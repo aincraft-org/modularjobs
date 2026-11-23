@@ -42,6 +42,7 @@ public final class SkillTreeConfigParser {
     this.effectParser = new SkillTreeEffectParser(boostFactory, conditionFactory);
   }
 
+  /** Parses the root JSON object into a {@link SkillTree}. */
   @Contract(pure = true)
   public @NotNull SkillTree parse(@NotNull JsonObject root) {
     if (!root.has("version") || root.get("version").getAsInt() != VERSION) {

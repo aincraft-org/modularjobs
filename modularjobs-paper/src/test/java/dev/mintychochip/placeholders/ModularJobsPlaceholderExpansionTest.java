@@ -59,6 +59,31 @@ class ModularJobsPlaceholderExpansionTest {
   }
 
   @Test
+  void exposesCurrentLevelProgressComponents() {
+    JobService service = serviceWith(state("miner", 1, "150"));
+    ModularJobsPlaceholderExpansion expansion = new ModularJobsPlaceholderExpansion(service);
+
+    assertEquals("50", expansion.onRequest(offlinePlayer(), "levelxp_miner"));
+    assertEquals("100", expansion.onRequest(offlinePlayer(), "requiredxp_miner"));
+    assertEquals("50", expansion.onRequest(offlinePlayer(), "remainingxp_miner"));
+    assertEquals("50.0", expansion.onRequest(offlinePlayer(), "progress_miner"));
+    assertEquals("██████████░░░░░░░░░░", expansion.onRequest(offlinePlayer(), "progressbar_miner"));
+  }
+
+  @Test
+  void maxLevelProgressHasNoPhantomNextLevel() {
+    JobService service = serviceWith(state("miner", 100, "10050"));
+    ModularJobsPlaceholderExpansion expansion = new ModularJobsPlaceholderExpansion(service);
+
+    assertEquals("10050", expansion.onRequest(offlinePlayer(), "maxexperience_miner"));
+    assertEquals("50", expansion.onRequest(offlinePlayer(), "levelxp_miner"));
+    assertEquals("0", expansion.onRequest(offlinePlayer(), "requiredxp_miner"));
+    assertEquals("0", expansion.onRequest(offlinePlayer(), "remainingxp_miner"));
+    assertEquals("100.0", expansion.onRequest(offlinePlayer(), "progress_miner"));
+    assertEquals("████████████████████", expansion.onRequest(offlinePlayer(), "progressbar_miner"));
+  }
+
+  @Test
   void exposesIsinAndCanjoin() {
     JobService service = serviceWith(state("miner", 7, "150"));
     ModularJobsPlaceholderExpansion expansion = new ModularJobsPlaceholderExpansion(service);
@@ -102,6 +127,14 @@ class ModularJobsPlaceholderExpansionTest {
                 case "getJobs" -> {
                   return jobsOf(states);
                 }
+                case "getJob" -> {
+                  Object keyOrState = args[0];
+                  String key =
+                      keyOrState instanceof PlayerJobState state
+                          ? state.jobKey().key().value()
+                          : keyOrState.toString().replace("modularjobs:", "");
+                  return job(key);
+                }
                 case "getPlayerJobStates" -> {
                   return List.of(states);
                 }
@@ -111,7 +144,7 @@ class ModularJobsPlaceholderExpansionTest {
                 case "getPlayerJobState" -> {
                   String jobKey = (String) args[1];
                   for (PlayerJobState p : states) {
-                    if (p.job().key().toString().endsWith(jobKey)) {
+                    if (p.jobKey().key().toString().endsWith(jobKey)) {
                       return p;
                     }
                   }
@@ -128,7 +161,7 @@ class ModularJobsPlaceholderExpansionTest {
   private static @NotNull List<Job> jobsOf(@NotNull PlayerJobState... states) {
     java.util.ArrayList<Job> jobs = new java.util.ArrayList<>();
     for (PlayerJobState p : states) {
-      jobs.add(p.job());
+      jobs.add(job(p.jobKey().key().value()));
     }
     return jobs;
   }
@@ -143,8 +176,11 @@ class ModularJobsPlaceholderExpansionTest {
             new Class<?>[] {PlayerJobState.class},
             (proxy, method, args) -> {
               switch (method.getName()) {
-                case "job" -> {
-                  return job;
+                case "jobKey" -> {
+                  return job.jobKey();
+                }
+                case "currentNodeKey" -> {
+                  return new dev.mintychochip.JobNodeKey(job.jobKey().key());
                 }
                 case "level" -> {
                   return level;

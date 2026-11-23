@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import dev.mintychochip.domain.model.JobRecord;
@@ -120,6 +121,16 @@ class RelationalPlayerJobStateRepositoryTest {
     assertNotNull(loaded);
     assertEquals(miner.jobKey(), loaded.jobKey());
     assertEquals(prospector.jobKey(), loaded.currentNodeKey());
+  }
+
+  @Test
+  void rejectsActiveNodeFromAnotherRootTree() {
+    assertThrows(
+        IllegalArgumentException.class,
+        () ->
+            repository.save(
+                new PlayerJobStateRecord(
+                    "player-1", miner.jobKey(), fisher.jobKey(), new BigDecimal("321"))));
   }
 
   @Test

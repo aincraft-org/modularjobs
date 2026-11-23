@@ -104,6 +104,7 @@ public final class TreeEditorGui {
     uiHost.refresh(player, buildView(player, session));
   }
 
+  /** Returns the editor session for the player, if present. */
   public @NotNull Optional<EditorSession> getSession(@NotNull Player player) {
     return Optional.ofNullable(sessions.get(player.getUniqueId()));
   }
@@ -199,7 +200,7 @@ public final class TreeEditorGui {
     final UUID audience = player.getUniqueId();
     Map<Integer, ItemStack> items = new HashMap<>();
     Map<Integer, PaperUiHost.SlotAction> actions = new HashMap<>();
-    Map<Integer, String> nodes = new HashMap<>();
+    final Map<Integer, String> nodes = new HashMap<>();
     final Map<Integer, String> controls = new HashMap<>();
 
     EditorTree tree = session.tree();

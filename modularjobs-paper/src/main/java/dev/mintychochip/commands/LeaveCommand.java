@@ -60,7 +60,7 @@ public class LeaveCommand implements JobsCommand {
                       int leftCount = 0;
                       for (PlayerJobState state : states) {
                         if (jobService.leaveJob(
-                            player.getUniqueId().toString(), state.job().key().toString())) {
+                            player.getUniqueId().toString(), state.jobKey().key().toString())) {
                           leftCount++;
                         }
                       }

@@ -1,6 +1,6 @@
 # Service-Owned Leveling Formulas Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** Implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Replace the opaque `Job.levelingCurve()` API with service-owned, inspectable leveling profiles backed by typed deterministic variables and canonical level/XP derivation.
 

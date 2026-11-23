@@ -55,47 +55,51 @@ CI: `.github/workflows/ci.yml` — Java 25 + MySQL 8 (`./gradlew clean check` + 
 
 The bundled `jobs.yml`, `boost_sources_default.json`, and
 `upgrade_trees/*.json` files form a generic starter pack. Job task tables start
-empty; create task payables through the editor after configuring MySQL. Tasks are
-then stored only in MySQL.
+empty; create task payables through the editor after configuring persistence. Tasks are then stored
+in the backend selected by the `payable` section.
 
-### Database (MySQL only)
+### Database (MySQL or SQLite)
 
-ModularJobs uses **MySQL 8 only** (no SQLite/PostgreSQL/MariaDB).
+The Paper plugin supports **MySQL 8** and **SQLite**. MySQL suits shared or multi-server
+deployments; SQLite suits one standalone Paper server. PostgreSQL and MariaDB remain unsupported.
+The separate web editor REST API remains MySQL-only.
 
-1. Provision schema out-of-band (plugin never runs DDL):
+1. Provision the selected schema out-of-band. The plugin never runs DDL:
 
 ```bash
+# MySQL
 export DATABASE_URL=mysql://user:pass@host:3306/modularjobs
 ./scripts/apply-mysql-schema.sh
-# or: mysql "$DATABASE_URL" < modularjobs-paper/src/main/resources/sql/mysql.sql
+
+# SQLite
+./scripts/apply-sqlite-schema.sh \
+  /absolute/path/to/plugins/ModularJobs/modularjobs.db
 ```
 
-2. Configure `database.yml` (sections with the same jdbc-url + username share one pool):
+2. Configure each `database.yml` section with `type: mysql` or `type: sqlite`. Reuse one target
+   unless you intentionally maintain multiple fully provisioned databases:
 
 ```yaml
 payable:
-  type: mysql
-  jdbc-url: jdbc:mysql://host:3306/modularjobs
-  username: modularjobs
-  password: secret
-  maximum-pool-size: 10
+  type: sqlite
+  jdbc-url: jdbc:sqlite:plugins/ModularJobs/modularjobs.db
 
 timed-boost:
-  type: mysql
-  jdbc-url: jdbc:mysql://host:3306/modularjobs
-  username: modularjobs
-  password: secret
+  type: sqlite
+  jdbc-url: jdbc:sqlite:plugins/ModularJobs/modularjobs.db
+
+progression:
+  type: sqlite
+  jdbc-url: jdbc:sqlite:plugins/ModularJobs/modularjobs.db
 
 upgrades:
-  type: mysql
-  jdbc-url: jdbc:mysql://host:3306/modularjobs
-  username: modularjobs
-  password: secret
+  type: sqlite
+  jdbc-url: jdbc:sqlite:plugins/ModularJobs/modularjobs.db
 ```
 
-Missing tables → plugin **fails at startup**. See `docs/database-schema.md`.
-Existing installations must apply `scripts/migrate-add-currency-symbol.sql`
-before deploying a build that persists currency symbols.
+SQLite credentials are omitted and its pool is fixed at one connection. MySQL sections retain
+`jdbc-url`, `username`, `password`, and optional pool tuning. Missing tables or columns make the
+plugin fail at startup. See `docs/database-schema.md`.
 
 ### Economy
 
@@ -126,7 +130,7 @@ The payment pipeline never retries through the other provider after an unknown o
 | Node | Default | Purpose |
 |------|---------|---------|
 | `modularjobs.admin` | op | Level/exp admin, boost, web editor, applyedits |
-| `jobs.command.browse` | true | Browse GUI |
+| `jobs.command.browse` | true | Browse jobs through inventory, chat, or dialog |
 | `jobs.command.list` | true | List jobs |
 | `jobs.command.stats` | true | Own stats |
 | `jobs.command.admin.stats` | op | Others' stats |
@@ -170,10 +174,12 @@ receive no payment.
 
 Mint2, Vault, mcMMO, Bolt, LWC, Choco, and PlaceholderAPI are optional integrations.
 ModularJobs uses native Paper inventory screens for browse, info, statistics,
-upgrades, and tree editing, plus native scoreboard sidebars and experience boss
-bars. No external UI library is required. The external Preferences plugin is not
-required; when present, it provides a per-player XP boss bar color preference via
-/preferences, and without it the bar stays default green.
+upgrades, and tree editing. Browse also supports interactive Adventure chat and
+the native Paper Dialog API through `/jobs browse chat` and `/jobs browse dialog`.
+Native scoreboard sidebars and experience boss bars need no external UI library.
+The external Preferences plugin is not required; when present, it provides a
+per-player XP boss bar color preference via /preferences, and without it the bar
+stays default green.
 
 
 ## Version

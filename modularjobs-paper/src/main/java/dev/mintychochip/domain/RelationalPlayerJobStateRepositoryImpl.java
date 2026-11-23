@@ -20,7 +20,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * MySQL-backed {@link PlayerJobStateRepository} for active player job state records.
+ * SQL-backed {@link PlayerJobStateRepository} for active player job state records.
  *
  * <p>Owns no connection pool itself; it draws connections on demand from the provided shared {@link
  * ConnectionSource} (composition-owned). Each operation checks out one connection and closes it via
@@ -37,8 +37,8 @@ import org.jetbrains.annotations.Nullable;
  * the player/job pair has no persisted row, when the job is unknown to the in-memory job
  * repository, or when the row is absent.
  *
- * <p>Table naming is parameterized; writes use MySQL {@code ON DUPLICATE KEY UPDATE} semantics, so
- * {@link #save} is an upsert keyed by (player_id, job_key).
+ * <p>Table naming is parameterized; writes use the selected database's atomic upsert semantics,
+ * keyed by {@code (player_id, job_key)}.
  */
 final class RelationalPlayerJobStateRepositoryImpl implements PlayerJobStateRepository {
 
@@ -66,7 +66,8 @@ final class RelationalPlayerJobStateRepositoryImpl implements PlayerJobStateRepo
     this.jobRepository = jobRepository;
     this.connectionSource = connectionSource;
     this.tableName = tableName;
-    this.saveQuery = bindTable(SqlStatements.load("job_progression/save.sql"));
+    this.saveQuery =
+        bindTable(SqlStatements.load(connectionSource.getType(), "job_progression/save.sql"));
     this.loadQuery = bindTable(SqlStatements.load("job_progression/load.sql"));
     this.loadAllByJobQuery = bindTable(SqlStatements.load("job_progression/load-all-by-job.sql"));
     this.loadAllForPlayerQuery =

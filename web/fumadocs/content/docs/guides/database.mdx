@@ -1,49 +1,52 @@
 ---
 title: Database
-description: MySQL 8 provisioning, connection pooling, and schema ownership rules.
+description: MySQL and SQLite provisioning, pooling, and schema ownership.
 icon: Database
 ---
 
 ## The idea
 
-Player progress lives in one operator-owned MySQL 8 database. The plugin
-connects and checks that tables exist; it never creates them.
+Paper persistence lives in an operator-provisioned MySQL 8 database or local
+SQLite file. The plugin connects and checks that tables exist; it never creates them.
 
 ## basics
 
-Apply `sql/mysql.sql` with the ops script, put the JDBC URL in `database.yml`,
-restart. Missing tables fail startup with a pointer at that script.
+Apply the schema matching your chosen backend, configure its JDBC URL in
+`database.yml`, then restart. Missing tables fail startup with a provisioning hint.
 
 ## Everyday
 
-Shared JDBC URL plus username shares one Hikari pool. Keep passwords out of
-git. Back up MySQL the way you back up any other service.
+Sections targeting the same backend and JDBC URL share one Hikari pool. Keep MySQL
+passwords out of git and back up either backend before changing live data.
 
 ## Advanced
 
 <Callout type="info">Advanced — you do not need this to get started.</Callout>
 
-Pool sizing and schema-presence checks are operator tuning, not day-one
-work.
+Pool sizing, mixing backends by section, and the separate MySQL editor-session
+service are operator concerns, not day-one work.
 
-## MySQL 8 only
+## Supported backends
 
-ModularJobs supports **MySQL 8 only**. SQLite, PostgreSQL, MariaDB, and Mongo
-providers are not supported and were removed.
+The Paper plugin supports **MySQL 8** and **SQLite**. Use MySQL for shared or
+multi-server deployments. Use SQLite for one standalone Paper server.
+PostgreSQL, MariaDB, and MongoDB are unsupported. The separate `web/rest-api`
+service remains MySQL-only.
 
 ## Schema ownership
 
 | Store | Who creates tables? | Who only connects? |
 | --- | --- | --- |
-| **MySQL** | Ops / CI / script **once** | Paper plugin + `web/rest-api` |
+| **Paper / MySQL** | Operator / CI / script **once** | Paper plugin |
+| **Paper / SQLite** | Operator / script **once** | Paper plugin |
+| **Editor sessions / MySQL** | Operator / CI / script **once** | `web/rest-api` |
 
-**Neither process ever runs DDL.** That is intentional: multi-instance servers,
-least privilege, reviewable migrations, backups, and upgrades do not belong in
-`onEnable` or the API request path.
+**Neither process ever runs DDL.** Provision every distinct database before
+starting its consumer.
 
-- Source of truth: `modularjobs-paper/src/main/resources/sql/mysql.sql`
-- Apply: `./scripts/apply-mysql-schema.sh`
-- Missing schema objects → fail-fast at plugin enable / API boot (`SchemaPresence`)
+- MySQL schema: `modularjobs-paper/src/main/resources/sql/mysql.sql`
+- SQLite schema: `modularjobs-paper/src/main/resources/sql/sqlite.sql`
+- Missing schema objects cause startup to fail before repositories are used.
 
 ## Tables
 
@@ -52,18 +55,18 @@ least privilege, reviewable migrations, backups, and upgrades do not belong in
 | `job_progression` | Active player state: root job key, current node, tree XP |
 | `archive_job_progression` | Archived player job state after leaving |
 | `payable_records` | Task payables by job / action / context / type |
-| `job_tasks` + `job_task_payables` | Task records with DECIMAL payables |
+| `job_tasks` + `job_task_payables` | Task records with exact-decimal payables |
 | `time_boost_identity` + `time_boosts` | Timed boosts (target, source, expiry) |
 | `player_upgrades` | Skill points, unlocked nodes, node levels |
-| `editor_sessions` | Secure editor payloads (REST authority) |
+| `editor_sessions` | Secure editor payloads (MySQL REST authority only) |
 
-Durable money/XP amounts are `DECIMAL`; key-bearing identifiers use bounded
-`VARCHAR` columns.
+MySQL stores durable money and XP amounts as `DECIMAL`. SQLite stores them as
+decimal text so values round-trip without binary floating-point loss.
 
 ## Identical pools are shared
 
-Pools with the same `jdbc-url` + `username` share one HikariCP connection pool,
-so pointing every section at one database costs a single pool:
+Pools with the same backend + `jdbc-url` + username share one HikariCP connection
+pool, so pointing every section at one database costs a single pool:
 
 ```yaml
 payable:
@@ -86,16 +89,46 @@ mysql --host=host --port=3306 --user=user --password modularjobs \
   < paper/src/main/resources/sql/mysql.sql
 ```
 
-For local development, run MySQL 8 externally (Docker/Podman) and apply the
-schema before starting either process.
+For local development, run MySQL 8 externally and apply the schema before
+starting its consumer.
+
+## Provision SQLite
+
+```bash
+./scripts/apply-sqlite-schema.sh \
+  /absolute/path/to/plugins/ModularJobs/modularjobs.db
+```
+
+Point each Paper persistence section at the provisioned file:
+
+```yaml
+payable:
+  type: sqlite
+  jdbc-url: jdbc:sqlite:plugins/ModularJobs/modularjobs.db
+
+timed-boost:
+  type: sqlite
+  jdbc-url: jdbc:sqlite:plugins/ModularJobs/modularjobs.db
+
+progression:
+  type: sqlite
+  jdbc-url: jdbc:sqlite:plugins/ModularJobs/modularjobs.db
+
+upgrades:
+  type: sqlite
+  jdbc-url: jdbc:sqlite:plugins/ModularJobs/modularjobs.db
+```
+
+SQLite needs no username or password and always uses one pooled connection.
+Every distinct target receives the complete matching schema.
 
 ## Startup behavior
 
-1. Open Hikari pool to MySQL.
+1. Open or reuse each configured Hikari pool.
 2. Verify required tables exist (`job_progression`, `job_tasks`, …).
 3. Verify migration-sensitive columns, including `current_node_key`, exist.
-4. Missing tables or columns → **fail enable** with the required schema or
-   migration script.
+4. Missing tables or columns → **fail enable** with the matching schema or
+   migration instructions.
 
 ## Task data ownership
 
@@ -103,7 +136,13 @@ The plugin does not seed `job_tasks`. An empty task table remains empty until an
 operator creates definitions through the editor/repository path or reviewed SQL.
 
 <Callout type="warn" title="Live task changes">
-MySQL is the only runtime source of task data. Back up live rows before bulk
-edits or deletes. The `fisher` → `fisherman` job-key rename likewise requires an
-operator-managed data update before deploying the renamed catalog.
+The selected `payable` backend is the runtime source of task data. Back up live
+rows before bulk edits or deletes. The `fisher` → `fisherman` job-key rename
+likewise requires an operator-managed data update before deploying the renamed catalog.
 </Callout>
+
+## What it means for you
+
+Choose SQLite when the database belongs to one Paper server and low setup overhead
+matters. Choose MySQL when data must be shared, remotely administered, or consumed
+by the editor-session API. In both cases, provision and back up the schema yourself.

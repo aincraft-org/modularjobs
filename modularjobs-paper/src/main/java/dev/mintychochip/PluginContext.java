@@ -40,10 +40,14 @@ import dev.mintychochip.editor.EditorService;
 import dev.mintychochip.editor.EditorSessionStore;
 import dev.mintychochip.editor.RestSessionClient;
 import dev.mintychochip.editor.json.GsonProvider;
+import dev.mintychochip.gui.JobBrowseChatRenderer;
+import dev.mintychochip.gui.JobBrowseDialogRenderer;
 import dev.mintychochip.gui.JobBrowseGui;
+import dev.mintychochip.gui.JobBrowseModel;
 import dev.mintychochip.gui.JobInfoGui;
 import dev.mintychochip.gui.PaperSurfaces;
 import dev.mintychochip.gui.PaperUiHost;
+import dev.mintychochip.gui.StatsChatRenderer;
 import dev.mintychochip.gui.StatsGui;
 import dev.mintychochip.listener.AutoJoinListener;
 import dev.mintychochip.listener.LevelUpCommandListener;
@@ -192,7 +196,11 @@ public final class PluginContext {
     final ConfigurationSection payableSection =
         DatabaseConfigSections.requireSection(databaseConfig, "payable");
     final SharedConnectionSources sharedSources = new SharedConnectionSources(plugin, resources);
-    final ConnectionSource connectionSource = sharedSources.getOrCreate(payableSection);
+    final ConnectionSource payableConnectionSource = sharedSources.getOrCreate(payableSection);
+    final ConfigurationSection progressionSection =
+        DatabaseConfigSections.sectionOrFallback(databaseConfig, "progression", payableSection);
+    final ConnectionSource progressionConnectionSource =
+        sharedSources.getOrCreate(progressionSection);
 
     ModularJobsBags.register();
     final KeyResolver keyResolver = KeyResolvers.create();
@@ -216,7 +224,8 @@ public final class PluginContext {
     final DomainWiring domain =
         DomainWiring.create(
             plugin,
-            connectionSource,
+            payableConnectionSource,
+            progressionConnectionSource,
             resources,
             actionTypeRegistry,
             payableTypeRegistry,
@@ -333,9 +342,13 @@ public final class PluginContext {
 
     final EditorConfig editorConfig = EditorConfig.fromPlugin(plugin);
 
+    JobBrowseModel jobBrowseModel = new JobBrowseModel(domain.jobService, upgradeService);
     JobBrowseGui jobBrowseGui =
-        new JobBrowseGui(paperUiHost, domain.jobService, upgradeService, joinGate);
-    final StatsGui statsGui = new StatsGui(paperUiHost);
+        new JobBrowseGui(paperUiHost, domain.jobService, joinGate, jobBrowseModel);
+    JobBrowseChatRenderer jobBrowseChatRenderer = new JobBrowseChatRenderer(jobBrowseModel);
+    JobBrowseDialogRenderer jobBrowseDialogRenderer = new JobBrowseDialogRenderer(jobBrowseModel);
+    final StatsGui statsGui = new StatsGui(paperUiHost, domain.jobService);
+    final StatsChatRenderer statsChatRenderer = new StatsChatRenderer();
     final JobTopPageProvider topPageProvider = new JobTopPageProvider(domain.jobService);
 
     JobInfoGui jobInfoGui = new JobInfoGui(paperUiHost, preferencesService, payables.renderer);
@@ -351,7 +364,7 @@ public final class PluginContext {
     commands.add(new JoinCommand(domain.jobService, domain.jobResolver, joinGate));
     commands.add(new ListCommand(domain.jobService));
     commands.add(new TopCommand(domain.jobService, topPageProvider, plugin, paperSurfaces));
-    commands.add(new BrowseCommand(jobBrowseGui));
+    commands.add(new BrowseCommand(jobBrowseGui, jobBrowseChatRenderer, jobBrowseDialogRenderer));
     commands.add(infoCommand);
     commands.add(new LeaveCommand(domain.jobService, domain.jobResolver));
     if (editorConfig.enabled()) {
@@ -367,7 +380,7 @@ public final class PluginContext {
       commands.add(new ApplyEditsCommand(editorService));
       commands.add(new EditorCommand(editorService, domain.jobService, domain.jobResolver));
     }
-    commands.add(new StatsCommand(domain.jobService, statsGui));
+    commands.add(new StatsCommand(domain.jobService, statsGui, statsChatRenderer));
     commands.add(new ArchiveCommand(domain.jobService));
     commands.add(
         new BoostCommand(
@@ -424,7 +437,7 @@ public final class PluginContext {
     return new PluginContext(
         bridge,
         eventBus,
-        connectionSource,
+        payableConnectionSource,
         resources,
         paperUiHost,
         paperSurfaces,

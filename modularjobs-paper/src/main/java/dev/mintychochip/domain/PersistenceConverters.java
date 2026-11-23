@@ -1,7 +1,6 @@
 package dev.mintychochip.domain;
 
 import dev.mintychochip.Job;
-import dev.mintychochip.JobNode;
 import dev.mintychochip.JobNodeKey;
 import dev.mintychochip.JobTask;
 import dev.mintychochip.PlayerJobState;
@@ -10,7 +9,6 @@ import dev.mintychochip.container.Payable;
 import dev.mintychochip.container.PayableAmount;
 import dev.mintychochip.container.PayableType;
 import dev.mintychochip.domain.model.JobTaskRecord;
-import dev.mintychochip.domain.model.JobTreeRecord;
 import dev.mintychochip.domain.model.PayableRecord;
 import dev.mintychochip.domain.model.PlayerJobStateRecord;
 import java.util.List;
@@ -29,28 +27,13 @@ public final class PersistenceConverters {
 
   private PersistenceConverters() {}
 
-  /** Converts to record. */
-  @Contract(pure = true)
-  public static @NotNull JobTreeRecord toRecord(@NotNull Job job) {
-    if (!(job instanceof JobImpl jobImpl)) {
-      throw new IllegalArgumentException("Job must be a JobImpl instance");
-    }
-    return jobImpl.toRecord();
-  }
-
-  /** Converts to record. */
+  /** Converts a key-based state snapshot to its persistence record. */
   @Contract(pure = true)
   public static @NotNull PlayerJobStateRecord toRecord(@NotNull PlayerJobState state) {
-    Job job = state.job();
-    JobNode currentNode = state.currentNode();
-    if (!job.jobKey().equals(currentNode.jobKey())
-        || !currentNode.equals(job.node(currentNode.nodeKey()))) {
-      throw new IllegalArgumentException("Current node does not belong to the job tree");
-    }
     return new PlayerJobStateRecord(
         state.playerId().toString(),
-        job.jobKey().asString(),
-        currentNode.nodeKey().asString(),
+        state.jobKey().asString(),
+        state.currentNodeKey().asString(),
         state.experience());
   }
 

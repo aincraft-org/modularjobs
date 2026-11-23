@@ -23,22 +23,22 @@ public final class PlayerUpgradeRepository {
 
   private static final String SELECT_QUERY = SqlStatements.load("player_upgrades/select.sql");
 
-  private static final String UPSERT_QUERY = SqlStatements.load("player_upgrades/upsert.sql");
-
   private static final String DELETE_QUERY = SqlStatements.load("player_upgrades/delete.sql");
 
   private static final String SELECT_STATE_QUERY =
       SqlStatements.load("player_upgrades/select-state.sql");
 
-  private static final String UPSERT_STATE_QUERY =
-      SqlStatements.load("player_upgrades/upsert-state.sql");
-
   private final ConnectionSource connectionSource;
+  private final String upsertQuery;
+  private final String upsertStateQuery;
 
   /** Player upgrade repository. */
   public PlayerUpgradeRepository(@NotNull ConnectionSource connectionSource) {
     this.connectionSource = connectionSource;
-    // Schema is connect-only: node_levels must exist via sql/mysql.sql (ops apply).
+    this.upsertQuery = SqlStatements.load(connectionSource.getType(), "player_upgrades/upsert.sql");
+    this.upsertStateQuery =
+        SqlStatements.load(connectionSource.getType(), "player_upgrades/upsert-state.sql");
+    // Schema is connect-only: node_levels must exist in the externally provisioned schema.
   }
 
   /** Load player data. */
@@ -68,7 +68,7 @@ public final class PlayerUpgradeRepository {
   /** Save player data. */
   public void savePlayerData(@NotNull PlayerUpgradeDataImpl data) {
     try (Connection connection = connectionSource.getConnection();
-        PreparedStatement ps = connection.prepareStatement(UPSERT_QUERY)) {
+        PreparedStatement ps = connection.prepareStatement(upsertQuery)) {
 
       ps.setString(1, data.playerId());
       ps.setString(2, data.jobKey());
@@ -140,7 +140,7 @@ public final class PlayerUpgradeRepository {
    */
   public void saveState(@NotNull SkillTreeState state) {
     try (Connection connection = connectionSource.getConnection();
-        PreparedStatement ps = connection.prepareStatement(UPSERT_STATE_QUERY)) {
+        PreparedStatement ps = connection.prepareStatement(upsertStateQuery)) {
       ps.setString(1, state.playerId());
       ps.setString(2, state.jobKey());
       ps.setInt(3, state.totalSkillPoints());

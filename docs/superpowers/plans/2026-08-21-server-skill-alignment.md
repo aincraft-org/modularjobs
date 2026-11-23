@@ -1,6 +1,6 @@
 # Server-development skill alignment Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** Implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Align ModularJobs with `server-development-skills` pins, CI, nightly, and (in wave 2) fail-closed Google style plus the Fumadocs docs gate, without changing MySQL connect-only schema ownership or `YY.M.D.REVISION`.
 

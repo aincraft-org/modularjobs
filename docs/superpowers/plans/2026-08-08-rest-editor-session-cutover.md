@@ -1,6 +1,6 @@
 # REST-backed web editor session cutover Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** Implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 > **Historical note (2026-08-10):** Retained as an implementation record; current distribution defaults the external editor to disabled with empty URLs.
 
 **Goal:** Replace Paper's Bytebin editor workflow with the PostgreSQL-backed Rust REST session API while preserving `/jobs editor` and `/jobs applyedits <code>`.

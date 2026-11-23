@@ -38,10 +38,10 @@ public final class PlayerLoginListener implements Listener {
     List<PlayerJobState> states = jobService.getPlayerJobStates(player.getUniqueId());
 
     for (PlayerJobState state : states) {
-      Job job = state.job();
+      Job job = jobService.getJob(state);
       int level = state.level();
 
-      Map<Integer, List<String>> unlocks = perkCatalog.unlocks(job, state.currentNode().nodeKey());
+      Map<Integer, List<String>> unlocks = perkCatalog.unlocks(job, state.currentNodeKey());
       for (Map.Entry<Integer, List<String>> entry : unlocks.entrySet()) {
         if (entry.getKey() <= level) {
           for (String perk : entry.getValue()) {
@@ -52,7 +52,7 @@ public final class PlayerLoginListener implements Listener {
         }
       }
       String highestStoragePerk =
-          perkCatalog.highestStorageUnlock(job, state.currentNode().nodeKey(), level).orElse(null);
+          perkCatalog.highestStorageUnlock(job, state.currentNodeKey(), level).orElse(null);
       if (highestStoragePerk != null) {
         permissions.grantPerkPermission(player, highestStoragePerk);
       }

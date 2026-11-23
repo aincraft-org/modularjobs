@@ -23,7 +23,6 @@ import dev.mintychochip.container.PayableType;
 import dev.mintychochip.container.boost.BoostData.SerializableBoostData;
 import dev.mintychochip.container.boost.BoostData.TimedBoostData;
 import dev.mintychochip.container.boost.TimedBoostDataService;
-import dev.mintychochip.container.boost.TimedBoostDataService.ActiveBoostData;
 import dev.mintychochip.databag.gson.GsonConditionSerializer;
 import dev.mintychochip.profession.RecipeDefinition;
 import dev.mintychochip.profession.RecipeExperienceDepreciationPolicy;
@@ -95,8 +94,8 @@ class JobsPaymentHandlerReloadTest {
     List<BigDecimal> xpSnapshotsAtPay = new ArrayList<>();
     OfflinePlayer player = MockBukkitSupport.offlinePlayer(UUID.randomUUID());
 
-    PlayerJobState p0 = state(player, new BigDecimal("0"));
-    PlayerJobState p10 = state(player, new BigDecimal("10"));
+    TestPlayerJobState p0 = state(player, new BigDecimal("0"));
+    TestPlayerJobState p10 = state(player, new BigDecimal("10"));
 
     PayableType expType = experienceType(ctx -> xpSnapshotsAtPay.add(ctx.jobState().experience()));
 
@@ -113,6 +112,11 @@ class JobsPaymentHandlerReloadTest {
 
     JobService service =
         new StubJobService() {
+          @Override
+          public @NotNull Job getJob(@NotNull String ignored) {
+            return p0.job();
+          }
+
           @Override
           public @NotNull List<PlayerJobState> getPlayerJobStates(@NotNull UUID p) {
             return List.of(p0);
@@ -150,7 +154,7 @@ class JobsPaymentHandlerReloadTest {
     List<BigDecimal> paid = new ArrayList<>();
     OfflinePlayer player = MockBukkitSupport.offlinePlayer(UUID.randomUUID());
     PayableType experience = experienceType(ctx -> paid.add(ctx.payable().amount().value()));
-    PlayerJobState state =
+    TestPlayerJobState state =
         state(
             player,
             BigDecimal.ZERO,
@@ -159,12 +163,17 @@ class JobsPaymentHandlerReloadTest {
     ActionType blockBreak = actionType("block_break");
     JobTask task =
         new JobTask(
-            state.currentNode().nodeKey(),
+            state.currentNodeKey(),
             blockBreak.key(),
             Key.key("minecraft", "stone"),
             List.of(new Payable(experience, PayableAmount.create(BigDecimal.TEN))));
     JobService service =
         new StubJobService() {
+          @Override
+          public @NotNull Job getJob(@NotNull String ignored) {
+            return state.job();
+          }
+
           @Override
           public @NotNull List<PlayerJobState> getPlayerJobStates(@NotNull UUID playerId) {
             return List.of(state);
@@ -198,17 +207,22 @@ class JobsPaymentHandlerReloadTest {
 
     PayableType expType = experienceType(ctx -> paid.add(ctx.payable().amount().value()));
     Payable payable = new Payable(expType, PayableAmount.create(new BigDecimal("100")));
-    PlayerJobState state = state(player, BigDecimal.ZERO);
+    TestPlayerJobState state = state(player, BigDecimal.ZERO);
     ActionType craft = actionType("craft");
     JobTask task =
         new JobTask(
-            state.currentNode().nodeKey(),
+            state.currentNodeKey(),
             craft.key(),
             Key.key("minecraft", "iron_sword"),
             List.of(payable));
 
     JobService service =
         new StubJobService() {
+          @Override
+          public @NotNull Job getJob(@NotNull String ignored) {
+            return state.job();
+          }
+
           @Override
           public @NotNull List<PlayerJobState> getPlayerJobStates(@NotNull UUID p) {
             return List.of(state);
@@ -322,12 +336,12 @@ class JobsPaymentHandlerReloadTest {
     }
   }
 
-  private static @NotNull PlayerJobState state(
+  private static @NotNull TestPlayerJobState state(
       @NotNull OfflinePlayer player, @NotNull BigDecimal xp) {
     return state(player, xp, Map.of());
   }
 
-  private static @NotNull PlayerJobState state(
+  private static @NotNull TestPlayerJobState state(
       @NotNull OfflinePlayer player,
       @NotNull BigDecimal xp,
       @NotNull Map<Key, PayableCurve> payableCurves) {
@@ -397,50 +411,42 @@ class JobsPaymentHandlerReloadTest {
             return 100;
           }
         };
-    return new PlayerJobState() {
-      @Override
-      public @NotNull JobNode currentNode() {
-        return root;
-      }
+    return new TestPlayerJobState(player, job, xp);
+  }
 
-      @Override
-      public @NotNull BigDecimal experienceForLevel(int level) {
-        return BigDecimal.valueOf(level * 100L);
-      }
+  private record TestPlayerJobState(
+      @NotNull OfflinePlayer player, @NotNull Job job, @NotNull BigDecimal experience)
+      implements PlayerJobState {
 
-      @Override
-      public @NotNull Job job() {
-        return job;
-      }
+    @Override
+    public @NotNull JobKey jobKey() {
+      return job.jobKey();
+    }
 
-      @Override
-      public @NotNull UUID playerId() {
-        return player.getUniqueId();
-      }
+    @Override
+    public @NotNull JobNodeKey currentNodeKey() {
+      return job.rootNode().nodeKey();
+    }
 
-      @Override
-      public @NotNull BigDecimal experience() {
-        return xp;
-      }
+    @Override
+    public @NotNull UUID playerId() {
+      return player.getUniqueId();
+    }
 
-      @Override
-      public int level() {
-        return 1;
-      }
+    @Override
+    public int level() {
+      return job.levelForExperience(experience);
+    }
 
-      @Override
-      public @NotNull PlayerJobState withExperience(@NotNull BigDecimal experience) {
-        return state(player, experience);
-      }
+    @Override
+    public @NotNull BigDecimal experienceForLevel(int level) {
+      return job.experienceForLevel(level);
+    }
 
-      @Override
-      public @NotNull PlayerJobState withCurrentNode(@NotNull JobNodeKey newNodeKey) {
-        if (!nodeKey.equals(newNodeKey)) {
-          throw new IllegalArgumentException();
-        }
-        return this;
-      }
-    };
+    @Override
+    public @NotNull PlayerJobState withExperience(@NotNull BigDecimal newExperience) {
+      return new TestPlayerJobState(player, job, newExperience);
+    }
   }
 
   private static @NotNull ActionType actionType(@NotNull String name) {

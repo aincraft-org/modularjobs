@@ -32,8 +32,14 @@ public final class SchemaPresence {
   /** Session API table (same MySQL store). Optional for pure game-only pools. */
   public static final String EDITOR_SESSIONS = "editor_sessions";
 
-  private static final String TABLE_EXISTS = SqlStatements.load("schema/table-exists.sql");
-  private static final String COLUMN_EXISTS = SqlStatements.load("schema/column-exists.sql");
+  private static final String MYSQL_TABLE_EXISTS =
+      SqlStatements.load(DatabaseType.MYSQL, "schema/table-exists.sql");
+  private static final String SQLITE_TABLE_EXISTS =
+      SqlStatements.load(DatabaseType.SQLITE, "schema/table-exists.sql");
+  private static final String MYSQL_COLUMN_EXISTS =
+      SqlStatements.load(DatabaseType.MYSQL, "schema/column-exists.sql");
+  private static final String SQLITE_COLUMN_EXISTS =
+      SqlStatements.load(DatabaseType.SQLITE, "schema/column-exists.sql");
 
   private SchemaPresence() {}
 
@@ -83,10 +89,12 @@ public final class SchemaPresence {
   public static boolean tableExists(
       @NotNull Connection connection, @NotNull DatabaseType type, @NotNull String table)
       throws SQLException {
-    if (type != DatabaseType.MYSQL) {
-      throw new IllegalArgumentException("Only MySQL is supported, got " + type);
-    }
-    try (PreparedStatement ps = connection.prepareStatement(TABLE_EXISTS)) {
+    String query =
+        switch (type) {
+          case MYSQL -> MYSQL_TABLE_EXISTS;
+          case SQLITE -> SQLITE_TABLE_EXISTS;
+        };
+    try (PreparedStatement ps = connection.prepareStatement(query)) {
       ps.setString(1, table);
       try (ResultSet rs = ps.executeQuery()) {
         return rs.next();
@@ -101,10 +109,12 @@ public final class SchemaPresence {
       @NotNull String table,
       @NotNull String column)
       throws SQLException {
-    if (type != DatabaseType.MYSQL) {
-      throw new IllegalArgumentException("Only MySQL is supported, got " + type);
-    }
-    try (PreparedStatement ps = connection.prepareStatement(COLUMN_EXISTS)) {
+    String query =
+        switch (type) {
+          case MYSQL -> MYSQL_COLUMN_EXISTS;
+          case SQLITE -> SQLITE_COLUMN_EXISTS;
+        };
+    try (PreparedStatement ps = connection.prepareStatement(query)) {
       ps.setString(1, table);
       ps.setString(2, column);
       try (ResultSet rs = ps.executeQuery()) {
@@ -124,9 +134,19 @@ public final class SchemaPresence {
               + type
               + ". Missing columns: "
               + missingColumns
-              + ". Stop every plugin instance and apply the operator-run migrations, including "
-              + "scripts/migrate-add-current-node-key.sql.");
+              + migrationHint(type));
       this.missingColumns = List.copyOf(missingColumns);
+    }
+
+    private static @NotNull String migrationHint(@NotNull DatabaseType type) {
+      return switch (type) {
+        case MYSQL ->
+            ". Stop every plugin instance and apply the operator-run migrations, including "
+                + "scripts/migrate-add-current-node-key.sql.";
+        case SQLITE ->
+            ". Stop the plugin and apply the required SQLite migration externally; "
+                + "see sql/sqlite.sql and docs/database-schema.md.";
+      };
     }
 
     public @NotNull List<String> getMissingColumns() {
@@ -157,13 +177,17 @@ public final class SchemaPresence {
 
     private static @NotNull String buildMessage(
         @NotNull DatabaseType type, @NotNull List<String> missing) {
+      String identifier = type.getIdentifier();
       return "Database schema not provisioned for "
           + type
           + ". Missing tables: "
           + missing
           + ". The plugin does not create tables. Apply "
-          + "modularjobs-paper/src/main/resources/sql/mysql.sql out-of-band "
-          + "(see scripts/apply-mysql-schema.sh).";
+          + "modularjobs-paper/src/main/resources/sql/"
+          + identifier
+          + ".sql out-of-band (see scripts/apply-"
+          + identifier
+          + "-schema.sh).";
     }
   }
 }

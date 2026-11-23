@@ -1,5 +1,6 @@
 package dev.mintychochip.commands.top;
 
+import dev.mintychochip.Job;
 import dev.mintychochip.PlayerJobState;
 import dev.mintychochip.commands.Page;
 import dev.mintychochip.commands.components.PlayerComponent;
@@ -29,12 +30,12 @@ public final class ChatJobsTopPageConsumerImpl implements JobsTopPageConsumer {
 
   @Override
   public void consume(
-      @NotNull Component jobName,
+      @NotNull Job job,
       @NotNull Page<PlayerJobState> page,
       @NotNull CommandSender sender,
       int maxPages,
       @NotNull List<PlayerJobState> allEntries) {
-    String jobNameText = PlainTextComponentSerializer.plainText().serialize(jobName);
+    String jobNameText = PlainTextComponentSerializer.plainText().serialize(job.displayName());
     int pageNumber = page.pageNumber();
 
     Messages.send(sender, "");
@@ -74,7 +75,7 @@ public final class ChatJobsTopPageConsumerImpl implements JobsTopPageConsumer {
                           "rank",
                           Tag.inserting(Component.text(i + 1 + (pageNumber - 1) * pageSize)))
                       .tag("player", Tag.inserting(PlayerComponent.of(statePlayer)))
-                      .tag("level", Tag.inserting(LevelComponent.of(state)))
+                      .tag("level", Tag.inserting(LevelComponent.of(job, state)))
                       .build());
 
       if (isViewer) {
@@ -86,7 +87,7 @@ public final class ChatJobsTopPageConsumerImpl implements JobsTopPageConsumer {
     sender.sendMessage(body);
 
     Messages.send(sender, "");
-    Component navigation = buildNavigation(jobNameText, pageNumber, maxPages);
+    Component navigation = buildNavigation(job.key().asString(), pageNumber, maxPages);
     sender.sendMessage(navigation);
     Messages.send(sender, "<neutral>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     Messages.send(sender, "");
@@ -94,14 +95,14 @@ public final class ChatJobsTopPageConsumerImpl implements JobsTopPageConsumer {
 
   @Contract(pure = true)
   private @NotNull Component buildNavigation(
-      @NotNull String jobName, int currentPage, int maxPages) {
+      @NotNull String jobKey, int currentPage, int maxPages) {
     Component nav = Component.empty();
 
     if (currentPage > 1) {
       Component prevButton =
           Component.text("[< Previous]")
               .color(NamedTextColor.GREEN)
-              .clickEvent(ClickEvent.runCommand("/jobs top " + jobName + " " + (currentPage - 1)))
+              .clickEvent(ClickEvent.runCommand("/jobs top " + jobKey + " " + (currentPage - 1)))
               .hoverEvent(Component.text("Click to go to page " + (currentPage - 1)));
       nav = nav.append(prevButton);
     } else {
@@ -114,7 +115,7 @@ public final class ChatJobsTopPageConsumerImpl implements JobsTopPageConsumer {
       Component nextButton =
           Component.text("[Next >]")
               .color(NamedTextColor.GREEN)
-              .clickEvent(ClickEvent.runCommand("/jobs top " + jobName + " " + (currentPage + 1)))
+              .clickEvent(ClickEvent.runCommand("/jobs top " + jobKey + " " + (currentPage + 1)))
               .hoverEvent(Component.text("Click to go to page " + (currentPage + 1)));
       nav = nav.append(nextButton);
     } else {

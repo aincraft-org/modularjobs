@@ -186,7 +186,7 @@ public final class LevelCommand implements JobsCommand {
     List<PlayerJobState> states = jobService.getPlayerJobStates(targetPlayer.getUniqueId());
     int oldLevel =
         states.stream()
-            .filter(p -> p.job().jobKey().equals(job.jobKey()))
+            .filter(p -> p.jobKey().equals(job.jobKey()))
             .findFirst()
             .map(PlayerJobState::level)
             .orElse(1);
@@ -207,7 +207,11 @@ public final class LevelCommand implements JobsCommand {
           new PaperEventBridge(Bridge.bridge().eventBus())
               .publishLevel(
                   new JobLevelEvent(
-                      updatedState, oldLevel, targetLevel, JobLevelEvent.Reason.ADMIN_COMMAND),
+                      jobService.getJob(updatedState),
+                      updatedState,
+                      oldLevel,
+                      targetLevel,
+                      JobLevelEvent.Reason.ADMIN_COMMAND),
                   targetPlayer);
         }
       }
@@ -281,7 +285,7 @@ public final class LevelCommand implements JobsCommand {
     List<PlayerJobState> states = jobService.getPlayerJobStates(targetPlayer.getUniqueId());
     int currentLevel =
         states.stream()
-            .filter(p -> p.job().jobKey().equals(job.jobKey()))
+            .filter(p -> p.jobKey().equals(job.jobKey()))
             .findFirst()
             .map(PlayerJobState::level)
             .orElse(1);
@@ -319,7 +323,11 @@ public final class LevelCommand implements JobsCommand {
           new PaperEventBridge(Bridge.bridge().eventBus())
               .publishLevel(
                   new JobLevelEvent(
-                      updatedState, currentLevel, newLevel, JobLevelEvent.Reason.ADMIN_COMMAND),
+                      jobService.getJob(updatedState),
+                      updatedState,
+                      currentLevel,
+                      newLevel,
+                      JobLevelEvent.Reason.ADMIN_COMMAND),
                   targetPlayer);
         }
       }
@@ -397,7 +405,7 @@ public final class LevelCommand implements JobsCommand {
     List<PlayerJobState> states = jobService.getPlayerJobStates(targetPlayer.getUniqueId());
     int currentLevel =
         states.stream()
-            .filter(p -> p.job().jobKey().equals(job.jobKey()))
+            .filter(p -> p.jobKey().equals(job.jobKey()))
             .findFirst()
             .map(PlayerJobState::level)
             .orElse(1);
@@ -433,7 +441,11 @@ public final class LevelCommand implements JobsCommand {
           new PaperEventBridge(Bridge.bridge().eventBus())
               .publishLevel(
                   new JobLevelEvent(
-                      updatedState, currentLevel, newLevel, JobLevelEvent.Reason.ADMIN_COMMAND),
+                      jobService.getJob(updatedState),
+                      updatedState,
+                      currentLevel,
+                      newLevel,
+                      JobLevelEvent.Reason.ADMIN_COMMAND),
                   targetPlayer);
         }
       }

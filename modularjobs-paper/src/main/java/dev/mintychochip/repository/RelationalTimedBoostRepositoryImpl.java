@@ -32,7 +32,6 @@ public final class RelationalTimedBoostRepositoryImpl implements TimedBoostRepos
   private static final String SELECT_SOURCE_IDS =
       SqlStatements.load("time_boosts/select-source-ids.sql");
   private static final String SELECT_BOOST = SqlStatements.load("time_boosts/select.sql");
-  private static final String SAVE_BOOST = SqlStatements.load("time_boosts/save.sql");
   private static final String DELETE_BOOST = SqlStatements.load("time_boosts/delete.sql");
 
   private final ConnectionSource connectionSource;
@@ -57,7 +56,8 @@ public final class RelationalTimedBoostRepositoryImpl implements TimedBoostRepos
       @NotNull BoostDataCodec codec,
       @Nullable Plugin plugin) {
     this.connectionSource = connectionSource;
-    TimedBoostRelationalContext context = new TimedBoostRelationalContext(codec);
+    TimedBoostRelationalContext context =
+        new TimedBoostRelationalContext(connectionSource.getType(), codec);
     this.relational = new RelationalRepositoryImpl<>(connectionSource, context);
     if (plugin != null) {
       this.writeBack = WriteBackRepositoryImpl.create(plugin, relational, 10L);
@@ -196,9 +196,11 @@ public final class RelationalTimedBoostRepositoryImpl implements TimedBoostRepos
       implements RelationalRepositoryContext<String, ActiveBoostData> {
 
     private final BoostDataCodec codec;
+    private final String saveQuery;
 
-    TimedBoostRelationalContext(@NotNull BoostDataCodec codec) {
+    TimedBoostRelationalContext(@NotNull DatabaseType type, @NotNull BoostDataCodec codec) {
       this.codec = codec;
+      this.saveQuery = SqlStatements.load(type, "time_boosts/save.sql");
     }
 
     @Override
@@ -208,7 +210,7 @@ public final class RelationalTimedBoostRepositoryImpl implements TimedBoostRepos
 
     @Override
     public @NotNull String getSaveQuery() {
-      return SAVE_BOOST;
+      return saveQuery;
     }
 
     @Override

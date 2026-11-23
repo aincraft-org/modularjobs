@@ -1,4 +1,4 @@
-# Database is configured in database.yml (MySQL only).
+# Database is configured in database.yml (MySQL 8 or SQLite for Paper).
 
 # Payment eligibility (honored by JobPaymentListener via PaymentSettings)
 pay-in-creative: true

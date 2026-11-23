@@ -14,7 +14,9 @@ All commands are registered under both `/jobs` and the alias `/j`.
 | `/jobs leave <job>` | job name | — | Leave one job |
 | `/jobs leave all` | — | `jobs.command.leaveall` | Leave every job |
 | `/jobs list` | — | `jobs.command.list` | List jobs and usage |
-| `/jobs browse` | — | `jobs.command.browse` | Open the browse GUI |
+| `/jobs browse` / `/jobs browse gui` | — | `jobs.command.browse` | Open the inventory renderer |
+| `/jobs browse chat` | — | `jobs.command.browse` | Show interactive chat details and join actions |
+| `/jobs browse dialog` | — | `jobs.command.browse` | Open the native Paper dialog renderer |
 | `/jobs info <job> [page]` | job, optional page | — | Job task/action info (GUI or chat per preference) |
 | `/jobs info chat <job> [page]` | job, optional page | — | Force chat format |
 | `/jobs info gui <job> [page]` | job, optional page | — | Force GUI format |
@@ -56,7 +58,7 @@ All of these require `modularjobs.admin` (op by default), or the node listed.
 | --- | --- | --- |
 | `modularjobs.admin` | op | Level/exp admin, boost, web editor, applyedits |
 | `jobs.join.<job>` | true | Join a specific job |
-| `jobs.command.browse` | true | Browse GUI |
+| `jobs.command.browse` | true | Browse jobs through inventory, chat, or dialog |
 | `jobs.command.list` | true | List jobs |
 | `jobs.command.stats` | true | Own stats |
 | `jobs.command.admin.stats` | op | Others' stats |

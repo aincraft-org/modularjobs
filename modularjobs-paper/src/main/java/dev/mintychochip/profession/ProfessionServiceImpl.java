@@ -76,7 +76,7 @@ public final class ProfessionServiceImpl implements ProfessionService {
       return Optional.of(direct);
     }
     return jobService.getPlayerJobStates(playerId).stream()
-        .filter(p -> p.job().key().value().equalsIgnoreCase(storageKey))
+        .filter(p -> p.jobKey().key().value().equalsIgnoreCase(storageKey))
         .findFirst();
   }
 }

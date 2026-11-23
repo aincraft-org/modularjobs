@@ -1,6 +1,6 @@
 # JobsReborn Feature Parity — Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** Implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Close the highest-value feature gaps vs JobsReborn: complete the PlaceholderAPI expansion, add progression limits (max jobs, per-job join permission, world join restriction, auto-join), and config-driven level-up commands. All pure Java — no schema change.
 

@@ -9,8 +9,8 @@ import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Builds a MySQL {@link ConnectionSource} through the Utilities SQL lifecycle. Schema is never
- * applied here — ops must run {@code scripts/apply-mysql-schema.sh} first.
+ * Builds a supported {@link ConnectionSource} through the Utilities SQL lifecycle. Schema is never
+ * applied here; operators provision the selected backend before startup.
  */
 public final class ConnectionSourceFactory {
 
@@ -26,28 +26,32 @@ public final class ConnectionSourceFactory {
   }
 
   /** API member. */
+  @SuppressWarnings("PMD.UseProperClassLoader")
   @NotNull
   public ConnectionSource create() {
     Preconditions.checkState(
-        configuration.contains("type"), "database section missing type (must be mysql)");
+        configuration.contains("type"), "database section missing type (mysql or sqlite)");
     DatabaseType type = DatabaseType.fromIdentifier(configuration.getString("type"));
 
     Logger log = plugin.getLogger();
     if (SchemaPolicy.hasIgnoredRemoteAutoSchema(type, configuration)) {
       log.warning(
           "database.yml sets auto-schema but ModularJobs never runs DDL in-process. "
-              + "Ignore this key and provision with scripts/apply-mysql-schema.sh "
-              + "(sql/mysql.sql).");
+              + "Ignore this key and provision with scripts/apply-"
+              + type.getIdentifier()
+              + "-schema.sh (sql/"
+              + type.getIdentifier()
+              + ".sql).");
     }
 
     ClassLoader previousClassLoader = Thread.currentThread().getContextClassLoader();
     Thread.currentThread().setContextClassLoader(plugin.getClass().getClassLoader());
-    ConnectionSource source = null;
     try {
       // SqlDatabase is deliberately given a non-existent migration location. ModularJobs owns an
       // operator-applied SQL file rather than Flyway migrations, so utility startup must not scan
       // or replay another plugin's classpath migrations.
-      source = new HikariSourceImpl(new HikariConfigProvider(configuration, type).create(), type);
+      ConnectionSource source =
+          new HikariSourceImpl(new HikariConfigProvider(configuration, type).create(), type);
 
       verifySchemaOrClose(source, type);
       return source;
@@ -67,7 +71,10 @@ public final class ConnectionSourceFactory {
       ownership.transfer();
     } catch (SQLException failure) {
       throw new RuntimeException(
-          "Failed to verify MySQL schema (is the database up and schema applied?)", failure);
+          "Failed to verify "
+              + type.getIdentifier()
+              + " schema (is the database reachable and schema applied?)",
+          failure);
     }
   }
 

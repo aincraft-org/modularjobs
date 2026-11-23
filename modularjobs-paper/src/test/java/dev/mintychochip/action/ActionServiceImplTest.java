@@ -173,6 +173,11 @@ class ActionServiceImplTest {
     JobService jobs =
         new StubJobService() {
           @Override
+          public @NotNull Job getJob(@NotNull String ignored) {
+            return job;
+          }
+
+          @Override
           public @NotNull List<PlayerJobState> getPlayerJobStates(@NotNull UUID id) {
             observedPlayerId.set(id);
             return List.of(state);
@@ -279,18 +284,18 @@ class ActionServiceImplTest {
       @NotNull UUID playerId, @NotNull Job job, @NotNull BigDecimal experience) {
     return new PlayerJobState() {
       @Override
-      public @NotNull JobNode currentNode() {
-        return job.rootNode();
+      public @NotNull JobNodeKey currentNodeKey() {
+        return job.rootNode().nodeKey();
       }
 
       @Override
       public @NotNull BigDecimal experienceForLevel(int level) {
-        return BigDecimal.valueOf(level * 100L);
+        return job.experienceForLevel(level);
       }
 
       @Override
-      public @NotNull Job job() {
-        return job;
+      public @NotNull JobKey jobKey() {
+        return job.jobKey();
       }
 
       @Override
@@ -305,20 +310,12 @@ class ActionServiceImplTest {
 
       @Override
       public int level() {
-        return 1;
+        return job.levelForExperience(experience);
       }
 
       @Override
       public @NotNull PlayerJobState withExperience(@NotNull BigDecimal newExperience) {
         return state(playerId, job, newExperience);
-      }
-
-      @Override
-      public @NotNull PlayerJobState withCurrentNode(@NotNull JobNodeKey nodeKey) {
-        if (!job.rootNode().nodeKey().equals(nodeKey)) {
-          throw new IllegalArgumentException();
-        }
-        return this;
       }
     };
   }

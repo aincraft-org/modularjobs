@@ -1,5 +1,6 @@
 package dev.mintychochip;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -110,6 +111,22 @@ public interface Job extends Keyed {
   @Contract(pure = true)
   @NotNull
   LevelingCurve levelingCurve();
+
+  /** Returns the total experience threshold for the supplied level. */
+  @Contract(pure = true)
+  default @NotNull BigDecimal experienceForLevel(int level) {
+    return levelingCurve().evaluate(new LevelingCurve.Parameters(level));
+  }
+
+  /**
+   * Derives the highest level whose threshold is met by the supplied experience.
+   *
+   * @return the derived level, clamped to {@code [1, maxLevel]}
+   */
+  @Contract(pure = true)
+  default int levelForExperience(@NotNull BigDecimal experience) {
+    return LevelingCurve.levelForExperience(levelingCurve(), maxLevel(), experience);
+  }
 
   /**
    * Returns the configured payout curves keyed by payable type.

@@ -51,11 +51,11 @@ final class ExperienceBarControllerImpl implements ExperienceBarController, List
       return;
     }
     PlayerJobState state = context.jobState();
-    PlayerJobCompositeKey compositeKey = PlayerJobCompositeKey.create(player, state.job());
+    PlayerJobCompositeKey compositeKey = PlayerJobCompositeKey.create(player, context.job());
 
     BigDecimal merged = bufferedAmounts.merge(compositeKey, context.amount(), BigDecimal::add);
     ExperienceBarContext mergedContext =
-        new ExperienceBarContext(state, context.playerId(), merged);
+        new ExperienceBarContext(context.job(), state, context.playerId(), merged);
 
     BossBar scratch =
         formatScratch.get(

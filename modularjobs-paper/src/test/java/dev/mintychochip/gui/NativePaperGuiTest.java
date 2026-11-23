@@ -31,6 +31,7 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.event.inventory.ClickType;
@@ -69,10 +70,15 @@ class NativePaperGuiTest {
         proxy(
             JobService.class,
             (method, args) -> {
-              if (method.getName().equals("getJobs") || method.getName().equals("getJob"))
+              if (method.getName().equals("getJobs") || method.getName().equals("getJob")) {
                 return method.getName().equals("getJobs") ? List.of(job) : job;
-              if (method.getName().equals("getPlayerJobStates")) return List.of();
-              if (method.getName().equals("getAllTasks")) return Map.of();
+              }
+              if (method.getName().equals("getPlayerJobStates")) {
+                return List.of();
+              }
+              if (method.getName().equals("getAllTasks")) {
+                return Map.of();
+              }
               if (method.getName().equals("getPlayerJobState")) {
                 progressionLookups.incrementAndGet();
                 return state("miner", player.getUniqueId());
@@ -83,12 +89,14 @@ class NativePaperGuiTest {
         proxy(
             UpgradeService.class,
             (method, args) -> {
-              if (method.getName().equals("getTree")) return java.util.Optional.empty();
+              if (method.getName().equals("getTree")) {
+                return java.util.Optional.empty();
+              }
               return defaultValue(method.getReturnType());
             });
     JoinGate gate = new JoinGate(new ProgressionLimitsConfig(0, List.of(), false), Set.of());
     PaperUiHost host = new PaperUiHost();
-    JobBrowseGui gui = new JobBrowseGui(host, jobs, upgrades, gate);
+    JobBrowseGui gui = new JobBrowseGui(host, jobs, gate, new JobBrowseModel(jobs, upgrades));
 
     gui.open(player);
 
@@ -111,7 +119,9 @@ class NativePaperGuiTest {
         proxy(
             PreferencesService.class,
             (method, args) -> {
-              if (method.getName().equals("getEntriesPerPage")) return 2;
+              if (method.getName().equals("getEntriesPerPage")) {
+                return 2;
+              }
               return defaultValue(method.getReturnType());
             });
     JobInfoGui gui = new JobInfoGui(new PaperUiHost(), preferences, UNUSED_RENDERER);
@@ -145,7 +155,9 @@ class NativePaperGuiTest {
         proxy(
             PreferencesService.class,
             (method, args) -> {
-              if (method.getName().equals("getEntriesPerPage")) return 1;
+              if (method.getName().equals("getEntriesPerPage")) {
+                return 1;
+              }
               return defaultValue(method.getReturnType());
             });
     PaperUiHost host = new PaperUiHost();
@@ -171,9 +183,21 @@ class NativePaperGuiTest {
     PlayerMock viewer = server.addPlayer("stats-" + UUID.randomUUID());
     OfflinePlayer target = server.getOfflinePlayer("target");
     List<PlayerJobState> states = new ArrayList<>();
-    for (int i = 0; i < 6; i++) states.add(state("job" + i, target.getUniqueId()));
+    for (int i = 0; i < 6; i++) {
+      states.add(state("job" + i, target.getUniqueId()));
+    }
     PaperUiHost host = new PaperUiHost();
-    StatsGui gui = new StatsGui(host);
+    JobService jobs =
+        proxy(
+            JobService.class,
+            (method, args) -> {
+              if (method.getName().equals("getJob")) {
+                PlayerJobState state = (PlayerJobState) args[0];
+                return job(state.jobKey().key().value());
+              }
+              return defaultValue(method.getReturnType());
+            });
+    StatsGui gui = new StatsGui(host, jobs);
 
     gui.open(viewer, target, states, 999);
     Inventory last = viewer.getOpenInventory().getTopInventory();
@@ -190,6 +214,33 @@ class NativePaperGuiTest {
 
     host.close(viewer);
     assertEquals(Component.text("Job Statistics"), gui.buildView(viewer.getUniqueId()).title());
+  }
+
+  @Test
+  void statsMarksMaximumLevelWithoutAdvertisingAnotherLevel() {
+    PlayerMock viewer = server.addPlayer("stats-max-" + UUID.randomUUID());
+    OfflinePlayer target = server.getOfflinePlayer("max-target");
+    Job job = job("miner");
+    PlayerJobState state =
+        state("miner", target.getUniqueId(), job.maxLevel(), BigDecimal.valueOf(1000));
+    JobService jobs =
+        proxy(
+            JobService.class,
+            (method, args) ->
+                method.getName().equals("getJob") ? job : defaultValue(method.getReturnType()));
+    StatsGui gui = new StatsGui(new PaperUiHost(), jobs);
+
+    gui.open(viewer, target, List.of(state), 1);
+
+    List<Component> lore =
+        viewer.getOpenInventory().getTopInventory().getItem(19).getItemMeta().lore();
+    assertNotNull(lore);
+    String rendered =
+        lore.stream()
+            .map(PlainTextComponentSerializer.plainText()::serialize)
+            .collect(java.util.stream.Collectors.joining("\n"));
+    assertTrue(rendered.contains("Max level"));
+    assertFalse(rendered.contains("Next level"));
   }
 
   private static @NotNull InventoryClickEvent click(
@@ -271,15 +322,33 @@ class NativePaperGuiTest {
   }
 
   private static @NotNull PlayerJobState state(@NotNull String key, @NotNull UUID playerId) {
+    return state(key, playerId, 1, BigDecimal.valueOf(25));
+  }
+
+  private static @NotNull PlayerJobState state(
+      @NotNull String key, @NotNull UUID playerId, int level, @NotNull BigDecimal experience) {
     Job job = job(key);
     return proxy(
         PlayerJobState.class,
         (method, args) -> {
-          if (method.getName().equals("job")) return job;
-          if (method.getName().equals("playerId")) return playerId;
-          if (method.getName().equals("experience")) return BigDecimal.valueOf(25);
-          if (method.getName().equals("level")) return 1;
-          if (method.getName().equals("experienceForLevel")) return BigDecimal.valueOf(100);
+          if (method.getName().equals("jobKey")) {
+            return job.jobKey();
+          }
+          if (method.getName().equals("currentNodeKey")) {
+            return job.rootNode().nodeKey();
+          }
+          if (method.getName().equals("playerId")) {
+            return playerId;
+          }
+          if (method.getName().equals("experience")) {
+            return experience;
+          }
+          if (method.getName().equals("level")) {
+            return level;
+          }
+          if (method.getName().equals("experienceForLevel")) {
+            return BigDecimal.valueOf(100);
+          }
           return defaultValue(method.getReturnType());
         });
   }
@@ -302,19 +371,39 @@ class NativePaperGuiTest {
   @SuppressWarnings("unchecked")
   private static <T> @NotNull T proxy(@NotNull Class<T> type, @NotNull CheckedHandler handler) {
     InvocationHandler invocation = (object, method, args) -> handler.invoke(method, args);
-    return (T) Proxy.newProxyInstance(type.getClassLoader(), new Class<?>[] {type}, invocation);
+    return (T)
+        Proxy.newProxyInstance(
+            Thread.currentThread().getContextClassLoader(), new Class<?>[] {type}, invocation);
   }
 
   private static @Nullable Object defaultValue(@NotNull Class<?> type) {
-    if (!type.isPrimitive()) return null;
-    if (type == boolean.class) return false;
-    if (type == byte.class) return (byte) 0;
-    if (type == short.class) return (short) 0;
-    if (type == int.class) return 0;
-    if (type == long.class) return 0L;
-    if (type == float.class) return 0F;
-    if (type == double.class) return 0D;
-    if (type == char.class) return '\0';
+    if (!type.isPrimitive()) {
+      return null;
+    }
+    if (type == boolean.class) {
+      return false;
+    }
+    if (type == byte.class) {
+      return (byte) 0;
+    }
+    if (type == short.class) {
+      return (short) 0;
+    }
+    if (type == int.class) {
+      return 0;
+    }
+    if (type == long.class) {
+      return 0L;
+    }
+    if (type == float.class) {
+      return 0F;
+    }
+    if (type == double.class) {
+      return 0D;
+    }
+    if (type == char.class) {
+      return '\0';
+    }
     return null;
   }
 

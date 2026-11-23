@@ -8,9 +8,12 @@
 - Recipe experience depreciation for registered craft recipes (config: `recipe-experience-depreciation`).
 - Shipped `recipes.yml` registers starter profession recipe metadata at startup (craft gates + depreciation).
 - Full PlaceholderAPI `modular` placeholder set (`level_<job>`, `experience_<job>`,
-  `maxexperience_<job>`, `maxlevel_<job>`, `name_<job>`, `description_<job>`,
-  `isin_<job>`, `canjoin_<job>`, `joinedjobcount`, `jobs`, `totallevels`, `maxjobs`,
-  `archivedjobs`).
+  `maxexperience_<job>`, `levelxp_<job>`, `requiredxp_<job>`,
+  `remainingxp_<job>`, `progress_<job>`, `progressbar_<job>`, `maxlevel_<job>`,
+  `name_<job>`, `description_<job>`, `isin_<job>`, `canjoin_<job>`,
+  `joinedjobcount`, `jobs`, `totallevels`, `maxjobs`, `archivedjobs`).
+- Interactive `/jobs browse gui|chat|dialog` renderers with shared details and
+  join actions, plus shared Adventure chat rendering for `/jobs stats chat`.
 - Player-state join limits: `progression-limits.max-jobs`, per-job
   `jobs.join.<job>` permission, world join restriction, and login auto-join.
 - Config-driven level-up commands (`level-up-commands` in `config.yml`) with
@@ -18,12 +21,15 @@
 - Public `ActionService` for fail-fast custom action registration and synchronous
   reward/player-state reporting, including arbitrary `Context.KeyContext` task keys.
 - Vault economy fallback with deterministic Mint2-first provider selection.
+- Selectable SQLite persistence for standalone Paper servers, with external schema provisioning,
+  single-connection Hikari pooling, and dialect-correct atomic upserts.
 
 ### Changed
 
 - `Job` now represents one complete tree through typed `JobKey`, `JobNodeKey`,
   `rootNode()`, `nodes()`, and `pathTo(...)`. `PlayerJobState` separately stores
-  the player's active node and tree-wide XP/level as an immutable snapshot.
+  typed root/active-node keys and tree-wide XP with a curve-derived level; it
+  does not retain the `Job` aggregate.
 - Job tasks are owned by nodes. Resolution inherits root-to-active-node; the
   nearest matching action/context task replaces the whole ancestor definition.
 - Job perk lookup follows the same active-node path.
@@ -41,6 +47,8 @@
   Existing MySQL installations apply the idempotent
   `scripts/migrate-add-current-node-key.sql` migration and map old child rows to
   their owning roots before restart.
+- `database.yml` now honors the `progression` section independently; omitted progression/upgrades
+  sections fall back to `payable`.
 - Migrated Java domain package from `net.aincraft` to `dev.mintychochip` (`api`, `common`, `paper`).
 
 ### Removed

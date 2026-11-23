@@ -247,7 +247,7 @@ public final class UpgradeTreeGui {
                 .orElse(0);
     int maxScroll = Math.max(0, maxY - GUI_ROWS + 1);
     boolean canScrollUp = session.scrollOffset > 0;
-    boolean canScrollDown = session.scrollOffset < maxScroll;
+    final boolean canScrollDown = session.scrollOffset < maxScroll;
 
     for (int i = CONTROL_ROW_START; i < GUI_SIZE; i++) {
       items.put(i, PaperItemFactory.pane(Material.GRAY_STAINED_GLASS_PANE));
@@ -835,10 +835,6 @@ public final class UpgradeTreeGui {
     refresh(player);
   }
 
-  private static @NotNull String sanitize(@NotNull String key) {
-    return key.replace(':', '.').replace(' ', '_').toLowerCase(java.util.Locale.ROOT);
-  }
-
   private static @NotNull String plain(@NotNull Component component) {
     return PLAIN.serialize(component);
   }
@@ -872,7 +868,7 @@ public final class UpgradeTreeGui {
     }
 
     @Override
-    public boolean equals(@NotNull Object o) {
+    public boolean equals(@Nullable Object o) {
       if (this == o) {
         return true;
       }

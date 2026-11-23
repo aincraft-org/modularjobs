@@ -1,6 +1,7 @@
 package dev.mintychochip.payable;
 
 import dev.mintychochip.MintException;
+import dev.mintychochip.PlayerId;
 import dev.mintychochip.Results;
 import dev.mintychochip.container.PayableAmount;
 import dev.mintychochip.economy.AccountId;
@@ -13,7 +14,6 @@ import dev.mintychochip.economy.CurrencyService;
 import dev.mintychochip.economy.EconomyProvider;
 import dev.mintychochip.economy.MonetaryAmount;
 import dev.mintychochip.economy.MonetaryAmounts;
-import dev.mintychochip.economy.PlayerId;
 import dev.mintychochip.economy.TransferResult;
 import dev.mintychochip.economy.Transfers;
 import java.math.BigDecimal;

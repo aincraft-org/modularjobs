@@ -1,22 +1,21 @@
 ---
 title: Persistence
-description: Repositories, the connect-only MySQL policy, and schema verification.
+description: Repositories, connect-only SQL backends, and schema verification.
 icon: Server
 ---
 
 ## Policy
 
-ModularJobs supports **MySQL 8 only** and **never runs DDL from a runtime
-process** — neither the Paper plugin nor the Rust REST API creates tables.
+Paper supports **MySQL 8 and SQLite**; the Rust REST API remains MySQL-only.
+Neither runtime process creates or migrates tables.
 
-- Source of truth: `modularjobs-paper/src/main/resources/sql/mysql.sql`
-- Apply: `./scripts/apply-mysql-schema.sh`
+- Sources: `modularjobs-paper/src/main/resources/sql/{mysql,sqlite}.sql`
+- Apply: `./scripts/apply-mysql-schema.sh` or `./scripts/apply-sqlite-schema.sh`
 - Verification: `SchemaPresence` checks required tables and migration-sensitive
-  columns on connect. Missing tables or `current_node_key` columns fail enable;
-  runtime never repairs the schema.
+  columns on connect. Missing objects fail enable; runtime never repairs schema.
 
 Lab/integration tests may apply SQL explicitly; production paths stay
-connect-only. Do not reintroduce boot-time DDL or other dialects.
+connect-only. Do not reintroduce boot-time DDL or untested dialects.
 
 ## Repositories
 
@@ -28,16 +27,15 @@ connect-only. Do not reintroduce boot-time DDL or other dialects.
 | `TimedBoostRepository` | `time_boosts`, `time_boost_identity` | Timed boost persistence |
 | `PlayerUpgradeRepository` | `player_upgrades` | Skill points, unlocked nodes, node levels |
 
-SQL lives in classpath resources under
-`modularjobs-paper/src/main/resources/sql/<table>/` (`.sql` per operation) —
-repositories do not inline their operation queries.
+Portable SQL lives under `modularjobs-paper/src/main/resources/sql/<table>/`.
+Dialect-specific probes and atomic upserts live under
+`sql/<database-type>/<table>/`; repositories select them from `ConnectionSource.getType()`.
 
 ## Schema notes
 
-- Money/XP are `DECIMAL(38,10)`; key-bearing identifiers use bounded `VARCHAR(191)`.
+- MySQL money/XP uses `DECIMAL(38,10)`; SQLite uses decimal `TEXT` for exact round trips.
 - `job_task_payables.job_task_id` → `job_tasks.task_id` `ON DELETE CASCADE`.
-- `editor_sessions` stores the payload as `JSON` with `expires_at` and
-  `updated_at`; the REST API is the session authority.
+- `editor_sessions` is MySQL-only and stores JSON payloads for REST session authority.
 - `player_upgrades` keeps `total_skill_points`, `unlocked_nodes` (legacy
   migration), and authoritative `node_levels`.
 - `job_progression.job_key` is the root tree key;
@@ -45,9 +43,9 @@ repositories do not inline their operation queries.
 
 ## Connection pooling
 
-HikariCP pools are keyed by `jdbc-url` + `username` — identical sections share
-one pool. `database.yml` sections: `payable`, `timed-boost`, `progression`,
-`upgrades`.
+HikariCP pools are keyed by backend + `jdbc-url` + username. Identical sections share
+one pool. SQLite is fixed at one connection and enables foreign keys. `database.yml`
+sections: `payable`, `timed-boost`, `progression`, `upgrades`.
 
 ## Job and task ownership
 
@@ -58,8 +56,8 @@ one pool. `database.yml` sections: `payable`, `timed-boost`, `progression`,
   action/context key while unrelated ancestor tasks remain.
 - The editor exports direct definitions per node. It does not materialize
   inherited tasks into child rows.
-- The plugin does not seed task rows. An empty MySQL task table remains empty
-  until the editor/repository path or reviewed SQL writes definitions.
+- The plugin does not seed task rows. An empty selected-backend task table remains
+  empty until the editor/repository path or reviewed SQL writes definitions.
 - The `fisher` → `fisherman` rename still needs an operator-managed data update.
 
 ## Concurrency invariants
@@ -73,6 +71,6 @@ one pool. `database.yml` sections: `payable`, `timed-boost`, `progression`,
 
 - Pure unit tests for curves/mappers — no DB.
 - MockBukkit 26.2 for listener/payment/Bukkit-touching tests.
-- Repository SQL tests need a live MySQL
-  (`MODULARJOBS_TEST_MYSQL_*` or default `localhost:13306`); they skip when
-  unavailable.
+- Deterministic SQLite fidelity tests exercise every dialect-specific upsert and schema check.
+- Live MySQL repository tests use `MODULARJOBS_TEST_MYSQL_*` or
+  `localhost:13306`; they skip when unavailable.

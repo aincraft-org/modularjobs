@@ -1,20 +1,15 @@
 package dev.mintychochip.gui;
 
 import dev.mintychochip.Job;
-import dev.mintychochip.PlayerJobState;
-import dev.mintychochip.container.ActionType;
-import dev.mintychochip.container.Payable;
+import dev.mintychochip.gui.JobBrowseModel.Entry;
+import dev.mintychochip.gui.JobBrowseModel.Reward;
 import dev.mintychochip.service.JobService;
 import dev.mintychochip.service.JoinGate;
-import dev.mintychochip.upgrade.UpgradeService;
-import dev.mintychochip.upgrade.UpgradeTree;
 import dev.mintychochip.util.Messages;
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -28,7 +23,6 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /** Job browse GUI backed by the native Paper inventory host. */
 public final class JobBrowseGui {
@@ -40,8 +34,8 @@ public final class JobBrowseGui {
 
   private final PaperUiHost host;
   private final JobService jobService;
-  private final UpgradeService upgradeService;
   private final JoinGate joinGate;
+  private final JobBrowseModel model;
 
   /** Per-audience session: slot index to job key for join dispatch. */
   private final Map<UUID, Map<Integer, String>> sessions = new HashMap<>();
@@ -50,12 +44,12 @@ public final class JobBrowseGui {
   public JobBrowseGui(
       @NotNull PaperUiHost host,
       @NotNull JobService jobService,
-      @NotNull UpgradeService upgradeService,
-      @NotNull JoinGate joinGate) {
+      @NotNull JoinGate joinGate,
+      @NotNull JobBrowseModel model) {
     this.host = host;
     this.jobService = jobService;
-    this.upgradeService = upgradeService;
     this.joinGate = joinGate;
+    this.model = model;
   }
 
   /** Opens the browse menu for {@code player}. */
@@ -143,17 +137,12 @@ public final class JobBrowseGui {
     UUID audience = player.getUniqueId();
     Map<Integer, String> slotJobs = new HashMap<>();
 
-    List<Job> allJobs = jobService.getJobs();
-    List<PlayerJobState> playerJobs = jobService.getPlayerJobStates(audience);
-    Map<String, PlayerJobState> playerJobMap = new HashMap<>();
-    for (PlayerJobState prog : playerJobs) {
-      playerJobMap.put(prog.job().key().asString(), prog);
-    }
+    List<Entry> entries = model.entries(player);
 
     Map<Integer, ItemStack> items = new HashMap<>();
     Map<Integer, PaperUiHost.SlotAction> actions = new HashMap<>();
     int slot = 10;
-    for (Job job : allJobs) {
+    for (Entry entry : entries) {
       int row = slot / 9;
       int col = slot % 9;
       if (row >= 5) {
@@ -172,10 +161,9 @@ public final class JobBrowseGui {
         break;
       }
 
-      PlayerJobState state = playerJobMap.get(job.key().asString());
-      items.put(slot, jobItem(job, state));
+      items.put(slot, jobItem(entry));
       actions.put(slot, this::onJoin);
-      slotJobs.put(slot, job.key().asString());
+      slotJobs.put(slot, entry.job().key().asString());
       slot++;
     }
 
@@ -194,7 +182,9 @@ public final class JobBrowseGui {
         ignored -> sessions.remove(audience));
   }
 
-  private @NotNull ItemStack jobItem(@NotNull Job job, @Nullable PlayerJobState state) {
+  private @NotNull ItemStack jobItem(@NotNull Entry entry) {
+    Job job = entry.job();
+    final var state = entry.state();
     List<String> lore = new ArrayList<>();
     lore.add(
         plain(
@@ -211,20 +201,17 @@ public final class JobBrowseGui {
         plain(
             Component.text()
                 .append(Component.text("Active Players: ", NamedTextColor.GRAY))
-                .append(Component.text(countActivePlayers(job), NamedTextColor.AQUA))
+                .append(Component.text(entry.activePlayers(), NamedTextColor.AQUA))
                 .decoration(TextDecoration.ITALIC, false)
                 .build()));
 
-    Optional<UpgradeTree> treeOpt = upgradeService.getTree(job.key().value());
-    if (treeOpt.isPresent()) {
-      UpgradeTree tree = treeOpt.get();
+    if (entry.upgradeNodes() > 0) {
       lore.add(
           plain(
               Component.text()
                   .append(Component.text("Upgrade Tree: ", NamedTextColor.GRAY))
                   .append(
-                      Component.text(
-                          tree.allNodes().size() + " nodes", NamedTextColor.LIGHT_PURPLE))
+                      Component.text(entry.upgradeNodes() + " nodes", NamedTextColor.LIGHT_PURPLE))
                   .decoration(TextDecoration.ITALIC, false)
                   .build()));
     }
@@ -234,7 +221,7 @@ public final class JobBrowseGui {
         plain(
             Component.text("Example Rewards:", NamedTextColor.GOLD)
                 .decoration(TextDecoration.ITALIC, false)));
-    addExampleRewards(job, lore);
+    addExampleRewards(entry, lore);
 
     boolean isJoined = state != null;
     if (isJoined) {
@@ -274,84 +261,34 @@ public final class JobBrowseGui {
     return PaperItemFactory.of(material, name, lore);
   }
 
-  private int countActivePlayers(@NotNull Job job) {
-    int count = 0;
-    String jobKey = job.key().asString();
-    for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
-      for (PlayerJobState prog : jobService.getPlayerJobStates(onlinePlayer.getUniqueId())) {
-        if (prog.job().key().asString().equals(jobKey)) {
-          count++;
-          break;
-        }
-      }
-    }
-    return count;
-  }
-
-  private void addExampleRewards(@NotNull Job job, @NotNull List<String> lore) {
-    Map<ActionType, List<dev.mintychochip.JobTask>> allTasks =
-        jobService.getAllTasks(job, job.rootNode().nodeKey());
-    int examplesAdded = 0;
-    int maxExamples = 3;
-
-    for (Map.Entry<ActionType, List<dev.mintychochip.JobTask>> entry : allTasks.entrySet()) {
-      if (examplesAdded >= maxExamples) {
-        break;
-      }
-      List<dev.mintychochip.JobTask> tasks = entry.getValue();
-      if (tasks.isEmpty()) {
-        continue;
-      }
-      dev.mintychochip.JobTask exampleTask = tasks.get(0);
-      List<Payable> payables = exampleTask.payables();
-      if (payables.isEmpty()) {
-        continue;
-      }
-      Payable payable = payables.get(0);
-      BigDecimal amount = payable.amount().value();
-      String payableTypeName = payable.type().key().value();
-      String actionName = entry.getKey().key().value();
-      if (actionName.contains(":")) {
-        actionName = actionName.substring(actionName.indexOf(':') + 1);
-      }
-      String formattedPayable = formatPayableType(payableTypeName);
-      lore.add(
-          plain(
-              Component.text()
-                  .append(Component.text("  • ", NamedTextColor.DARK_GRAY))
-                  .append(Component.text(actionName, NamedTextColor.YELLOW))
-                  .append(Component.text(" → ", NamedTextColor.DARK_GRAY))
-                  .append(
-                      Component.text(
-                          amount.toPlainString() + " " + formattedPayable, NamedTextColor.GREEN))
-                  .decoration(TextDecoration.ITALIC, false)
-                  .build()));
-      examplesAdded++;
-    }
-    if (examplesAdded == 0) {
+  private static void addExampleRewards(@NotNull Entry entry, @NotNull List<String> lore) {
+    if (entry.exampleRewards().isEmpty()) {
       lore.add(
           plain(
               Component.text("  No rewards configured", NamedTextColor.GRAY)
                   .decoration(TextDecoration.ITALIC, false)));
+      return;
     }
-  }
-
-  private static @NotNull String formatPayableType(@NotNull String payableType) {
-    if (payableType.contains(":")) {
-      payableType = payableType.substring(payableType.indexOf(':') + 1);
+    for (Reward reward : entry.exampleRewards()) {
+      String amount =
+          reward.amount().signum() == 0
+              ? "0"
+              : reward.amount().stripTrailingZeros().toPlainString();
+      lore.add(
+          plain(
+              Component.text()
+                  .append(Component.text("  • ", NamedTextColor.DARK_GRAY))
+                  .append(
+                      Component.text(
+                          JobBrowseChatRenderer.humanize(reward.action()), NamedTextColor.YELLOW))
+                  .append(Component.text(" → ", NamedTextColor.DARK_GRAY))
+                  .append(
+                      Component.text(
+                          amount + " " + JobBrowseChatRenderer.humanize(reward.payableType()),
+                          NamedTextColor.GREEN))
+                  .decoration(TextDecoration.ITALIC, false)
+                  .build()));
     }
-    String[] parts = payableType.split("_");
-    StringBuilder result = new StringBuilder();
-    for (String part : parts) {
-      if (result.length() > 0) {
-        result.append(' ');
-      }
-      result.append(part.substring(0, 1).toUpperCase());
-      if (part.length() > 1) {
-        result.append(part.substring(1).toLowerCase());
-      }
-    }
-    return result.toString();
   }
 
   private static @NotNull String plain(@NotNull Component component) {

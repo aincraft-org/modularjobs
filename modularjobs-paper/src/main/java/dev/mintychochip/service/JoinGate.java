@@ -10,7 +10,7 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Enforces join eligibility for {@code /jobs join} and the browse GUI.
+ * Enforces join eligibility for {@code /jobs join} and every browse renderer's join action.
  *
  * <p>Each rule is independent: when {@code maxJobs} is positive, joining beyond the limit is
  * rejected; when the player lacks {@code jobs.join.<job>} permission, joining is rejected; when

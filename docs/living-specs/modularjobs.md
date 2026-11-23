@@ -1,7 +1,7 @@
 # ModularJobs — Living Spec (product / platform)
 
 > Status: active  
-> Last updated: 2026-08-21
+> Last updated: 2026-09-01
 > Owners: modularjobs maintainers
 
 ## Intent
@@ -9,9 +9,9 @@
 Extensible job progression for PaperMC servers: players join jobs, perform
 actions, earn experience and payables, unlock skill trees, and (optionally)
 face profession-gated world interactions. Success looks like a maintainable
-monorepo where `api` stays pure, `paper` owns Bukkit, and the secure web editor
-stack shares one operator-provisioned MySQL 8 database without either
-process running DDL.
+monorepo where `api` stays pure, `paper` owns Bukkit, Paper persistence selects
+MySQL 8 or SQLite, and the secure web editor keeps MySQL session authority;
+no runtime process runs DDL.
 
 ## Boundaries
 
@@ -21,19 +21,20 @@ process running DDL.
 - Pure public contracts (`api`) and shared editor DTOs (`common`)
 - Secure session editor (`web/session-editor` + `web/rest-api`)
 - Operator docs / Astro wiki under `web/`
-- Out-of-band schema apply (`scripts/apply-mysql-schema.sh`, `paper/.../sql/mysql.sql`)
+- Out-of-band schema apply (`scripts/apply-{mysql,sqlite}-schema.sh`,
+  `modularjobs-paper/src/main/resources/sql/{mysql,sqlite}.sql`)
 
 ### Out of scope / non-goals
 
 - Plugin-owned database process or boot-time `CREATE TABLE`
-- SQLite / PostgreSQL / MariaDB support
+- PostgreSQL / MariaDB / MongoDB support
 - Guice or other DI frameworks (manual composition root only)
 - Using `bytebin.lucko.me` for the production secure editor path
 - Cross-language OpenAPI codegen for TS/Rust (unless promoted later)
 
 ## Invariants
 
-- **MySQL 8 only.** Runtime processes connect and verify; ops apply DDL.
+- **Paper: MySQL 8 or SQLite. REST API: MySQL 8.** Runtime connects/verifies; operators apply DDL.
 - **`api` has zero Paper/Bukkit dependencies.** Paper-only types stay in `paper`.
 - **Composition root:** `PluginContext` + package `*Wiring` — no Guice.
 - **Atomic commits:** one logical change per commit when landing work.
@@ -56,8 +57,8 @@ process running DDL.
 
 - Prefer existing patterns (repository + domain mapper, wiring classes, Messages).
 - Commands: Paper Brigadier; themed text via `dev.mintychochip.util.Messages` (not Mint).
-- Tests: JUnit 5; MockBukkit for Bukkit-touching tests; live MySQL for SQL repo tests
-  (`MODULARJOBS_TEST_MYSQL_*` or `localhost:13306`; skip when unavailable).
+- Tests: JUnit 5; MockBukkit for Bukkit-touching tests; deterministic SQLite fidelity tests;
+  live MySQL tests use `MODULARJOBS_TEST_MYSQL_*` or `localhost:13306` and skip when unavailable.
 - Static analysis: `./gradlew check`; fail-on-findings with `-Pquality.fail=true`.
 - Do not invent parallel TODO markdown that diverges from living-spec horizons.
 

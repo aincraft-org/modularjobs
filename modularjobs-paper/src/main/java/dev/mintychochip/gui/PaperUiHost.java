@@ -26,7 +26,7 @@ public final class PaperUiHost implements Listener {
   /** Opens a screen for a player. */
   public void open(@NotNull Player player, @NotNull ScreenView view) {
     close(player);
-    Holder holder = new Holder(player.getUniqueId(), view.id(), view);
+    Holder holder = new Holder(player.getUniqueId(), view);
     Inventory inventory = createInventory(holder, view);
     Session session = new Session(player, holder, inventory);
     sessions.put(player.getUniqueId(), session);
@@ -68,6 +68,8 @@ public final class PaperUiHost implements Listener {
     }
   }
 
+  /** Handles clicks in the hosted top inventory. */
+  @SuppressWarnings("PMD.CompareObjectsWithEquals")
   @EventHandler
   public void onInventoryClick(@NotNull InventoryClickEvent event) {
     if (!(event.getView().getTopInventory().getHolder() instanceof Holder holder)) {
@@ -92,6 +94,8 @@ public final class PaperUiHost implements Listener {
     }
   }
 
+  /** Cancels drags in the hosted top inventory. */
+  @SuppressWarnings("PMD.CompareObjectsWithEquals")
   @EventHandler
   public void onInventoryDrag(@NotNull InventoryDragEvent event) {
     if (!(event.getView().getTopInventory().getHolder() instanceof Holder holder)) {
@@ -107,6 +111,8 @@ public final class PaperUiHost implements Listener {
     event.setCancelled(true);
   }
 
+  /** Cleans up session state when the hosted inventory is closed. */
+  @SuppressWarnings("PMD.CompareObjectsWithEquals")
   @EventHandler
   public void onInventoryClose(@NotNull InventoryCloseEvent event) {
     if (!(event.getInventory().getHolder() instanceof Holder holder)) {
@@ -125,6 +131,7 @@ public final class PaperUiHost implements Listener {
     }
   }
 
+  /** Cleans up session state when the owning player disconnects. */
   @EventHandler
   public void onPlayerQuit(@NotNull PlayerQuitEvent event) {
     Session session = sessions.remove(event.getPlayer().getUniqueId());
@@ -139,7 +146,6 @@ public final class PaperUiHost implements Listener {
     for (Map.Entry<Integer, ItemStack> entry : view.items().entrySet()) {
       inventory.setItem(entry.getKey(), entry.getValue());
     }
-    holder.setInventory(inventory);
     return inventory;
   }
 
@@ -157,13 +163,11 @@ public final class PaperUiHost implements Listener {
 
   private static final class Holder implements InventoryHolder {
     private final UUID viewerId;
-    private String screenId;
     private ScreenView view;
     private Inventory inventory;
 
-    private Holder(@NotNull UUID viewerId, @NotNull String screenId, @NotNull ScreenView view) {
+    private Holder(@NotNull UUID viewerId, @NotNull ScreenView view) {
       this.viewerId = viewerId;
-      this.screenId = screenId;
       this.view = view;
     }
 
@@ -176,7 +180,6 @@ public final class PaperUiHost implements Listener {
     }
 
     private void update(@NotNull ScreenView next) {
-      screenId = next.id();
       view = next;
     }
 
@@ -198,9 +201,10 @@ public final class PaperUiHost implements Listener {
       @NotNull Map<Integer, ItemStack> items,
       @NotNull Map<Integer, SlotAction> actions,
       @NotNull Consumer<Player> onClose) {
+    /** Validates screen dimensions and defensively copies slot maps. */
     public ScreenView {
       if (id == null || title == null || onClose == null) {
-        throw new NullPointerException("screen id, title, and close callback are required");
+        throw new IllegalArgumentException("screen id, title, and close callback are required");
       }
       if (rows < 1 || rows > 6) {
         throw new IllegalArgumentException("rows must be between 1 and 6");
@@ -212,7 +216,7 @@ public final class PaperUiHost implements Listener {
     private static <T> @NotNull Map<Integer, T> copySlots(
         @NotNull Map<Integer, T> source, int rows, @NotNull String name) {
       if (source == null) {
-        throw new NullPointerException(name + " are required");
+        throw new IllegalArgumentException(name + " are required");
       }
       int slotCount = rows * 9;
       Map<Integer, T> copy = new HashMap<>(source.size());
@@ -222,7 +226,7 @@ public final class PaperUiHost implements Listener {
           throw new IllegalArgumentException(name + " contain an invalid slot: " + slot);
         }
         if (entry.getValue() == null) {
-          throw new NullPointerException(name + " contain a null value");
+          throw new IllegalArgumentException(name + " contain a null value");
         }
         copy.put(slot, entry.getValue());
       }
@@ -233,6 +237,7 @@ public final class PaperUiHost implements Listener {
   /** Action invoked for an owned top-inventory slot click. */
   @FunctionalInterface
   public interface SlotAction {
+    /** Handles a click in the hosted inventory. */
     void execute(@NotNull Player player, @NotNull InventoryClickEvent event);
   }
 }

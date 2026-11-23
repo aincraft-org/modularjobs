@@ -11,14 +11,19 @@ import org.jetbrains.annotations.NotNull;
 /** Fired before experience is applied; listeners may cancel or mutate the amount. */
 public final class JobExperienceGainEvent implements Cancellable, org.aincraft.api.event.Event {
 
+  private final Job job;
   private final PlayerJobState state;
   private BigDecimal experienceGained;
   private boolean cancelled;
 
-  /** Creates a cancellable experience change for the supplied player state. */
+  /** Creates a cancellable experience change for the supplied aggregate and player state. */
   public JobExperienceGainEvent(
-      @NotNull PlayerJobState state, @NotNull BigDecimal experienceGained) {
+      @NotNull Job job, @NotNull PlayerJobState state, @NotNull BigDecimal experienceGained) {
+    this.job = Objects.requireNonNull(job, "job");
     this.state = Objects.requireNonNull(state, "state");
+    if (!state.belongsTo(job)) {
+      throw new IllegalArgumentException("Player state does not belong to the supplied job");
+    }
     this.experienceGained = Objects.requireNonNull(experienceGained, "experienceGained");
   }
 
@@ -29,7 +34,7 @@ public final class JobExperienceGainEvent implements Cancellable, org.aincraft.a
 
   @Contract(pure = true)
   public @NotNull Job getJob() {
-    return state.job();
+    return job;
   }
 
   @Contract(pure = true)

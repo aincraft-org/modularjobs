@@ -2,47 +2,47 @@
 
 ## Intent
 
-Own player/job state and editor sessions in a single operator-managed MySQL 8
-database. The game plugin and REST API **never create tables**. Success: missing
-schema fails fast with an actionable message; multi-instance servers share one
-reviewed schema; backups and upgrades stay outside `onEnable`.
+Support operator-managed Paper persistence on MySQL 8 or local SQLite while keeping
+editor sessions on MySQL 8. The game plugin and REST API **never create tables**.
+Success: missing schema fails fast with an actionable message; backups and upgrades
+stay outside `onEnable`.
 
 ## Boundaries
 
-- DDL source of truth: `modularjobs-paper/src/main/resources/sql/mysql.sql`
-- Apply path: `./scripts/apply-mysql-schema.sh`
-- HikariCP pools keyed by `jdbc-url` + `username` (`database.yml`)
-- Repository pattern + domain mappers for progression, tasks, boosts, upgrades
+- DDL sources: `modularjobs-paper/src/main/resources/sql/{mysql,sqlite}.sql`
+- Apply paths: `./scripts/apply-mysql-schema.sh`, `./scripts/apply-sqlite-schema.sh`
+- HikariCP pools keyed by backend + `jdbc-url` + username (`database.yml`)
+- SQLite pools fixed at one connection with foreign keys enabled
+- Repository pattern + dialect-specific atomic upserts for progression, boosts, upgrades
 - Schema presence checks on connect (`SchemaPresence` / REST `require_table`)
-- Rust REST session authority in `editor_sessions`
+- Rust REST session authority remains MySQL `editor_sessions`
 
 ## Non-goals
 
-- SQLite / PostgreSQL / MariaDB / Mongo providers
+- PostgreSQL / MariaDB / Mongo providers
 - In-process DDL, Flyway/Liquibase inside the plugin or API
-- Plugin launching or provisioning a MySQL process
-- Embedding DB files under the plugin data folder for production
+- Plugin launching or provisioning a database process
+- SQLite as a shared or multi-server store
 
 ## Invariants
 
 - **Fail-fast** if required tables are missing (plugin enable / API boot).
-- **One shared MySQL** for Paper progression data and editor sessions when using the
-  secure editor stack.
-- Lab/integration tests may apply the SQL file explicitly; production paths stay
-  connect-only.
-- DECIMAL for money/XP amounts; no float for durable currency/experience storage.
-- Indexed and key-bearing identifiers use bounded VARCHAR columns in the MySQL schema.
+- **MySQL** for shared Paper deployments and all editor-session authority.
+- **SQLite** for one standalone Paper server; no REST session tables are consumed there.
+- Tests may apply the matching SQL file explicitly; production paths stay connect-only.
+- Exact decimal storage for money/XP: `DECIMAL` on MySQL, decimal text on SQLite.
+- Indexed/key-bearing identifiers use bounded `VARCHAR` on MySQL and `TEXT` on SQLite.
 
 ## Explicit do-nots
 
-- Do not reintroduce multi-dialect `ConnectionSource` factories.
+- Do not add a database dialect without its DDL, atomic upserts, startup checks, and fidelity tests.
 - Do not CREATE TABLE from Java or Rust production code paths.
 - Do not store session **payload** authority in Paper-local caches (handoff only).
 
 ## Current
 
-- [x] MySQL-only remote stack; other dialects removed
-- [x] Shared SQL file + apply script
+- [x] Paper MySQL 8 + SQLite backends; Rust REST API MySQL-only
+- [x] Backend-specific SQL files + external apply scripts
 - [x] Schema presence fail-fast on plugin and REST
 - [x] Tables: progression, archive, tasks/payables, timed boosts, player_upgrades, editor_sessions
 
@@ -58,3 +58,4 @@ reviewed schema; backups and upgrades stay outside `onEnable`.
 | 2026-08 | MySQL 8 only, connect-only schema | One dialect, broad operator availability, least privilege |
 | 2026-08 | Ops-owned DDL only | Multi-instance, least privilege |
 | 2026-08 | Shared DB for editor sessions + game data | Single ops surface; apply path reuses job_tasks repos |
+| 2026-09 | Add externally provisioned SQLite for Paper | Standalone servers can avoid a remote DB without weakening schema ownership |

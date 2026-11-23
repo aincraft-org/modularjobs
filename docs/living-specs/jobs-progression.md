@@ -32,8 +32,9 @@ reliable multi-payable accumulation under concurrency.
 
 ## Invariants
 
-- One `PlayerJobState` row exists per player and root `Job` tree; its active
-  `JobNode` may change without splitting or resetting tree-wide XP.
+- One `PlayerJobState` row exists per player and root `Job` tree. The runtime
+  snapshot stores root/active `JobKey`/`JobNodeKey` values rather than the
+  aggregate; changing the active key does not split or reset tree-wide XP.
 - Root nodes own max level, leveling curve, and payout curves.
 - Tasks inherit root-to-active-node. The nearest matching action/context
   definition replaces the complete ancestor task; unrelated ancestor tasks remain.

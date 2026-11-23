@@ -1,7 +1,6 @@
 package dev.mintychochip.repository;
 
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import org.bukkit.configuration.ConfigurationSection;
@@ -9,8 +8,8 @@ import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Deduplicates {@link ConnectionSource} instances for the same MySQL jdbc-url + credentials so
- * payable / timed-boost / upgrades sections sharing one database do not open multiple pools.
+ * Deduplicates {@link ConnectionSource} instances for identical backend, JDBC URL, and username so
+ * repository sections sharing one database do not open multiple pools.
  */
 public final class SharedConnectionSources {
 
@@ -43,8 +42,9 @@ public final class SharedConnectionSources {
   }
 
   static @NotNull String poolIdentity(@NotNull ConfigurationSection section) {
+    DatabaseType type = DatabaseType.fromIdentifier(section.getString("type"));
     String jdbc = section.getString("jdbc-url", "");
     String user = section.getString("username", "");
-    return (jdbc + "\0" + user).toLowerCase(Locale.ROOT);
+    return type.getIdentifier() + "\0" + jdbc + "\0" + user;
   }
 }

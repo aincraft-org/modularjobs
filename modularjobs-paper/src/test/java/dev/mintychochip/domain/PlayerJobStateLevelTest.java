@@ -10,8 +10,6 @@ import dev.mintychochip.JobKey;
 import dev.mintychochip.JobNode;
 import dev.mintychochip.JobNodeKey;
 import dev.mintychochip.PlayerJobState;
-import dev.mintychochip.domain.model.JobRecord;
-import dev.mintychochip.domain.model.JobTreeRecord;
 import dev.mintychochip.math.ExpressionCurves;
 import dev.mintychochip.test.MockBukkitSupport;
 import java.math.BigDecimal;
@@ -114,12 +112,10 @@ class PlayerJobStateLevelTest {
     JobKey jobKey = new JobKey(Key.key(rawKey));
     JobNodeKey nodeKey = new JobNodeKey(jobKey.key());
     JobNode root = new JobNodeImpl(jobKey, nodeKey, null, Component.text(value), Component.empty());
-    JobRecord record = new JobRecord(rawKey, value, "", maxLevel, "level * 100", Map.of(), null);
     return new JobImpl(
         jobKey,
         root,
         Map.of(nodeKey, root),
-        new JobTreeRecord(record, Map.of(rawKey, record)),
         maxLevel,
         ExpressionCurves.levelingCurve("level * 100"),
         Map.of());

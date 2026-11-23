@@ -23,7 +23,9 @@ public final class PaperItemFactory {
         lore == null
             ? List.of()
             : lore.stream().map(line -> Component.text(line == null ? "" : line)).toList());
-    item.setItemMeta(meta);
+    if (!item.setItemMeta(meta)) {
+      throw new IllegalStateException("Failed to apply item meta for " + material);
+    }
     return item;
   }
 

@@ -105,7 +105,9 @@ public class ArchiveCommand implements JobsCommand {
     int level = state.level();
     BigDecimal experience = state.experience();
 
-    Messages.send(viewer, "  " + state.job().getPlainName() + " <neutral>- Level <accent>" + level);
+    Messages.send(
+        viewer,
+        "  " + jobService.getJob(state).getPlainName() + " <neutral>- Level <accent>" + level);
     Messages.send(viewer, "    <neutral>Total XP: <accent>" + formatNumber(experience));
   }
 

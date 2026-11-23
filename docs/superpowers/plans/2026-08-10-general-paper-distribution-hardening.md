@@ -1,6 +1,6 @@
 # General Paper Distribution Hardening Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** Implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Ship a generally distributable Paper release that no longer requires Mint or Preferences to compile, starts safely without an economy plugin, removes owner/server-specific defaults, preserves generic starter content, and documents the native Paper UI accurately.
 

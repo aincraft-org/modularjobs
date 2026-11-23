@@ -34,7 +34,7 @@ var events = Bridge.bridge().eventBus();
 | `Job` | One complete rooted job tree: `jobKey()`, `rootNode()`, `nodes()`, `node(...)`, `pathTo(...)`, plus tree-wide leveling and payout rules |
 | `JobNode` | One root or specialization definition: owning `jobKey()`, `nodeKey()`, nullable `parentKey()`, and presentation |
 | `JobTask` | Node-owned record: `nodeKey`, `actionTypeKey`, `contextKey`, `payables`; `key()` is the action/context inheritance key |
-| `PlayerJobState` | Immutable player snapshot: complete `job()`, active `currentNode()`, tree-wide experience/level, `withExperience(...)`, and `withCurrentNode(...)` |
+| `PlayerJobState` | Immutable key-based player snapshot: owning `jobKey()`, active `currentNodeKey()`, tree-wide experience/curve-derived level, and `withExperience(...)` |
 | `LevelingCurve` | Pure deterministic `evaluate(Parameters)` — the tree-wide leveling math extension point |
 | `PayableCurve` | Pure deterministic payout scaling `evaluate(Parameters)` |
 
@@ -43,11 +43,12 @@ is called with a specialization key. `JobNode.parentKey()` describes the
 root-to-specialization chain. The root owns `maxLevel()`, `levelingCurve()`,
 and `payableCurves()`.
 
-One `PlayerJobState` exists per player and root job tree. Changing its active
-node with `withCurrentNode(...)` preserves tree-wide XP and level. Tasks inherit
-along `Job.pathTo(...)`: the nearest descendant definition with the same
-action/context key replaces the complete ancestor task; non-conflicting ancestor
-tasks remain visible.
+One `PlayerJobState` exists per player and root job tree. It stores typed keys,
+not a recursive `Job` or `JobNode`; resolve the aggregate through
+`JobService.getJob(state)`. Active-node changes preserve tree-wide XP and level.
+Tasks inherit along `Job.pathTo(...)`: the nearest descendant definition with
+the same action/context key replaces the complete ancestor task;
+non-conflicting ancestor tasks remain visible.
 
 Perk unlocks are Paper configuration data, not public `Job` state. They follow
 the same root-to-active-node path at runtime.

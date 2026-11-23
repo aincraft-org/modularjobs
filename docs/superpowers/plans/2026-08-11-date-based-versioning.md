@@ -1,6 +1,6 @@
 # Date-Based Release Versioning Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** Implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Replace the unpublished `2.0.0` release metadata with the date-based version `26.8.11.1`, and make future releases use `vYY.M.D.REVISION` tags with matching validated artifacts.
 

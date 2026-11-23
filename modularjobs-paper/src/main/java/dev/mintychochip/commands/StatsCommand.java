@@ -3,35 +3,38 @@ package dev.mintychochip.commands;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+import dev.mintychochip.Job;
+import dev.mintychochip.JobStats;
 import dev.mintychochip.PlayerJobState;
+import dev.mintychochip.gui.StatsChatRenderer;
 import dev.mintychochip.gui.StatsGui;
 import dev.mintychochip.service.JobService;
 import dev.mintychochip.util.Messages;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import io.papermc.paper.command.brigadier.Commands;
-import java.math.BigDecimal;
-import java.math.RoundingMode;
+import java.util.ArrayList;
 import java.util.List;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.event.HoverEvent;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /** Stats command. */
 public class StatsCommand implements JobsCommand {
 
   private final JobService jobService;
   private final StatsGui statsGui;
+  private final StatsChatRenderer statsChatRenderer;
 
   /** Stats command. */
-  public StatsCommand(@NotNull JobService jobService, @NotNull StatsGui statsGui) {
+  public StatsCommand(
+      @NotNull JobService jobService,
+      @NotNull StatsGui statsGui,
+      @NotNull StatsChatRenderer statsChatRenderer) {
     this.jobService = jobService;
     this.statsGui = statsGui;
+    this.statsChatRenderer = statsChatRenderer;
   }
 
   @Override
@@ -115,165 +118,30 @@ public class StatsCommand implements JobsCommand {
   /** Displays stats in the native inventory GUI, falling back to chat if sender is not a player. */
   private void displayStats(@NotNull CommandSender viewer, @NotNull OfflinePlayer target) {
     if (viewer instanceof Player player) {
-      displayStatsDialog(player, target);
+      displayStatsGui(player, target);
     } else {
       displayStatsChat(viewer, target);
     }
   }
 
   /** Displays stats in the native inventory GUI. */
-  private void displayStatsDialog(@NotNull Player viewer, @NotNull OfflinePlayer target) {
+  private void displayStatsGui(@NotNull Player viewer, @NotNull OfflinePlayer target) {
     final List<PlayerJobState> states = jobService.getPlayerJobStates(target.getUniqueId());
     statsGui.open(viewer, target, states, 1);
   }
 
-  /** Displays stats in chat format (original implementation). */
+  /** Displays stats through the shared Adventure chat renderer. */
   private void displayStatsChat(@NotNull CommandSender viewer, @NotNull OfflinePlayer target) {
-    final List<PlayerJobState> states = jobService.getPlayerJobStates(target.getUniqueId());
+    List<PlayerJobState> states = jobService.getPlayerJobStates(target.getUniqueId());
+    List<JobStats> stats = new ArrayList<>(states.size());
+    for (PlayerJobState state : states) {
+      Job job = jobService.getJob(state);
+      stats.add(JobStats.from(job, state));
+    }
 
     String targetName = target.getName() != null ? target.getName() : "Unknown";
-    String header =
-        viewer.equals(target)
-            ? "<primary>Job Statistics"
-            : "<primary>" + targetName + "'s Job Statistics";
-
-    Messages.send(viewer, "");
-    Messages.send(viewer, "<neutral>━━━━━━━━━ " + header + " <neutral> ━━━━━━━━━");
-    Messages.send(viewer, "");
-
-    if (states.isEmpty()) {
-      String message =
-          viewer.equals(target)
-              ? "<neutral>  You are not in any jobs."
-              : "<neutral>  " + targetName + " is not in any jobs.";
-      Messages.send(viewer, message);
-      Messages.send(viewer, "<neutral>  Use <secondary>/jobs join<neutral> to join a job.");
-      Messages.send(viewer, "");
-    } else {
-      for (PlayerJobState state : states) {
-        displayJobStats(viewer, state);
-      }
-    }
-
-    Messages.send(viewer, "");
-    Messages.send(viewer, "<neutral>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-    Messages.send(viewer, "");
-  }
-
-  private void displayJobStats(@NotNull CommandSender viewer, @NotNull PlayerJobState state) {
-    int currentLevel = state.level();
-    BigDecimal currentXp = state.experience();
-    int maxLevel = state.job().maxLevel();
-
-    // Calculate percentage and XP values for display
-    double percentage;
-    BigDecimal xpCurrent;
-    BigDecimal xpTotal;
-
-    if (currentLevel >= maxLevel) {
-      percentage = 100.0;
-      xpCurrent = currentXp;
-      xpTotal = null; // MAX level
-    } else {
-      BigDecimal currentLevelXp = state.experienceForLevel(currentLevel);
-      BigDecimal nextLevelXp = state.experienceForLevel(currentLevel + 1);
-      xpCurrent = currentXp.subtract(currentLevelXp);
-      xpTotal = nextLevelXp.subtract(currentLevelXp);
-      percentage =
-          xpCurrent
-              .divide(xpTotal, 4, RoundingMode.HALF_UP)
-              .multiply(BigDecimal.valueOf(100))
-              .doubleValue();
-    }
-
-    // Build hover text with all metadata
-    Component hoverText =
-        buildHoverText(currentLevel, maxLevel, currentXp, xpCurrent, xpTotal, percentage);
-
-    // Build main display: bar + Lvl. [level] + [name]
-    String bar = createProgressBar(percentage);
-    Component barComponent = Messages.component(bar);
-    Component jobName = state.job().displayName();
-    Component mainDisplay =
-        Component.text("  ")
-            .append(barComponent)
-            .append(Component.space())
-            .append(Messages.component("<neutral>Lvl. "))
-            .append(Messages.component("<secondary>" + currentLevel))
-            .append(Component.space())
-            .append(jobName)
-            .hoverEvent(HoverEvent.showText(hoverText));
-
-    viewer.sendMessage(mainDisplay);
-  }
-
-  @Contract(pure = true)
-  private @NotNull Component buildHoverText(
-      int currentLevel,
-      int maxLevel,
-      @NotNull BigDecimal currentXp,
-      @NotNull BigDecimal xpCurrent,
-      @Nullable BigDecimal xpTotal,
-      double percentage) {
-    String percentageStr = String.format("%.1f%%", percentage);
-    String xpCurrentStr = formatFullNumber(xpCurrent);
-    String xpTotalStr = xpTotal != null ? formatFullNumber(xpTotal) : "MAX";
-    String totalXpStr = formatFullNumber(currentXp);
-    String progressColor = getProgressColorTag(percentage);
-
-    return Messages.component(
-        "<neutral>Level: <primary>"
-            + currentLevel
-            + " / "
-            + maxLevel
-            + "\n<neutral>Progress: <"
-            + progressColor
-            + ">"
-            + percentageStr
-            + "\n<neutral>XP in level: <secondary>"
-            + xpCurrentStr
-            + " / "
-            + xpTotalStr
-            + "\n<neutral>Total XP: <accent>"
-            + totalXpStr);
-  }
-
-  @Contract(pure = true)
-  private @NotNull String createProgressBar(double percentage) {
-    int barLength = 32;
-    int filled = (int) Math.round(percentage / 100.0 * barLength);
-    filled = Math.min(barLength, Math.max(0, filled));
-
-    String colorTag = getProgressColorTag(percentage);
-    StringBuilder bar = new StringBuilder("<neutral>[");
-
-    for (int i = 0; i < barLength; i++) {
-      if (i < filled) {
-        bar.append("<").append(colorTag).append(">|");
-      } else {
-        bar.append("<neutral>|");
-      }
-    }
-
-    bar.append("<neutral>]");
-    return bar.toString();
-  }
-
-  @Contract(pure = true)
-  private @NotNull String getProgressColorTag(double percentage) {
-    if (percentage >= 75) {
-      return "accent"; // Aqua
-    } else if (percentage >= 50) {
-      return "secondary"; // Yellow
-    } else if (percentage >= 25) {
-      return "primary"; // Gold
-    } else {
-      return "error"; // Red
-    }
-  }
-
-  @Contract(pure = true)
-  private @NotNull String formatFullNumber(@NotNull BigDecimal number) {
-    return String.format("%,d", number.setScale(0, RoundingMode.HALF_UP).intValue());
+    boolean ownStats =
+        viewer instanceof Player player && player.getUniqueId().equals(target.getUniqueId());
+    statsChatRenderer.open(viewer, targetName, ownStats, stats);
   }
 }

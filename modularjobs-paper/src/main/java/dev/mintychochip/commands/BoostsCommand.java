@@ -121,7 +121,7 @@ public class BoostsCommand implements JobsCommand {
               for (PlayerJobState state : states) {
                 List<BoostSource> upgradeBoosts =
                     upgradeBoostDataService.getBoostSources(
-                        player.getUniqueId(), state.job().key());
+                        player.getUniqueId(), state.jobKey().key());
 
                 if (!upgradeBoosts.isEmpty()) {
                   if (!hasUpgradeBoosts) {
@@ -129,7 +129,7 @@ public class BoostsCommand implements JobsCommand {
                     hasUpgradeBoosts = true;
                   }
 
-                  String jobName = state.job().key().value();
+                  String jobName = state.jobKey().key().value();
                   for (BoostSource upgradeSource : upgradeBoosts) {
                     String boostEffects = formatBoostEffects(upgradeSource);
                     String desc =

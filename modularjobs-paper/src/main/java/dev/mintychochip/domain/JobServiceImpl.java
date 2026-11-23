@@ -5,7 +5,6 @@ import dev.mintychochip.Job;
 import dev.mintychochip.JobNode;
 import dev.mintychochip.JobNodeKey;
 import dev.mintychochip.JobTask;
-import dev.mintychochip.LevelingCurve;
 import dev.mintychochip.PlayerJobState;
 import dev.mintychochip.container.ActionType;
 import dev.mintychochip.container.Context;
@@ -209,6 +208,18 @@ final class JobServiceImpl implements JobService {
 
   @Override
   public boolean update(@NotNull PlayerJobState state) {
+    Job job = getJob(state);
+    if (!state.belongsTo(job)) {
+      throw new IllegalArgumentException("Player state does not belong to its referenced job");
+    }
+    int derivedLevel = job.levelForExperience(state.experience());
+    if (state.level() != derivedLevel) {
+      throw new IllegalArgumentException(
+          "Player state level "
+              + state.level()
+              + " does not match curve-derived level "
+              + derivedLevel);
+    }
     return playerJobStateService.save(PersistenceConverters.toRecord(state));
   }
 
@@ -247,7 +258,7 @@ final class JobServiceImpl implements JobService {
       if (restoredState == null) {
         return false;
       }
-      events.publishJoin(new JobJoinEvent(restoredState, true), player);
+      events.publishJoin(new JobJoinEvent(job, restoredState, true), player);
       return true;
     }
 
@@ -258,10 +269,10 @@ final class JobServiceImpl implements JobService {
     }
 
     // New players enter at the tree root with tree-wide starting experience.
-    BigDecimal startExperience = job.levelingCurve().evaluate(new LevelingCurve.Parameters(1));
+    BigDecimal startExperience = job.experienceForLevel(1);
     PlayerJobState initialState = new PlayerJobStateImpl(uuid, job, startExperience);
     if (playerJobStateService.save(PersistenceConverters.toRecord(initialState))) {
-      events.publishJoin(new JobJoinEvent(initialState, false), player);
+      events.publishJoin(new JobJoinEvent(job, initialState, false), player);
       return true;
     }
     return false;
@@ -283,7 +294,8 @@ final class JobServiceImpl implements JobService {
     }
 
     Player player = Bukkit.getPlayer(state.playerId());
-    new PaperEventBridge(Bridge.bridge().eventBus()).publishLeave(new JobLeaveEvent(state), player);
+    new PaperEventBridge(Bridge.bridge().eventBus())
+        .publishLeave(new JobLeaveEvent(toJob(rootRecord), state), player);
 
     return playerJobStateService.archive(playerId, rootRecord.jobKey());
   }

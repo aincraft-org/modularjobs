@@ -80,7 +80,7 @@ class BootstrapLifecycleTest {
   @Test
   void pluginContextRetainsNativeUiAndClosesItBeforeResources() throws Exception {
     String context = Files.readString(locate("PluginContext.java"), StandardCharsets.UTF_8);
-    String compact = context.replaceAll("\\s+", " ");
+    final String compact = context.replaceAll("\\s+", " ");
 
     assertTrue(
         context.contains("public final PaperUiHost paperUiHost;"),
@@ -104,11 +104,12 @@ class BootstrapLifecycleTest {
             && compact.contains("new UpgradeTreeGui(paperUiHost"),
         "browse, info, stats, and upgrade presenters must share the native host");
     assertTrue(
-        compact.contains("new BrowseCommand(jobBrowseGui)")
+        compact.contains(
+                "new BrowseCommand(jobBrowseGui, jobBrowseChatRenderer, jobBrowseDialogRenderer)")
             && compact.contains(
                 "new InfoCommand( domain.jobService, domain.jobResolver, preferencesService,"
                     + " payables.renderer, jobInfoGui)")
-            && compact.contains("new StatsCommand(domain.jobService, statsGui)")
+            && compact.contains("new StatsCommand(domain.jobService, statsGui, statsChatRenderer)")
             && compact.contains(
                 "new UpgradesCommand(upgradeService, domain.jobResolver, upgradeTreeGui)")
             && compact.contains(
@@ -179,6 +180,7 @@ class BootstrapLifecycleTest {
         "native UI must close before database resources");
   }
 
+  @SuppressWarnings("PMD.CloseResource")
   @Test
   void pluginContextShutdownClosesNativeStateBeforeResourcesAndOnlyOnce() throws Exception {
     MockBukkitSupport.mockServer();

@@ -18,6 +18,7 @@ import org.jetbrains.annotations.Nullable;
  */
 public final class SkillTreeRequirementParser {
 
+  /** Parses a requirement JSON element into a {@link Requirement}. */
   @Contract(pure = true)
   public @NotNull Requirement parse(@NotNull JsonElement element) {
     JsonObject obj = element.getAsJsonObject();

@@ -97,7 +97,7 @@ public final class ExperienceBarFormatterImpl implements ExperienceBarFormatter 
           FORMAT,
           TagResolver.builder()
               .tag("level", Tag.inserting(Component.text(level)))
-              .tag("job-name", Tag.inserting(Component.empty().append(state.job().displayName())))
+              .tag("job-name", Tag.inserting(Component.empty().append(context.job().displayName())))
               .tag("xp", Tag.inserting(Component.text(state.experience().doubleValue())))
               .tag("total-xp", Tag.inserting(Component.text(experienceForNext.doubleValue())))
               .tag("payable", Tag.inserting(payableComponent(context.amount())))

@@ -51,9 +51,10 @@ dependencies {
     testImplementation(libs.placeholderapi)
     // Preferences API for payable preference wiring tests (compileOnly in main)
     testImplementation(libs.preferences.api)
-    // MySQL only — driver ships in the plugin artifact
+    // MySQL driver ships in the plugin artifact; Paper provides SQLite at runtime.
     implementation(libs.mysql)
     testImplementation(libs.mysql)
+    testRuntimeOnly(libs.sqlite)
 }
 
 tasks.processResources {

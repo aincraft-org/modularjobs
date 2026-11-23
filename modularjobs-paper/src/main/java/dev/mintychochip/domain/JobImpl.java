@@ -7,7 +7,6 @@ import dev.mintychochip.JobNodeKey;
 import dev.mintychochip.LevelingCurve;
 import dev.mintychochip.PayableCurve;
 import dev.mintychochip.domain.model.JobRecord;
-import dev.mintychochip.domain.model.JobTreeRecord;
 import dev.mintychochip.math.ExpressionCurves;
 import dev.mintychochip.util.KeyUtils;
 import java.util.HashMap;
@@ -16,7 +15,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Collectors;
 import net.kyori.adventure.key.Key;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.Contract;
@@ -27,7 +25,6 @@ record JobImpl(
     @NotNull JobKey jobKey,
     @NotNull JobNode rootNode,
     @NotNull Map<JobNodeKey, JobNode> nodes,
-    @NotNull JobTreeRecord sourceRecord,
     int maxLevel,
     @NotNull LevelingCurve levelingCurve,
     @NotNull Map<Key, PayableCurve> payableCurves)
@@ -37,13 +34,8 @@ record JobImpl(
     Objects.requireNonNull(jobKey, "jobKey");
     Objects.requireNonNull(rootNode, "rootNode");
     nodes = Map.copyOf(nodes);
-    Objects.requireNonNull(sourceRecord, "sourceRecord");
     Objects.requireNonNull(levelingCurve, "levelingCurve");
     payableCurves = Map.copyOf(payableCurves);
-
-    if (!jobKey.asString().equals(sourceRecord.root().jobKey())) {
-      throw new IllegalArgumentException("Source tree record does not match the job key");
-    }
 
     if (!jobKey.equals(rootNode.jobKey())) {
       throw new IllegalArgumentException("Root node belongs to a different job tree");
@@ -81,18 +73,6 @@ record JobImpl(
             "Job node does not descend from the tree root: " + node.nodeKey().asString());
       }
     }
-    Set<String> runtimeNodeKeys =
-        nodes.keySet().stream().map(JobNodeKey::asString).collect(Collectors.toSet());
-    if (!runtimeNodeKeys.equals(sourceRecord.nodes().keySet())) {
-      throw new IllegalArgumentException("Runtime nodes do not match source tree records");
-    }
-  }
-
-  /** Returns the exact tree records used to construct this aggregate. */
-  @Contract(pure = true)
-  @NotNull
-  JobTreeRecord toRecord() {
-    return sourceRecord;
   }
 
   /** Reconstructs one complete job tree from its root and descendant records. */
@@ -104,7 +84,6 @@ record JobImpl(
     }
 
     JobKey jobKey = new JobKey(KeyUtils.parseKey(plugin, rootRecord.jobKey()));
-    Map<String, JobRecord> sourceNodes = new HashMap<>();
     Map<JobNodeKey, JobNode> nodes = new HashMap<>();
     for (JobRecord record : treeRecords) {
       JobNode node = JobNodeImpl.fromRecord(jobKey, record, plugin);
@@ -112,7 +91,6 @@ record JobImpl(
       if (previous != null) {
         throw new IllegalArgumentException("Duplicate job node: " + node.nodeKey().asString());
       }
-      sourceNodes.put(record.jobKey(), record);
     }
 
     JobNodeKey rootNodeKey = new JobNodeKey(KeyUtils.parseKey(plugin, rootRecord.jobKey()));
@@ -121,12 +99,10 @@ record JobImpl(
       throw new IllegalArgumentException("Job tree does not contain its root node");
     }
 
-    JobTreeRecord sourceRecord = new JobTreeRecord(rootRecord, sourceNodes);
     return new JobImpl(
         jobKey,
         rootNode,
         nodes,
-        sourceRecord,
         rootRecord.maxLevel(),
         ExpressionCurves.levelingCurve(rootRecord.levellingCurve()),
         parsePayableCurves(rootRecord, plugin));

@@ -1,5 +1,6 @@
 package dev.mintychochip.commands.top;
 
+import dev.mintychochip.Job;
 import dev.mintychochip.PlayerJobState;
 import dev.mintychochip.commands.Page;
 import dev.mintychochip.commands.TextScoreboard;
@@ -36,7 +37,7 @@ public final class ScoreboardJobsTopPageConsumerImpl implements JobsTopPageConsu
 
   @Override
   public void consume(
-      @NotNull Component jobName,
+      @NotNull Job job,
       @NotNull Page<PlayerJobState> page,
       @NotNull CommandSender sender,
       int maxPages,
@@ -59,7 +60,7 @@ public final class ScoreboardJobsTopPageConsumerImpl implements JobsTopPageConsu
                           "rank",
                           Tag.inserting(Component.text(i + 1 + (pageNumber - 1) * pageSize)))
                       .tag("player", Tag.inserting(PlayerComponent.of(statePlayer)))
-                      .tag("level", Tag.inserting(LevelComponent.of(state)))
+                      .tag("level", Tag.inserting(LevelComponent.of(job, state)))
                       .build());
       scoreBoard.setLine(i, row, Component.empty());
     }

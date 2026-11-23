@@ -18,20 +18,30 @@ public final class JobLevelEvent implements org.aincraft.api.event.Event {
     OTHER
   }
 
+  private final Job job;
   private final PlayerJobState state;
   private final int oldLevel;
   private final int newLevel;
   private final Reason reason;
 
   /** Creates an experience-driven level transition. */
-  public JobLevelEvent(@NotNull PlayerJobState state, int oldLevel, int newLevel) {
-    this(state, oldLevel, newLevel, Reason.EXPERIENCE);
+  public JobLevelEvent(
+      @NotNull Job job, @NotNull PlayerJobState state, int oldLevel, int newLevel) {
+    this(job, state, oldLevel, newLevel, Reason.EXPERIENCE);
   }
 
-  /** Creates a level transition for the supplied player state. */
+  /** Creates a level transition for the supplied aggregate and player state. */
   public JobLevelEvent(
-      @NotNull PlayerJobState state, int oldLevel, int newLevel, @Nullable Reason reason) {
+      @NotNull Job job,
+      @NotNull PlayerJobState state,
+      int oldLevel,
+      int newLevel,
+      @Nullable Reason reason) {
+    this.job = Objects.requireNonNull(job, "job");
     this.state = Objects.requireNonNull(state, "state");
+    if (!state.belongsTo(job)) {
+      throw new IllegalArgumentException("Player state does not belong to the supplied job");
+    }
     this.oldLevel = oldLevel;
     this.newLevel = newLevel;
     this.reason = reason == null ? Reason.OTHER : reason;
@@ -44,7 +54,7 @@ public final class JobLevelEvent implements org.aincraft.api.event.Event {
 
   @Contract(pure = true)
   public @NotNull Job getJob() {
-    return state.job();
+    return job;
   }
 
   public int getOldLevel() {

@@ -46,6 +46,7 @@ preferences-api = "0.2.0"
 
 mockbukkit = "26.2.0-mj"
 mysql = "9.4.0"
+sqlite = "3.53.2.1"
 
 # Adventure (api pure surface — Keyed/Key/Component without Paper)
 adventure = "4.21.0"
@@ -85,6 +86,7 @@ preferences-api = { module = "dev.mintychochip:preferences-api", version.ref = "
 
 mockbukkit = { module = "org.mockbukkit.mockbukkit:mockbukkit-v26.2", version.ref = "mockbukkit" }
 mysql = { module = "com.mysql:mysql-connector-j", version.ref = "mysql" }
+sqlite = { module = "org.xerial:sqlite-jdbc", version.ref = "sqlite" }
 
 # Development
 jetbrains-annotations = { module = "org.jetbrains:annotations", version.ref = "jetbrains-annotations" }

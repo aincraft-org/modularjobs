@@ -49,12 +49,14 @@ public final class DomainWiring {
   /**
    * Composes domain services, loading job trees and wiring player-state write-back stores.
    *
-   * @param connectionSource shared payable DB source (already tracked by {@code resources})
+   * @param taskConnectionSource source for job-task/payable definitions
+   * @param progressionConnectionSource source for live and archived player progression
    * @param resources registers player-state write-back flush hooks for disable
    */
   public static @NotNull DomainWiring create(
       @NotNull Plugin plugin,
-      @NotNull ConnectionSource connectionSource,
+      @NotNull ConnectionSource taskConnectionSource,
+      @NotNull ConnectionSource progressionConnectionSource,
       @NotNull PluginResources resources,
       @NotNull Registry<ActionType> actionTypeRegistry,
       @NotNull Registry<PayableType> payableTypeRegistry,
@@ -67,15 +69,13 @@ public final class DomainWiring {
     final JobPerkCatalog perkCatalog = JobPerkCatalog.load(jobsConfiguration);
 
     RelationalJobTaskRepositoryImpl jobTaskRepository =
-        new RelationalJobTaskRepositoryImpl(connectionSource);
+        new RelationalJobTaskRepositoryImpl(taskConnectionSource);
 
-    // Reuse the composition-owned payable ConnectionSource for player-state tables
-    // (same DB section as before; avoids untracked extra pools).
     WriteBackPlayerJobStateRepositoryImpl live =
         WriteBackPlayerJobStateRepositoryImpl.create(
             plugin,
             RelationalPlayerJobStateRepositoryImpl.create(
-                jobRepository, connectionSource, LIVE_REPOSITORY),
+                jobRepository, progressionConnectionSource, LIVE_REPOSITORY),
             50,
             50,
             10,
@@ -84,7 +84,7 @@ public final class DomainWiring {
         WriteBackPlayerJobStateRepositoryImpl.create(
             plugin,
             RelationalPlayerJobStateRepositoryImpl.create(
-                jobRepository, connectionSource, ARCHIVE_REPOSITORY),
+                jobRepository, progressionConnectionSource, ARCHIVE_REPOSITORY),
             50,
             50,
             10,

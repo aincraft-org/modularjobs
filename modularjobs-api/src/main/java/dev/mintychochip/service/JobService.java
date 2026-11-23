@@ -40,6 +40,11 @@ public interface JobService {
   @NotNull
   Job getJob(@NotNull String jobKey);
 
+  /** Resolves the complete aggregate referenced by a key-only player state. */
+  default @NotNull Job getJob(@NotNull PlayerJobState state) {
+    return getJob(state.jobKey().asString());
+  }
+
   /**
    * Resolves the task visible at a job node. The nearest node definition replaces an ancestor task
    * with the same action-and-context key.
@@ -61,7 +66,10 @@ public interface JobService {
   @NotNull
   Map<ActionType, List<JobTask>> getAllTasks(@NotNull Job job, @NotNull JobNodeKey nodeKey);
 
-  /** Persists the given immutable player state. */
+  /**
+   * Persists a player state after validating its tree/node keys and curve-derived level against the
+   * current aggregate.
+   */
   boolean update(@NotNull PlayerJobState state);
 
   /**

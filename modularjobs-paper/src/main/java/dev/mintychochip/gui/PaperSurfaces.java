@@ -80,8 +80,10 @@ public final class PaperSurfaces {
       if (line == null || line.isBlank() || score == 0) {
         continue;
       }
-      String entry = uniqueEntry(line, index++);
-      objective.getScore(entry).setScore(score--);
+      String entry = uniqueEntry(line, index);
+      index++;
+      objective.getScore(entry).setScore(score);
+      score--;
     }
 
     activeScoreboards.put(audience, scoreboard);
@@ -196,7 +198,7 @@ public final class PaperSurfaces {
 
   private static <T> @NotNull T require(@NotNull T value, @NotNull String name) {
     if (value == null) {
-      throw new NullPointerException(name);
+      throw new IllegalArgumentException(name + " is null");
     }
     return value;
   }

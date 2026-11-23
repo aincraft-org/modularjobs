@@ -1,7 +1,9 @@
 package dev.mintychochip.container;
 
+import dev.mintychochip.Job;
 import dev.mintychochip.PlayerJobState;
 import java.math.BigDecimal;
+import java.util.Objects;
 import java.util.UUID;
 import net.kyori.adventure.bossbar.BossBar;
 import org.jetbrains.annotations.NotNull;
@@ -52,10 +54,26 @@ public interface ExperiencePayableHandler extends PayableHandler {
   /**
    * Immutable context describing an experience reward presentation.
    *
-   * @param jobState current job state associated with the player
+   * @param job complete aggregate associated with the state
+   * @param jobState current key-based job state associated with the player
    * @param playerId unique identifier of the player
    * @param amount experience amount being rewarded
    */
   record ExperienceBarContext(
-      @NotNull PlayerJobState jobState, @NotNull UUID playerId, @NotNull BigDecimal amount) {}
+      @NotNull Job job,
+      @NotNull PlayerJobState jobState,
+      @NotNull UUID playerId,
+      @NotNull BigDecimal amount) {
+
+    /** Validates that presentation aggregate and state describe the same tree and node. */
+    public ExperienceBarContext {
+      Objects.requireNonNull(job, "job");
+      Objects.requireNonNull(jobState, "jobState");
+      Objects.requireNonNull(playerId, "playerId");
+      Objects.requireNonNull(amount, "amount");
+      if (!jobState.belongsTo(job)) {
+        throw new IllegalArgumentException("Player state does not belong to the supplied job");
+      }
+    }
+  }
 }

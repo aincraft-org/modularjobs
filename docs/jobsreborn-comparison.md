@@ -104,7 +104,7 @@
 
 | JobsReborn feature | ModularJobs status |
 |---|---|
-| MySQL | ✅ (MySQL 8 only — intentional; SQLite is a repo non-goal) |
+| MySQL / SQLite | ✅ MySQL 8 for shared deployments; SQLite for standalone Paper servers |
 | PlaceholderAPI | ✅ expansion registered + full `modular` placeholder set (2026-08-18) |
 | McMMO | ✅ `McMMOBoostSourceImpl` |
 | Mint2 economy | ✅ typed API integration; selected before Vault |
@@ -129,7 +129,7 @@
 | Exploit protections | ✅ strong set: place→break anti-farm, silk-touch deny, ore-generator, piston, hopper, furnace proximity, mob damage contribution, wax/dye/milk/strip cooldowns, craft gating, chunk explore dedup, eligibility gates |
 
 ## Intentional non-goals (not gaps)
-- SQLite / PostgreSQL / MariaDB storage — repo rule: **MySQL 8 only**
+- PostgreSQL / MariaDB storage — Paper currently supports MySQL 8 and SQLite
 - In-process DDL / auto schema creation — repo rule: **connect-only schema ownership**
 - Guice/DI frameworks — manual composition root
 

@@ -102,6 +102,7 @@ public final class PlacedProtectionMaterials {
 
   private PlacedProtectionMaterials() {}
 
+  /** Returns the curated farm-block materials. */
   @Contract(pure = true)
   public static @NotNull Set<Material> curatedFarmMaterials() {
     return EnumSet.copyOf(List.of(CURATED_FARM_MATERIALS));

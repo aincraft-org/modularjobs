@@ -99,7 +99,7 @@ class LifecycleEventBusTest {
   @Test
   void closeRejectsRetainedBusOperations() {
     LifecycleEventBus bus = new LifecycleEventBus(EventBuses.create());
-    var subscription = bus.subscribe(TestEvent.class, event -> {});
+    final var subscription = bus.subscribe(TestEvent.class, event -> {});
     bus.close();
 
     assertThrows(IllegalStateException.class, () -> bus.post(new TestEvent()));

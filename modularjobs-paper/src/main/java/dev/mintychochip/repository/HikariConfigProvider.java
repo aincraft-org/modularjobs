@@ -6,11 +6,11 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Builds a {@link HikariConfig} from the plugin's database configuration section.
+ * Builds a {@link HikariConfig} for a supported database section.
  *
- * <p>Requires the {@code jdbc-url}, {@code username}, and {@code password} fields and applies
- * optional pool sizing and timeout settings ({@code maximum-pool-size}, {@code minimum-idle},
- * {@code connection-timeout}, {@code idle-timeout}, {@code max-lifetime}) when present.
+ * <p>MySQL requires {@code jdbc-url}, {@code username}, and {@code password}. SQLite requires only
+ * a {@code jdbc:sqlite:} URL, always uses a single-connection pool, and enables foreign-key
+ * enforcement for every pooled connection.
  */
 final class HikariConfigProvider {
 
@@ -34,30 +34,40 @@ final class HikariConfigProvider {
     final HikariConfig hikariConfig = new HikariConfig();
 
     String jdbcUrl = configuration.getString("jdbc-url");
-    String username = configuration.getString("username");
-    String password = configuration.getString("password");
-
     Preconditions.checkNotNull(jdbcUrl, "missing required field: database.jdbc-url");
-    Preconditions.checkNotNull(username, "missing required field: database.username");
-    Preconditions.checkNotNull(password, "missing required field: database.password");
-
     hikariConfig.setJdbcUrl(jdbcUrl);
-    hikariConfig.setUsername(username);
-    hikariConfig.setPassword(password);
-    hikariConfig.addDataSourceProperty("cachePrepStmts", "true");
-    hikariConfig.addDataSourceProperty("prepStmtCacheSize", "250");
 
-    String driverClass = databaseType.getClassName();
-    if (driverClass != null && !driverClass.isBlank()) {
-      hikariConfig.setDriverClassName(driverClass);
+    if (databaseType == DatabaseType.MYSQL) {
+      String username = configuration.getString("username");
+      String password = configuration.getString("password");
+      Preconditions.checkNotNull(username, "missing required field: database.username");
+      Preconditions.checkNotNull(password, "missing required field: database.password");
+      hikariConfig.setUsername(username);
+      hikariConfig.setPassword(password);
+      hikariConfig.addDataSourceProperty("cachePrepStmts", "true");
+      hikariConfig.addDataSourceProperty("prepStmtCacheSize", "250");
+    } else {
+      Preconditions.checkArgument(
+          jdbcUrl.startsWith("jdbc:sqlite:"), "SQLite jdbc-url must start with jdbc:sqlite:");
+      hikariConfig.setMaximumPoolSize(1);
+      hikariConfig.setConnectionInitSql("PRAGMA foreign_keys = ON");
     }
 
+    hikariConfig.setDriverClassName(databaseType.getClassName());
+
     int maxPoolSize = configuration.getInt("maximum-pool-size", -1);
-    if (maxPoolSize > 0) {
+    if (databaseType == DatabaseType.SQLITE) {
+      Preconditions.checkArgument(
+          maxPoolSize <= 1, "SQLite maximum-pool-size must be 1 when configured");
+    } else if (maxPoolSize > 0) {
       hikariConfig.setMaximumPoolSize(maxPoolSize);
     }
 
     int minIdle = configuration.getInt("minimum-idle", -1);
+    if (databaseType == DatabaseType.SQLITE) {
+      Preconditions.checkArgument(
+          minIdle <= 1, "SQLite minimum-idle must be 0 or 1 when configured");
+    }
     if (minIdle >= 0) {
       hikariConfig.setMinimumIdle(minIdle);
     }

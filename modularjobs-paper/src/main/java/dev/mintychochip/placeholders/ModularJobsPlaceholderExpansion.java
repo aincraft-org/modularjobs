@@ -1,6 +1,7 @@
 package dev.mintychochip.placeholders;
 
 import dev.mintychochip.Job;
+import dev.mintychochip.JobStats;
 import dev.mintychochip.PlayerJobState;
 import dev.mintychochip.service.JobService;
 import java.math.BigDecimal;
@@ -26,8 +27,9 @@ import org.jetbrains.annotations.Nullable;
  *   <li>{@code joinedjobcount}, {@code jobs}, {@code totallevels}, {@code maxjobs}, {@code
  *       archivedjobs}
  *   <li>{@code level_<job>}, {@code experience_<job>}, {@code maxexperience_<job>}, {@code
- *       maxlevel_<job>}, {@code name_<job>}, {@code description_<job>}, {@code isin_<job>}, {@code
- *       canjoin_<job>}
+ *       levelxp_<job>}, {@code requiredxp_<job>}, {@code remainingxp_<job>}, {@code
+ *       progress_<job>}, {@code progressbar_<job>}, {@code maxlevel_<job>}, {@code name_<job>},
+ *       {@code description_<job>}, {@code isin_<job>}, {@code canjoin_<job>}
  * </ul>
  */
 public final class ModularJobsPlaceholderExpansion extends PlaceholderExpansion {
@@ -85,7 +87,7 @@ public final class ModularJobsPlaceholderExpansion extends PlaceholderExpansion 
           if (sb.length() > 0) {
             sb.append(',');
           }
-          sb.append(p.job().getPlainName());
+          sb.append(jobService.getJob(p).getPlainName());
         }
         return sb.toString();
       }
@@ -122,11 +124,13 @@ public final class ModularJobsPlaceholderExpansion extends PlaceholderExpansion 
         default -> "";
       };
     }
-    Job job = state.job();
+    Job job = jobService.getJob(state);
     return switch (param) {
       case "level" -> Integer.toString(state.level());
       case "experience" -> state.experience().toPlainString();
-      case "maxexperience" -> maxExperience(state);
+      case "maxexperience" -> maxExperience(job, state);
+      case "levelxp", "requiredxp", "remainingxp", "progress", "progressbar" ->
+          progressValue(param, job, state);
       case "maxlevel" -> Integer.toString(job.maxLevel());
       case "name" -> job.getPlainName();
       case "description" -> PLAIN.serialize(job.description());
@@ -150,12 +154,31 @@ public final class ModularJobsPlaceholderExpansion extends PlaceholderExpansion 
     }
   }
 
-  private @NotNull String maxExperience(@NotNull PlayerJobState state) {
-    int level = state.level();
-    BigDecimal forNext = state.experienceForLevel(level + 1);
-    if (forNext == null) {
-      return state.experience().toPlainString();
+  @Contract(pure = true)
+  private static @NotNull String progressValue(
+      @NotNull String param, @NotNull Job job, @NotNull PlayerJobState state) {
+    JobStats stats = JobStats.from(job, state);
+    return switch (param) {
+      case "levelxp" -> plain(stats.levelExperience());
+      case "requiredxp" -> plain(stats.requiredExperience());
+      case "remainingxp" -> plain(stats.remainingExperience());
+      case "progress" -> stats.progressPercentage().toPlainString();
+      case "progressbar" -> stats.progressBar(20);
+      default -> throw new IllegalArgumentException("Unknown progress component: " + param);
+    };
+  }
+
+  @Contract(pure = true)
+  private static @NotNull String plain(@NotNull BigDecimal value) {
+    return value.signum() == 0 ? "0" : value.stripTrailingZeros().toPlainString();
+  }
+
+  @Contract(pure = true)
+  private static @NotNull String maxExperience(@NotNull Job job, @NotNull PlayerJobState state) {
+    JobStats stats = JobStats.from(job, state);
+    if (stats.atMaxLevel()) {
+      return stats.totalExperience().toPlainString();
     }
-    return forNext.toPlainString();
+    return state.experienceForLevel(stats.level() + 1).toPlainString();
   }
 }

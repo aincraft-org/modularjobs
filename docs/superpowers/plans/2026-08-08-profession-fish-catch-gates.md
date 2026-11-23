@@ -1,6 +1,6 @@
 # Profession-Gated Fish Catch Gates Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** Implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Status:** Superseded by `2026-08-10-modularjobs-azoth-integration.md`; historical ModularJobs-owned gate plan.
 

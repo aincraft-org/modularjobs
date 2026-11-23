@@ -43,6 +43,7 @@ public final class UpgradeTreeConfigParser {
         new dev.mintychochip.boost.config.BoostSourceConfigParser(conditionFactory, boostFactory);
   }
 
+  /** Parses a config into an {@link UpgradeTree}. */
   @Contract(pure = true)
   public @NotNull UpgradeTree parse(@NotNull UpgradeTreeConfig config) {
     String jobKey = config.job();

@@ -1,8 +1,14 @@
-# ModularJobs — MySQL only
-# Schema is NOT created by the plugin. Provision first:
+# ModularJobs Paper persistence — MySQL 8 or SQLite, selectable per section.
+# The plugin never creates or migrates tables. Provision the selected schema first:
 #   ./scripts/apply-mysql-schema.sh
-#   # or: mysql "$DATABASE_URL" < paper/src/main/resources/sql/mysql.sql
-# Missing tables → plugin fails at startup. See docs/database-schema.md
+#   ./scripts/apply-sqlite-schema.sh /path/to/modularjobs.db
+# Missing tables or columns fail startup. See docs/database-schema.md.
+#
+# SQLite section example (credentials omitted; pool size is always one):
+#   type: sqlite
+#   jdbc-url: jdbc:sqlite:plugins/ModularJobs/modularjobs.db
+# Use the same SQLite URL in each section to share one local file and connection pool.
+# The web/rest-api session service remains MySQL-only.
 
 payable:
   type: mysql
@@ -11,7 +17,7 @@ payable:
   password: change-me
   maximum-pool-size: 10
 
-# Same database is fine — pools with identical jdbc-url+username are shared.
+# Same database is fine — identical backend+jdbc-url+username sections share one pool.
 timed-boost:
   type: mysql
   jdbc-url: jdbc:mysql://127.0.0.1:3306/modularjobs

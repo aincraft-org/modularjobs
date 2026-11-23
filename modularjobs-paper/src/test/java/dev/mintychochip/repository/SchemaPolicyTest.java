@@ -6,7 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.bukkit.configuration.MemoryConfiguration;
 import org.junit.jupiter.api.Test;
 
-/** Schema ownership: MySQL only; plugin never applies DDL in-process. */
+/** Schema ownership: every supported backend is externally provisioned. */
 class SchemaPolicyTest {
 
   @Test
@@ -15,11 +15,14 @@ class SchemaPolicyTest {
     section.set("auto-schema", true);
     assertFalse(SchemaPolicy.shouldApplySchemaOnConnect(DatabaseType.MYSQL, null));
     assertFalse(SchemaPolicy.shouldApplySchemaOnConnect(DatabaseType.MYSQL, section));
+    assertFalse(SchemaPolicy.shouldApplySchemaOnConnect(DatabaseType.SQLITE, null));
+    assertFalse(SchemaPolicy.shouldApplySchemaOnConnect(DatabaseType.SQLITE, section));
   }
 
   @Test
   void alwaysVerifiesPresence() {
     assertTrue(SchemaPolicy.shouldVerifySchemaPresent(DatabaseType.MYSQL));
+    assertTrue(SchemaPolicy.shouldVerifySchemaPresent(DatabaseType.SQLITE));
   }
 
   @Test
@@ -28,5 +31,7 @@ class SchemaPolicyTest {
     section.set("auto-schema", true);
     assertTrue(SchemaPolicy.hasIgnoredRemoteAutoSchema(DatabaseType.MYSQL, section));
     assertFalse(SchemaPolicy.hasIgnoredRemoteAutoSchema(DatabaseType.MYSQL, null));
+    assertTrue(SchemaPolicy.hasIgnoredRemoteAutoSchema(DatabaseType.SQLITE, section));
+    assertFalse(SchemaPolicy.hasIgnoredRemoteAutoSchema(DatabaseType.SQLITE, null));
   }
 }

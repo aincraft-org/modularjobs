@@ -1,5 +1,6 @@
 package dev.mintychochip.commands.top;
 
+import dev.mintychochip.Job;
 import dev.mintychochip.PlayerJobState;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -16,15 +17,20 @@ import org.jetbrains.annotations.NotNull;
  */
 final class LevelComponent implements ComponentLike {
 
+  private final Job job;
   private final PlayerJobState state;
 
-  LevelComponent(@NotNull PlayerJobState state) {
+  LevelComponent(@NotNull Job job, @NotNull PlayerJobState state) {
+    if (!state.belongsTo(job)) {
+      throw new IllegalArgumentException("Player state does not belong to the supplied job");
+    }
+    this.job = job;
     this.state = state;
   }
 
   @Contract(pure = true)
-  static @NotNull LevelComponent of(@NotNull PlayerJobState state) {
-    return new LevelComponent(state);
+  static @NotNull LevelComponent of(@NotNull Job job, @NotNull PlayerJobState state) {
+    return new LevelComponent(job, state);
   }
 
   /**
@@ -38,7 +44,7 @@ final class LevelComponent implements ComponentLike {
   public @NotNull Component asComponent() {
     int level = state.level();
     BigDecimal experience = state.experience();
-    int maxLevel = state.job().maxLevel();
+    int maxLevel = job.maxLevel();
 
     Component hover;
     if (level >= maxLevel) {
@@ -53,8 +59,8 @@ final class LevelComponent implements ComponentLike {
               .build();
     } else {
       // Calculate progress to next level
-      BigDecimal currentLevelXp = state.experienceForLevel(level);
-      BigDecimal nextLevelXp = state.experienceForLevel(level + 1);
+      BigDecimal currentLevelXp = job.experienceForLevel(level);
+      BigDecimal nextLevelXp = job.experienceForLevel(level + 1);
       BigDecimal progressXp = experience.subtract(currentLevelXp);
       BigDecimal neededXp = nextLevelXp.subtract(currentLevelXp);
 

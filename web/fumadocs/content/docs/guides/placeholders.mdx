@@ -43,8 +43,13 @@ registers the **`modular`** expansion; it is unregistered on plugin disable.
 | Placeholder | Meaning |
 | --- | --- |
 | `%modular_level_<job>%` | Current level |
-| `%modular_experience_<job>%` | Current experience |
-| `%modular_maxexperience_<job>%` | Experience required for the next level / max |
+| `%modular_experience_<job>%` | Total accumulated experience |
+| `%modular_maxexperience_<job>%` | Cumulative next-level threshold, or current total at max level |
+| `%modular_levelxp_<job>%` | Experience earned within the current level |
+| `%modular_requiredxp_<job>%` | Experience span of the current level; `0` at max level |
+| `%modular_remainingxp_<job>%` | Experience remaining before the next level; `0` at max level |
+| `%modular_progress_<job>%` | Current-level completion percentage with one decimal place |
+| `%modular_progressbar_<job>%` | 20-segment plain-text progress bar |
 | `%modular_maxlevel_<job>%` | Job max level |
 | `%modular_name_<job>%` | Job display plain name |
 | `%modular_description_<job>%` | Job description (plain text) |

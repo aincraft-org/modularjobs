@@ -121,7 +121,7 @@ class NativeUpgradeGuiTest {
 
     gui.open(player, job("miner"), null);
     Inventory initial = player.getOpenInventory().getTopInventory();
-    Object holder = initial.getHolder();
+    final Object holder = initial.getHolder();
     assertEquals(Material.BLACK_STAINED_GLASS_PANE, initial.getItem(36).getType());
     assertEquals(Material.CYAN_STAINED_GLASS_PANE, initial.getItem(53).getType());
 
@@ -252,7 +252,7 @@ class NativeUpgradeGuiTest {
     UpgradeTreeGui gui = new UpgradeTreeGui(host, service);
 
     gui.open(player, job("miner"), tree);
-    Inventory before = player.getOpenInventory().getTopInventory();
+    final Inventory before = player.getOpenInventory().getTopInventory();
     host.onInventoryClick(click(player.getOpenInventory(), 1));
 
     assertEquals(1, unlocks.get());
@@ -570,15 +570,21 @@ class NativeUpgradeGuiTest {
               case "getPlayerData" -> data;
               case "getSkillTreeState" -> state;
               case "purchaseMajor" -> {
-                if (majorPurchases != null) majorPurchases.incrementAndGet();
+                if (majorPurchases != null) {
+                  majorPurchases.incrementAndGet();
+                }
                 yield majorResult;
               }
               case "purchaseSkillLevel" -> {
-                if (skillPurchases != null) skillPurchases.incrementAndGet();
+                if (skillPurchases != null) {
+                  skillPurchases.incrementAndGet();
+                }
                 yield skillResult;
               }
               case "unlock" -> {
-                if (unlocks != null) unlocks.incrementAndGet();
+                if (unlocks != null) {
+                  unlocks.incrementAndGet();
+                }
                 yield unlockResult;
               }
               default -> defaultValue(method.getReturnType());
@@ -661,15 +667,33 @@ class NativeUpgradeGuiTest {
   }
 
   private static @Nullable Object defaultValue(@NotNull Class<?> type) {
-    if (!type.isPrimitive()) return null;
-    if (type == boolean.class) return false;
-    if (type == byte.class) return (byte) 0;
-    if (type == short.class) return (short) 0;
-    if (type == int.class) return 0;
-    if (type == long.class) return 0L;
-    if (type == float.class) return 0F;
-    if (type == double.class) return 0D;
-    if (type == char.class) return '\0';
+    if (!type.isPrimitive()) {
+      return null;
+    }
+    if (type == boolean.class) {
+      return false;
+    }
+    if (type == byte.class) {
+      return (byte) 0;
+    }
+    if (type == short.class) {
+      return (short) 0;
+    }
+    if (type == int.class) {
+      return 0;
+    }
+    if (type == long.class) {
+      return 0L;
+    }
+    if (type == float.class) {
+      return 0F;
+    }
+    if (type == double.class) {
+      return 0D;
+    }
+    if (type == char.class) {
+      return '\0';
+    }
     return null;
   }
 

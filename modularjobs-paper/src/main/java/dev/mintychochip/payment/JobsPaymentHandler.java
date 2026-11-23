@@ -76,8 +76,8 @@ public final class JobsPaymentHandler {
       @NotNull OfflinePlayer player, @NotNull ActionType type, @NotNull Context context) {
     List<PlayerJobState> states = jobService.getPlayerJobStates(player.getUniqueId());
     for (PlayerJobState initialState : states) {
-      Job job = initialState.job();
-      JobTask task = jobService.getTask(job, initialState.currentNode().nodeKey(), type, context);
+      Job job = jobService.getJob(initialState);
+      JobTask task = jobService.getTask(job, initialState.currentNodeKey(), type, context);
       if (task == null || task.payables() == null || task.payables().isEmpty()) {
         continue;
       }

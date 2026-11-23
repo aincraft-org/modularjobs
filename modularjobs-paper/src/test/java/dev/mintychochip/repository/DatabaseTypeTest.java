@@ -14,9 +14,11 @@ class DatabaseTypeTest {
   }
 
   @Test
-  void acceptsMysqlCaseInsensitively() {
+  void acceptsSupportedTypesCaseInsensitively() {
     assertEquals(DatabaseType.MYSQL, DatabaseType.fromIdentifier("mysql"));
     assertEquals(DatabaseType.MYSQL, DatabaseType.fromIdentifier("MYSQL"));
+    assertEquals(DatabaseType.SQLITE, DatabaseType.fromIdentifier("sqlite"));
+    assertEquals(DatabaseType.SQLITE, DatabaseType.fromIdentifier("SQLITE"));
   }
 
   @Test
@@ -27,21 +29,22 @@ class DatabaseTypeTest {
   }
 
   @Test
-  void rejectsPostgresAndUnknownIdentifiers() {
-    for (String id : new String[] {"postgres", "postgresql", "sqlite", "mariadb", "mongo", "h2"}) {
+  void rejectsUnsupportedIdentifiers() {
+    for (String id : new String[] {"postgres", "postgresql", "mariadb", "mongo", "h2"}) {
       IllegalArgumentException ex =
           assertThrows(IllegalArgumentException.class, () -> DatabaseType.fromIdentifier(id));
       assertTrue(
-          ex.getMessage().toLowerCase().contains("mysql"),
-          "message should mention mysql-only for " + id + ": " + ex.getMessage());
+          ex.getMessage().toLowerCase().contains("sqlite"),
+          "message should list supported types for " + id + ": " + ex.getMessage());
     }
   }
 
   @Test
-  void exposesMysqlDriverAndOnlyEnumConstant() {
+  void exposesSupportedDrivers() {
     assertEquals("mysql", DatabaseType.MYSQL.getIdentifier());
     assertEquals("com.mysql.cj.jdbc.Driver", DatabaseType.MYSQL.getClassName());
-    assertEquals(1, DatabaseType.values().length);
-    assertEquals(DatabaseType.MYSQL, DatabaseType.values()[0]);
+    assertEquals("sqlite", DatabaseType.SQLITE.getIdentifier());
+    assertEquals("org.sqlite.JDBC", DatabaseType.SQLITE.getClassName());
+    assertEquals(2, DatabaseType.values().length);
   }
 }

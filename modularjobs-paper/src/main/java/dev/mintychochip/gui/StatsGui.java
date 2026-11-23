@@ -1,6 +1,8 @@
 package dev.mintychochip.gui;
 
+import dev.mintychochip.Job;
 import dev.mintychochip.PlayerJobState;
+import dev.mintychochip.service.JobService;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
@@ -28,14 +30,16 @@ public final class StatsGui {
       PlainTextComponentSerializer.plainText();
 
   private final PaperUiHost host;
+  private final JobService jobService;
   private final Map<UUID, Session> sessions = new HashMap<>();
 
   private record Session(
       @NotNull OfflinePlayer target, @NotNull List<PlayerJobState> states, int page) {}
 
   /** Creates a statistics view renderer backed by the native inventory host. */
-  public StatsGui(@NotNull PaperUiHost host) {
+  public StatsGui(@NotNull PaperUiHost host, @NotNull JobService jobService) {
     this.host = host;
+    this.jobService = jobService;
   }
 
   /** Calculates the number of pages required for the supplied player-state list. */
@@ -145,21 +149,23 @@ public final class StatsGui {
   }
 
   private @NotNull ItemStack jobItem(@NotNull PlayerJobState prog) {
+    Job job = jobService.getJob(prog);
     int level = prog.level();
     BigDecimal xp = prog.experience();
     List<String> lore = new ArrayList<>();
     lore.add("Level: " + level);
     lore.add("XP: " + xp.setScale(1, RoundingMode.HALF_UP).toPlainString());
-    try {
-      BigDecimal next =
-          prog.job()
-              .levelingCurve()
-              .evaluate(new dev.mintychochip.LevelingCurve.Parameters(level + 1));
-      lore.add("Next level: " + next.setScale(1, RoundingMode.HALF_UP).toPlainString());
-    } catch (IllegalArgumentException | ArithmeticException ignored) {
-      // The curve may not support level+1.
+    if (level >= job.maxLevel()) {
+      lore.add("Max level");
+    } else {
+      try {
+        BigDecimal next = job.experienceForLevel(level + 1);
+        lore.add("Next level: " + next.setScale(1, RoundingMode.HALF_UP).toPlainString());
+      } catch (IllegalArgumentException | ArithmeticException ignored) {
+        // The curve may not support level+1.
+      }
     }
-    String name = PLAIN.serialize(prog.job().displayName());
+    String name = PLAIN.serialize(job.displayName());
     return PaperItemFactory.of(Material.EMERALD, name, lore);
   }
 }

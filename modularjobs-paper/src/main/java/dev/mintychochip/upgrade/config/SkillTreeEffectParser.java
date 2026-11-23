@@ -29,6 +29,7 @@ public final class SkillTreeEffectParser {
     this.boostSourceParser = new BoostSourceConfigParser(conditionFactory, boostFactory);
   }
 
+  /** Parses a single effect JSON element into a {@link NodeEffect}. */
   @Contract(pure = true)
   public @NotNull NodeEffect parse(@NotNull JsonElement element) {
     JsonObject obj = element.getAsJsonObject();

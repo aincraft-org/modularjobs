@@ -34,20 +34,24 @@ React editor: `cd web/session-editor && npm test && npm run build`.
 
 ## Database schema ownership (important)
 
-**MySQL 8 only. The Java plugin and Rust API never create tables.**
+**Paper supports MySQL 8 and SQLite. The Java plugin and Rust API never create tables.**
 
 | Store | Who applies DDL | Runtime process |
 |-------|-----------------|-----------------|
-| MySQL | Ops / CI / script **once** | Connect + verify only |
+| Paper / MySQL | Ops / CI / script **once** | Connect + verify only |
+| Paper / SQLite | Operator / script **once** | Connect + verify only |
+| Rust editor sessions / MySQL | Ops / CI / script **once** | Connect only |
 
-- Source of truth: `modularjobs-paper/src/main/resources/sql/mysql.sql`
-- Apply: `./scripts/apply-mysql-schema.sh`
+- Sources of truth: `modularjobs-paper/src/main/resources/sql/{mysql,sqlite}.sql`
+- Apply: `./scripts/apply-mysql-schema.sh` or `./scripts/apply-sqlite-schema.sh <file>`
 - Policy: `SchemaPolicy` — never runs DDL in-process (`auto-schema` is ignored)
 - Fail-fast: `SchemaPresence` on connect; missing tables → hard error, no CREATE
+- SQLite: Paper-only, one pooled connection, no shaded JDBC driver (Paper provides it)
+- Rust `web/rest-api`: MySQL-only
 - Details: `docs/database-schema.md`
 
-Do **not** reintroduce boot-time `CREATE TABLE` or SQLite/PostgreSQL/MariaDB support.
-Lab tests may apply the shared SQL file explicitly; production paths must stay connect-only.
+Do **not** reintroduce boot-time `CREATE TABLE` or claim PostgreSQL/MariaDB support.
+Tests may apply the matching SQL file explicitly; production paths stay connect-only.
 
 ## Secure session stack
 
@@ -101,16 +105,16 @@ Index: `docs/living-specs/README.md`. One-shot design dumps under
 ## Architecture notes (core)
 
 - Composition root: `PluginContext` + package `*Wiring` (no Guice)
-- Repository pattern + HikariCP against MySQL only
+- Repository pattern + HikariCP against MySQL 8 or SQLite for Paper
 - Commands: Paper Brigadier; themed text via `dev.mintychochip.util.Messages` (not Mint)
-- Tests: JUnit 5; MockBukkit for Bukkit-touching tests; repository SQL tests need a live MySQL
-  (`MODULARJOBS_TEST_MYSQL_*` or default `localhost:13306`; skipped when unavailable)
+- Tests: JUnit 5; MockBukkit for Bukkit-touching tests; SQLite SQL tests are deterministic;
+  live MySQL tests use `MODULARJOBS_TEST_MYSQL_*` or `localhost:13306` and skip when unavailable
 
 ## Agent rules
 
 - Senior Java: SOLID, DRY, SRP; concise feedback
 - Prefer existing patterns over new frameworks
-- Do not invent DDL-in-process for remote DBs
+- Never run DDL in production Java or Rust processes
 - Prefer `claude-context` / codebase search when locating code; Context7 for library docs when generating setup/config against external APIs
 - Atomic commits: one logical change per commit when landing work
 
