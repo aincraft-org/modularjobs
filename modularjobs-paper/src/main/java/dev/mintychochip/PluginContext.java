@@ -21,6 +21,7 @@ import dev.mintychochip.commands.LeaveCommand;
 import dev.mintychochip.commands.LevelCommand;
 import dev.mintychochip.commands.ListCommand;
 import dev.mintychochip.commands.StatsCommand;
+import dev.mintychochip.commands.SwapCommand;
 import dev.mintychochip.commands.TopCommand;
 import dev.mintychochip.commands.TreeEditorCommand;
 import dev.mintychochip.commands.UpgradesCommand;
@@ -230,6 +231,18 @@ public final class PluginContext {
             payableTypeRegistry,
             keyResolver,
             joinGate);
+    if (progressionLimits.hasSlotGroups()) {
+      for (Job job : domain.jobService.getJobs()) {
+        if (joinGate.slotGroup(job) == null) {
+          plugin
+              .getLogger()
+              .warning(
+                  "Job "
+                      + job.key().value()
+                      + " is in no progression-limits.slot-groups entry; nobody can join it.");
+        }
+      }
+    }
 
     final PaperUiHost paperUiHost = new PaperUiHost();
     final PaperSurfaces paperSurfaces = new PaperSurfaces();
@@ -354,6 +367,7 @@ public final class PluginContext {
     commands.add(new BrowseCommand(jobBrowseGui, jobBrowseChatRenderer, jobBrowseDialogRenderer));
     commands.add(infoCommand);
     commands.add(new LeaveCommand(domain.jobService, domain.jobResolver));
+    commands.add(new SwapCommand(domain.jobService, domain.jobResolver, joinGate));
     if (editorConfig.enabled()) {
       EditorSessionStore sessionStore = new EditorSessionStore(editorConfig);
       RestSessionClient restSessionClient = new RestSessionClient(editorConfig, gson);

@@ -73,10 +73,16 @@ editor:
 # Placeholders: {player}, {level}, {job}.
 level-up-commands: []
 
-# Join eligibility. max-jobs: 0 = unlimited.
+# Join eligibility.
+# slot-groups: named sets of jobs sharing a slot count, for example
+#   primary:   { slots: 2, jobs: [miner, logger, harvester] }
+#   secondary: { slots: 1, jobs: [fisher] }
+#   Jobs are root key values. With no groups, joins are unlimited; with groups, a job
+#   outside every group cannot be joined. /jobs swap <from> <to> changes a member of a
+#   full group; the old job goes on hold (archived) with its level and experience kept.
 # auto-join-jobs: joined on login if not already in them.
 # world-join-restriction: reject joining while in a payout disabled-world.
 progression-limits:
-  max-jobs: 0
+  slot-groups: {}
   auto-join-jobs: []
   world-join-restriction: true

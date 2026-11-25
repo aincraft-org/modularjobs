@@ -14,6 +14,8 @@ import dev.mintychochip.domain.model.JobTaskRecord;
 import dev.mintychochip.domain.model.PlayerJobStateRecord;
 import dev.mintychochip.event.JobJoinEvent;
 import dev.mintychochip.event.JobLeaveEvent;
+import dev.mintychochip.event.JobSwapEvent;
+import dev.mintychochip.event.JobSwapRequestEvent;
 import dev.mintychochip.paper.event.PaperEventBridge;
 import dev.mintychochip.registry.Registry;
 import dev.mintychochip.service.JobService;
@@ -234,48 +236,34 @@ final class JobServiceImpl implements JobService {
     Player player = Bukkit.getPlayer(uuid);
     Job job = toJob(rootRecord);
     String treeKey = job.jobKey().asString();
-
-    // Enforce join eligibility (max jobs, per-job permission, world restriction) when the
-    // player is online. This is the single enforcement point shared by /jobs join and the GUI.
-    if (player != null) {
-      List<PlayerJobState> current =
-          playerJobStateService.loadAllForPlayer(playerId, 100).stream()
-              .map(this::toState)
-              .filter(Objects::nonNull)
-              .toList();
-      JoinGate.JoinResult result = joinGate.canJoin(player, job, current);
-      if (result != JoinGate.JoinResult.ALLOWED) {
-        return false;
-      }
-    }
-
-    PaperEventBridge events = new PaperEventBridge(Bridge.bridge().eventBus());
-
-    // Try to restore from archive first (rejoin case)
-    if (playerJobStateService.restore(playerId, treeKey)) {
-      PlayerJobStateRecord restored = playerJobStateService.load(playerId, treeKey);
-      PlayerJobState restoredState = restored == null ? null : toState(restored);
-      if (restoredState == null) {
-        return false;
-      }
-      events.publishJoin(new JobJoinEvent(job, restoredState, true), player);
-      return true;
-    }
-
-    // Check if already in job
-    PlayerJobStateRecord record = playerJobStateService.load(playerId, treeKey);
-    if (record != null) {
+    if (playerJobStateService.load(playerId, treeKey) != null) {
       return false; // Already in job
     }
 
-    // New players enter at the tree root with tree-wide starting experience.
-    BigDecimal startExperience = job.experienceForLevel(1);
-    PlayerJobState initialState = new PlayerJobStateImpl(uuid, job, startExperience);
-    if (playerJobStateService.save(PersistenceConverters.toRecord(initialState))) {
-      events.publishJoin(new JobJoinEvent(job, initialState, false), player);
-      return true;
+    // Enforce join eligibility (slot groups, per-job permission, world restriction) when the
+    // player is online. This is the single enforcement point shared by /jobs join and the GUI.
+    if (player != null
+        && joinGate.canJoin(player, job, activeStates(playerId)) != JoinGate.JoinResult.ALLOWED) {
+      return false;
     }
-    return false;
+
+    PaperEventBridge events = new PaperEventBridge(Bridge.bridge().eventBus());
+    // Re-activating a job on hold is a slot change listeners may price or refuse.
+    boolean reactivation = playerJobStateService.loadArchived(playerId, treeKey) != null;
+    if (reactivation
+        && events
+            .publishSwapRequest(new JobSwapRequestEvent(uuid, null, job, true), player)
+            .isCancelled()) {
+      return false;
+    }
+    PlayerJobState state = activate(uuid, job, reactivation, player, events);
+    if (state == null) {
+      return false;
+    }
+    if (reactivation) {
+      events.publishSwap(new JobSwapEvent(null, job, state, true), player);
+    }
+    return true;
   }
 
   @Override
@@ -298,6 +286,96 @@ final class JobServiceImpl implements JobService {
         .publishLeave(new JobLeaveEvent(toJob(rootRecord), state), player);
 
     return playerJobStateService.archive(playerId, rootRecord.jobKey());
+  }
+
+  @Override
+  public boolean swapJob(
+      @NotNull String playerId, @NotNull String fromJobKey, @NotNull String toJobKey) {
+    JobRecord fromRoot = jobRepository.rootFor(fromJobKey);
+    JobRecord toRoot = jobRepository.rootFor(toJobKey);
+    if (fromRoot == null || toRoot == null) {
+      throw new IllegalArgumentException("failed to swap jobs, a job does not exist");
+    }
+    Job from = toJob(fromRoot);
+    Job to = toJob(toRoot);
+    String fromTree = from.jobKey().asString();
+    String toTree = to.jobKey().asString();
+    if (fromTree.equals(toTree) || playerJobStateService.load(playerId, toTree) != null) {
+      return false;
+    }
+    PlayerJobStateRecord fromRecord = playerJobStateService.load(playerId, fromTree);
+    PlayerJobState fromState = fromRecord == null ? null : toState(fromRecord);
+    if (fromState == null) {
+      return false;
+    }
+
+    UUID uuid = UUID.fromString(playerId);
+    Player player = Bukkit.getPlayer(uuid);
+    if (player != null
+        && joinGate.canSwap(player, from, to, activeStates(playerId))
+            != JoinGate.JoinResult.ALLOWED) {
+      return false;
+    }
+
+    PaperEventBridge events = new PaperEventBridge(Bridge.bridge().eventBus());
+    boolean reactivation = playerJobStateService.loadArchived(playerId, toTree) != null;
+    if (events
+        .publishSwapRequest(new JobSwapRequestEvent(uuid, from, to, reactivation), player)
+        .isCancelled()) {
+      return false;
+    }
+    events.publishLeave(new JobLeaveEvent(from, fromState), player);
+    if (!playerJobStateService.archive(playerId, fromTree)) {
+      return false;
+    }
+    PlayerJobState toState = activate(uuid, to, reactivation, player, events);
+    if (toState == null) {
+      // A failed activation must not cost the player the job they gave up.
+      activate(uuid, from, true, player, events);
+      return false;
+    }
+    events.publishSwap(new JobSwapEvent(from, to, toState, reactivation), player);
+    return true;
+  }
+
+  private @NotNull List<PlayerJobState> activeStates(@NotNull String playerId) {
+    return playerJobStateService.loadAllForPlayer(playerId, 100).stream()
+        .map(this::toState)
+        .filter(Objects::nonNull)
+        .toList();
+  }
+
+  /**
+   * Makes {@code job} active: restores the held state when {@code fromHold}, else starts a new
+   * state at the tree root with tree-wide level-1 experience. Publishes the join event.
+   *
+   * @return the active state, or {@code null} when the store refused the change
+   */
+  private @Nullable PlayerJobState activate(
+      @NotNull UUID uuid,
+      @NotNull Job job,
+      boolean fromHold,
+      @Nullable Player player,
+      @NotNull PaperEventBridge events) {
+    String playerId = uuid.toString();
+    String treeKey = job.jobKey().asString();
+    PlayerJobState state = null;
+    if (fromHold) {
+      if (playerJobStateService.restore(playerId, treeKey)) {
+        PlayerJobStateRecord restored = playerJobStateService.load(playerId, treeKey);
+        state = restored == null ? null : toState(restored);
+      }
+    } else {
+      BigDecimal startExperience = job.experienceForLevel(1);
+      PlayerJobState initialState = new PlayerJobStateImpl(uuid, job, startExperience);
+      if (playerJobStateService.save(PersistenceConverters.toRecord(initialState))) {
+        state = initialState;
+      }
+    }
+    if (state != null) {
+      events.publishJoin(new JobJoinEvent(job, state, fromHold), player);
+    }
+    return state;
   }
 
   @Override

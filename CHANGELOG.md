@@ -23,6 +23,13 @@
 - Vault economy fallback with deterministic Mint2-first provider selection.
 - Selectable SQLite persistence for standalone Paper servers, with external schema provisioning,
   single-connection Hikari pooling, and dialect-correct atomic upserts.
+- Job slot groups (`progression-limits.slot-groups`, for example `primary: 2`,
+  `secondary: 1`): each group caps how many of its jobs a player holds active.
+  A left job is on hold (archived, level and experience kept).
+  `/jobs swap <from> <to>` (`jobs.command.swap`, `JobService.swapJob`) changes a
+  member of a full group. `JobSwapRequestEvent` (cancellable) fires before a
+  swap or before a held job comes back; `JobSwapEvent` fires after. Both have
+  Bukkit wrappers.
 
 ### Changed
 
@@ -52,6 +59,10 @@
 - Migrated Java domain package from `net.aincraft` to `dev.mintychochip` (`api`, `common`, `paper`).
 
 ### Removed
+
+- `progression-limits.max-jobs` and `JoinResult.MAX_JOBS`, replaced by slot
+  groups. A config that still sets `max-jobs` fails to load with an error
+  naming `slot-groups`.
 
 - Removed the legacy `Store` / `StoreFactory` API and their common in-memory
   implementations. McMMO active-ability tracking now uses `java.util.Map`

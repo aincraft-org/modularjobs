@@ -53,6 +53,18 @@ public final class PlayerJobStateService {
   }
 
   /**
+   * Loads a state record from the archive (a job on hold).
+   *
+   * @param playerId the owning player id
+   * @param jobKey the job key
+   * @return the matching archived record, or {@code null} if absent
+   */
+  public @Nullable PlayerJobStateRecord loadArchived(
+      @NotNull String playerId, @NotNull String jobKey) {
+    return archive.load(playerId, jobKey);
+  }
+
+  /**
    * Loads up to {@code limit} live state records for a job.
    *
    * @param jobKey the job key to match

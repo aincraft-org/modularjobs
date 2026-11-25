@@ -94,7 +94,7 @@ class NativePaperGuiTest {
               }
               return defaultValue(method.getReturnType());
             });
-    JoinGate gate = new JoinGate(new ProgressionLimitsConfig(0, List.of(), false), Set.of());
+    JoinGate gate = new JoinGate(ProgressionLimitsConfig.defaults(), Set.of());
     PaperUiHost host = new PaperUiHost();
     JobBrowseGui gui = new JobBrowseGui(host, jobs, gate, new JobBrowseModel(jobs, upgrades));
 

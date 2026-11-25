@@ -3,12 +3,15 @@ package dev.mintychochip.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import dev.mintychochip.Job;
+import dev.mintychochip.JobKey;
 import dev.mintychochip.PlayerJobState;
 import dev.mintychochip.config.ProgressionLimitsConfig;
+import dev.mintychochip.config.ProgressionLimitsConfig.SlotGroup;
 import dev.mintychochip.service.JoinGate.JoinResult;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import net.kyori.adventure.key.Key;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
@@ -19,55 +22,101 @@ class JoinGateTest {
 
   private static final Set<String> NO_DISABLED_WORLDS = Set.of();
 
-  @Test
-  void allowsWhenUnderLimitAndPermitted() {
-    JoinGate gate =
-        new JoinGate(new ProgressionLimitsConfig(2, List.of(), true), NO_DISABLED_WORLDS);
-    assertEquals(
-        JoinResult.ALLOWED, gate.canJoin(permittedPlayer(true, "world"), job("miner"), List.of()));
+  /** The server's layout: two primary slots, one secondary slot. */
+  private static final List<SlotGroup> PRIMARY_SECONDARY =
+      List.of(
+          new SlotGroup("primary", 2, Set.of("miner", "logger", "harvester")),
+          new SlotGroup("secondary", 1, Set.of("fisher", "cook")));
+
+  private static JoinGate gate(
+      List<SlotGroup> groups, boolean worldRestriction, Set<String> worlds) {
+    return new JoinGate(new ProgressionLimitsConfig(groups, List.of(), worldRestriction), worlds);
   }
 
   @Test
-  void deniesWhenAtMaxJobs() {
-    JoinGate gate =
-        new JoinGate(new ProgressionLimitsConfig(1, List.of(), true), NO_DISABLED_WORLDS);
-    PlayerJobState existing = state(job("farmer"));
+  void noSlotGroupsMeansUnlimited() {
+    JoinGate gate = gate(List.of(), true, NO_DISABLED_WORLDS);
     assertEquals(
-        JoinResult.MAX_JOBS,
-        gate.canJoin(permittedPlayer(true, "world"), job("miner"), List.of(existing)));
+        JoinResult.ALLOWED,
+        gate.canJoin(
+            permittedPlayer(true, "world"),
+            job("miner"),
+            List.of(state("farmer"), state("builder"), state("fisher"))));
+  }
+
+  @Test
+  void slotGroupsCountOnlyTheirOwnMembers() {
+    JoinGate gate = gate(PRIMARY_SECONDARY, true, NO_DISABLED_WORLDS);
+    // One primary + the secondary held: the second primary slot is still free.
+    assertEquals(
+        JoinResult.ALLOWED,
+        gate.canJoin(
+            permittedPlayer(true, "world"),
+            job("logger"),
+            List.of(state("miner"), state("fisher"))));
+  }
+
+  @Test
+  void fullGroupRefusesAnotherMember() {
+    JoinGate gate = gate(PRIMARY_SECONDARY, true, NO_DISABLED_WORLDS);
+    assertEquals(
+        JoinResult.SLOTS_FULL,
+        gate.canJoin(
+            permittedPlayer(true, "world"),
+            job("harvester"),
+            List.of(state("miner"), state("logger"))));
+    assertEquals(
+        JoinResult.SLOTS_FULL,
+        gate.canJoin(permittedPlayer(true, "world"), job("cook"), List.of(state("fisher"))));
+  }
+
+  @Test
+  void jobOutsideEveryGroupIsRefused() {
+    JoinGate gate = gate(PRIMARY_SECONDARY, true, NO_DISABLED_WORLDS);
+    assertEquals(
+        JoinResult.NO_SLOT, gate.canJoin(permittedPlayer(true, "world"), job("hunter"), List.of()));
+  }
+
+  @Test
+  void swapFreesTheGivenUpSlot() {
+    JoinGate gate = gate(PRIMARY_SECONDARY, true, NO_DISABLED_WORLDS);
+    List<PlayerJobState> full = List.of(state("miner"), state("logger"), state("fisher"));
+    assertEquals(
+        JoinResult.ALLOWED,
+        gate.canSwap(permittedPlayer(true, "world"), job("logger"), job("harvester"), full));
+    assertEquals(
+        JoinResult.ALLOWED,
+        gate.canSwap(permittedPlayer(true, "world"), job("fisher"), job("cook"), full));
+  }
+
+  @Test
+  void swapIntoAnotherFullGroupIsRefused() {
+    JoinGate gate = gate(PRIMARY_SECONDARY, true, NO_DISABLED_WORLDS);
+    List<PlayerJobState> full = List.of(state("miner"), state("logger"), state("fisher"));
+    // Giving up the secondary does not free a primary slot.
+    assertEquals(
+        JoinResult.SLOTS_FULL,
+        gate.canSwap(permittedPlayer(true, "world"), job("fisher"), job("harvester"), full));
   }
 
   @Test
   void deniesWhenPerJobPermissionMissing() {
-    JoinGate gate =
-        new JoinGate(new ProgressionLimitsConfig(5, List.of(), true), NO_DISABLED_WORLDS);
+    JoinGate gate = gate(PRIMARY_SECONDARY, true, NO_DISABLED_WORLDS);
     assertEquals(
         JoinResult.PERMISSION_DENIED,
         gate.canJoin(permittedPlayer(false, "world"), job("miner"), List.of()));
   }
 
   @Test
-  void unlimitedMaxJobsDoesNotGate() {
-    JoinGate gate =
-        new JoinGate(new ProgressionLimitsConfig(0, List.of(), true), NO_DISABLED_WORLDS);
-    PlayerJobState a = state(job("farmer"));
-    PlayerJobState b = state(job("builder"));
-    assertEquals(
-        JoinResult.ALLOWED,
-        gate.canJoin(permittedPlayer(true, "world"), job("miner"), List.of(a, b)));
-  }
-
-  @Test
   void permissionCheckLowercasesJobName() {
-    JoinGate gate =
-        new JoinGate(new ProgressionLimitsConfig(5, List.of(), true), NO_DISABLED_WORLDS);
+    JoinGate gate = gate(List.of(), true, NO_DISABLED_WORLDS);
     assertEquals(
         JoinResult.ALLOWED, gate.canJoin(permittedPlayer(true, "world"), job("Miner"), List.of()));
   }
 
   @Test
   void worldRestrictionRejectsDisabledWorldCaseInsensitively() {
-    JoinGate gate = new JoinGate(new ProgressionLimitsConfig(5, List.of(), true), Set.of("nether"));
+    JoinGate gate = gate(List.of(), true, Set.of("nether"));
     assertEquals(
         JoinResult.WORLD_DENIED,
         gate.canJoin(permittedPlayer(true, "NETHER"), job("miner"), List.of()));
@@ -75,23 +124,16 @@ class JoinGateTest {
 
   @Test
   void worldRestrictionAllowsNonDisabledWorld() {
-    JoinGate gate = new JoinGate(new ProgressionLimitsConfig(5, List.of(), true), Set.of("nether"));
+    JoinGate gate = gate(List.of(), true, Set.of("nether"));
     assertEquals(
         JoinResult.ALLOWED, gate.canJoin(permittedPlayer(true, "world"), job("miner"), List.of()));
   }
 
   @Test
   void worldRestrictionDisabledBypassesWorldList() {
-    JoinGate gate =
-        new JoinGate(new ProgressionLimitsConfig(5, List.of(), false), Set.of("nether"));
+    JoinGate gate = gate(List.of(), false, Set.of("nether"));
     assertEquals(
         JoinResult.ALLOWED, gate.canJoin(permittedPlayer(true, "NETHER"), job("miner"), List.of()));
-  }
-
-  @Test
-  void defaultsLocaleRoundTrip() {
-    // Guards against accidental locale-dependent permission building.
-    assertEquals("jobs.join.miner", "jobs.join." + "Miner".toLowerCase(Locale.ROOT));
   }
 
   private static @NotNull Player permittedPlayer(boolean permitted, @NotNull String worldName) {
@@ -124,6 +166,10 @@ class JoinGateTest {
         });
   }
 
+  private static @NotNull JobKey key(@NotNull String name) {
+    return new JobKey(Key.key("modularjobs", name.toLowerCase(Locale.ROOT)));
+  }
+
   private static @NotNull Job job(@NotNull String name) {
     ClassLoader loader = Thread.currentThread().getContextClassLoader();
     return (Job)
@@ -135,26 +181,24 @@ class JoinGateTest {
                 return name;
               }
               if (method.getName().equals("jobKey")) {
-                return new dev.mintychochip.JobKey(
-                    net.kyori.adventure.key.Key.key("modularjobs", name.toLowerCase(Locale.ROOT)));
+                return key(name);
               }
               if (method.getName().equals("key")) {
-                return net.kyori.adventure.key.Key.key(
-                    "modularjobs", name.toLowerCase(Locale.ROOT));
+                return key(name).key();
               }
               return defaultValue(method.getReturnType());
             });
   }
 
-  private static @NotNull PlayerJobState state(@NotNull Job job) {
+  private static @NotNull PlayerJobState state(@NotNull String jobName) {
     ClassLoader loader = Thread.currentThread().getContextClassLoader();
     return (PlayerJobState)
         java.lang.reflect.Proxy.newProxyInstance(
             loader,
             new Class<?>[] {PlayerJobState.class},
             (proxy, method, args) -> {
-              if (method.getName().equals("job")) {
-                return job;
+              if (method.getName().equals("jobKey")) {
+                return key(jobName);
               }
               return defaultValue(method.getReturnType());
             });

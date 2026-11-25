@@ -9,6 +9,7 @@ import dev.mintychochip.domain.JobResolver;
 import dev.mintychochip.service.JobService;
 import dev.mintychochip.service.JoinGate;
 import dev.mintychochip.service.JoinGate.JoinResult;
+import dev.mintychochip.service.JoinRefusals;
 import dev.mintychochip.util.Messages;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import io.papermc.paper.command.brigadier.Commands;
@@ -90,25 +91,8 @@ public final class JoinCommand implements JobsCommand {
                       List<PlayerJobState> current =
                           jobService.getPlayerJobStates(player.getUniqueId());
                       JoinResult result = joinGate.canJoin(player, job, current);
-                      switch (result) {
-                        case MAX_JOBS ->
-                            Messages.send(
-                                player,
-                                "<error>You reached the maximum number of jobs you can join.");
-                        case PERMISSION_DENIED ->
-                            Messages.send(
-                                player,
-                                "<error>You do not have permission to join</error> <secondary>"
-                                    + job.getPlainName()
-                                    + "</secondary><error>.</error>");
-                        case WORLD_DENIED ->
-                            Messages.send(
-                                player, "<error>You cannot join jobs while in this world.");
-                        default -> {
-                          // proceed
-                        }
-                      }
                       if (result != JoinResult.ALLOWED) {
+                        Messages.send(player, JoinRefusals.message(result, job, joinGate, current));
                         return Command.SINGLE_SUCCESS;
                       }
 

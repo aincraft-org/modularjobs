@@ -209,6 +209,12 @@ class CraftRecipeContentValidatorTest {
     }
 
     @Override
+    public boolean swapJob(
+        @NotNull String playerId, @NotNull String fromJobKey, @NotNull String toJobKey) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
     public @NotNull PlayerJobState getPlayerJobState(
         @NotNull String playerId, @NotNull String jobKey) {
       throw new UnsupportedOperationException();

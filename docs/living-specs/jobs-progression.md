@@ -68,7 +68,8 @@ reliable multi-payable accumulation under concurrency.
 - [x] Admin level/exp gated; production permission tree
 - [x] PlaceholderAPI soft-depend expansion
 - [x] PlaceholderAPI expansion: full `modular` placeholder set (level/experience/jobs/totallevels/maxjobs/name/description/isin/canjoin/…)
-- [x] Join limits: max-jobs, per-job `jobs.join.<job>` permission, world join restriction, auto-join on login
+- [x] Join limits: slot groups (`progression-limits.slot-groups`), per-job `jobs.join.<job>` permission, world join restriction, auto-join on login
+- [x] On-hold jobs and `/jobs swap`, with `JobSwapRequestEvent` (cancellable) / `JobSwapEvent` for listeners that price or pace swaps
 - [x] Config-driven level-up commands (`level-up-commands` in config.yml)
 - [x] Recipe experience depreciation for registered craft recipes (profession level vs required level)
 - [x] Startup cross-validation: craft job tasks ↔ `recipes.yml` (separate canonical files)
@@ -103,6 +104,7 @@ tree state back into per-node rows.
 | 2026-08-21 | Warn-only craft task ↔ `recipes.yml` cross-validation | Separate canonical files; catch drift at startup (`content-validation.craft-recipes`) |
 | 2026-08-31 | `Job` is the complete tree; `PlayerJobState` owns active node + tree XP | Separate immutable definition from player state and preserve progress across specializations |
 | 2026-08-31 | Nearest descendant task replaces matching ancestor task | Deterministic specialization inheritance without merging reward fragments |
+| 2026-11-24 | Slot groups replace `max-jobs`; leave = on hold; swaps and held-job re-activation fire `JobSwapRequestEvent`/`JobSwapEvent` | Aeternos primary/secondary professions; price and cooldown stay with the server's listener |
 
 ## Open questions
 

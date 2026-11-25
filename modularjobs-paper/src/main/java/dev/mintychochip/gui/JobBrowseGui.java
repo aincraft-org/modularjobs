@@ -1,10 +1,12 @@
 package dev.mintychochip.gui;
 
 import dev.mintychochip.Job;
+import dev.mintychochip.PlayerJobState;
 import dev.mintychochip.gui.JobBrowseModel.Entry;
 import dev.mintychochip.gui.JobBrowseModel.Reward;
 import dev.mintychochip.service.JobService;
 import dev.mintychochip.service.JoinGate;
+import dev.mintychochip.service.JoinRefusals;
 import dev.mintychochip.util.Messages;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -85,21 +87,11 @@ public final class JobBrowseGui {
         player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_BASS, 0.5f, 1.0f);
         return;
       }
-      JoinGate.JoinResult result =
-          joinGate.canJoin(
-              player, jobService.getJob(jobKey), jobService.getPlayerJobStates(audience));
+      Job job = jobService.getJob(jobKey);
+      List<PlayerJobState> current = jobService.getPlayerJobStates(audience);
+      JoinGate.JoinResult result = joinGate.canJoin(player, job, current);
       if (result != JoinGate.JoinResult.ALLOWED) {
-        Messages.send(
-            player,
-            switch (result) {
-              case MAX_JOBS -> "<error>You reached the maximum number of jobs you can join.";
-              case PERMISSION_DENIED ->
-                  "<error>You do not have permission to join</error> <secondary>"
-                      + name
-                      + "</secondary><error>.</error>";
-              case WORLD_DENIED -> "<error>You cannot join jobs while in this world.";
-              case ALLOWED -> "";
-            });
+        Messages.send(player, JoinRefusals.message(result, job, joinGate, current));
         player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_BASS, 0.5f, 1.0f);
         return;
       }

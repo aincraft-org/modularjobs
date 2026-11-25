@@ -91,7 +91,7 @@
 | Leave/rejoin | 🟡 archive + intact restore; ❌ no configurable exp/level loss |
 | Level-up sounds | ✅ `JobLevelUpListener` (sounds + title) |
 | Level-up commands | ✅ config-driven `level-up-commands` (2026-08-18) |
-| Max jobs limit (`jobs.max`) | ✅ `progression-limits.max-jobs` (2026-08-18) |
+| Max jobs limit (`jobs.max`) | ✅ `progression-limits.slot-groups`, per-group slot counts (2026-11-24; was `max-jobs`) |
 | Per-job join permission (`jobs.join.<job>`) | ✅ `jobs.join.<job>` checked (2026-08-18) |
 | World join restrictions (`jobs.world.<world>`) | ✅ world join restriction via disabled-worlds (2026-08-18) |
 | VIP max level | ❌ |

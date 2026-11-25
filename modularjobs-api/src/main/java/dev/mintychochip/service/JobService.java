@@ -73,7 +73,9 @@ public interface JobService {
   boolean update(@NotNull PlayerJobState state);
 
   /**
-   * Adds the given player to the given job.
+   * Adds the given player to the given job. A job on hold (archived) comes back with its kept
+   * progress; that re-activation first fires a cancellable {@code JobSwapRequestEvent} and, once
+   * done, a {@code JobSwapEvent}. A first join of a job fires neither.
    *
    * @param playerId the player identifier
    * @param jobKey the job key
@@ -83,13 +85,28 @@ public interface JobService {
   boolean joinJob(@NotNull String playerId, @NotNull String jobKey);
 
   /**
-   * Removes the given player from the given job.
+   * Puts the given job on hold: its level and experience move to the archive and come back on the
+   * next join.
    *
    * @param playerId the player identifier
    * @param jobKey the job key
    * @return {@code true} if the player left, {@code false} otherwise
    */
   boolean leaveJob(@NotNull String playerId, @NotNull String jobKey);
+
+  /**
+   * Puts the active job {@code fromJobKey} on hold and makes {@code toJobKey} active in one step,
+   * so a full slot group can change members. Fires a cancellable {@code JobSwapRequestEvent} before
+   * any change and a {@code JobSwapEvent} after it. If {@code to} cannot be activated, {@code from}
+   * is restored.
+   *
+   * @param playerId the player identifier
+   * @param fromJobKey an active job of the player
+   * @param toJobKey a job the player does not hold active
+   * @return {@code true} if the swap completed, {@code false} otherwise
+   * @throws IllegalArgumentException if either job key is unknown
+   */
+  boolean swapJob(@NotNull String playerId, @NotNull String fromJobKey, @NotNull String toJobKey);
 
   /** Returns the player's state in the requested job tree, or {@code null} if absent or unknown. */
   @Nullable

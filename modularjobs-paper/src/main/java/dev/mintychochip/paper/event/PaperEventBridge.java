@@ -4,6 +4,8 @@ import dev.mintychochip.event.JobExperienceGainEvent;
 import dev.mintychochip.event.JobJoinEvent;
 import dev.mintychochip.event.JobLeaveEvent;
 import dev.mintychochip.event.JobLevelEvent;
+import dev.mintychochip.event.JobSwapEvent;
+import dev.mintychochip.event.JobSwapRequestEvent;
 import dev.mintychochip.event.JobsPaymentEvent;
 import dev.mintychochip.event.JobsPrePaymentEvent;
 import java.util.Objects;
@@ -53,6 +55,26 @@ public final class PaperEventBridge {
     bus.post(pure);
     if (playerForBukkit != null) {
       Bukkit.getPluginManager().callEvent(new BukkitJobLeaveEvent(playerForBukkit, pure));
+    }
+    return pure;
+  }
+
+  /** Publish swap request; read {@link JobSwapRequestEvent#isCancelled()} afterwards. */
+  public @NotNull JobSwapRequestEvent publishSwapRequest(
+      @NotNull JobSwapRequestEvent pure, @Nullable Player playerForBukkit) {
+    bus.post(pure);
+    if (playerForBukkit != null) {
+      Bukkit.getPluginManager().callEvent(new BukkitJobSwapRequestEvent(playerForBukkit, pure));
+    }
+    return pure;
+  }
+
+  /** Publish completed swap. */
+  public @NotNull JobSwapEvent publishSwap(
+      @NotNull JobSwapEvent pure, @Nullable Player playerForBukkit) {
+    bus.post(pure);
+    if (playerForBukkit != null) {
+      Bukkit.getPluginManager().callEvent(new BukkitJobSwapEvent(playerForBukkit, pure));
     }
     return pure;
   }
