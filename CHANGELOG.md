@@ -28,8 +28,9 @@
   A left job is on hold (archived, level and experience kept).
   `/jobs swap <from> <to>` (`jobs.command.swap`, `JobService.swapJob`) changes a
   member of a full group. `JobSwapRequestEvent` (cancellable) fires before a
-  swap or before a held job comes back; `JobSwapEvent` fires after. Both have
-  Bukkit wrappers.
+  swap, before a held job comes back, and before a join into a group where the
+  player has a job on hold (leave + join counts as a swap); `JobSwapEvent`
+  fires after. Both have Bukkit wrappers.
 
 ### Changed
 

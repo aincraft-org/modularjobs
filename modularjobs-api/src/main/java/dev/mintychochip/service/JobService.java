@@ -74,8 +74,9 @@ public interface JobService {
 
   /**
    * Adds the given player to the given job. A job on hold (archived) comes back with its kept
-   * progress; that re-activation first fires a cancellable {@code JobSwapRequestEvent} and, once
-   * done, a {@code JobSwapEvent}. A first join of a job fires neither.
+   * progress. That re-activation, and a join into a slot group where the player has a job on hold
+   * (leave then join is a swap), first fires a cancellable {@code JobSwapRequestEvent} and, once
+   * done, a {@code JobSwapEvent}. Any other join of a new job fires neither.
    *
    * @param playerId the player identifier
    * @param jobKey the job key

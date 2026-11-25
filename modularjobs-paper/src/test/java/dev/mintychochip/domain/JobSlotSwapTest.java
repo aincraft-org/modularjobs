@@ -176,6 +176,33 @@ class JobSlotSwapTest {
     assertNull(states.loadArchived(id, "modularjobs:miner"));
   }
 
+  @Test
+  void leavingThenJoiningAnotherGroupMemberIsSwap() {
+    jobs.joinJob(id, "modularjobs:miner");
+    jobs.joinJob(id, "modularjobs:fisher");
+    assertTrue(jobs.leaveJob(id, "modularjobs:miner"));
+    refuse.set(true);
+
+    assertFalse(jobs.joinJob(id, "modularjobs:logger"), "leave + join is a swap");
+    assertNull(requests.get(0).getFrom());
+    assertFalse(requests.get(0).isReactivation(), "logger is new: no re-activation price");
+    assertNull(jobs.getPlayerJobState(id, "modularjobs:logger"));
+
+    refuse.set(false);
+    assertTrue(jobs.joinJob(id, "modularjobs:logger"));
+    assertEquals(1, swaps.size());
+    assertEquals(2, requests.size());
+  }
+
+  @Test
+  void jobOnHoldInAnotherGroupLeavesJoinFree() {
+    jobs.joinJob(id, "modularjobs:fisher");
+    assertTrue(jobs.leaveJob(id, "modularjobs:fisher"));
+
+    assertTrue(jobs.joinJob(id, "modularjobs:miner"), "a held secondary frees no primary slot");
+    assertTrue(requests.isEmpty());
+  }
+
   /** In-memory store standing in for the live and archive tables. */
   private static final class MemoryStates implements PlayerJobStateRepository {
 

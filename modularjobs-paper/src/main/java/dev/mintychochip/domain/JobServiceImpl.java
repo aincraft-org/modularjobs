@@ -6,6 +6,7 @@ import dev.mintychochip.JobNode;
 import dev.mintychochip.JobNodeKey;
 import dev.mintychochip.JobTask;
 import dev.mintychochip.PlayerJobState;
+import dev.mintychochip.config.ProgressionLimitsConfig.SlotGroup;
 import dev.mintychochip.container.ActionType;
 import dev.mintychochip.container.Context;
 import dev.mintychochip.container.PayableType;
@@ -248,11 +249,13 @@ final class JobServiceImpl implements JobService {
     }
 
     PaperEventBridge events = new PaperEventBridge(Bridge.bridge().eventBus());
-    // Re-activating a job on hold is a slot change listeners may price or refuse.
+    // A slot change listeners may price or refuse: re-activating a job on hold, or filling a slot
+    // the player emptied by putting a job of the same group on hold (leave + join = swap).
     boolean reactivation = playerJobStateService.loadArchived(playerId, treeKey) != null;
-    if (reactivation
+    boolean slotChange = reactivation || holdsJobInGroup(playerId, job);
+    if (slotChange
         && events
-            .publishSwapRequest(new JobSwapRequestEvent(uuid, null, job, true), player)
+            .publishSwapRequest(new JobSwapRequestEvent(uuid, null, job, reactivation), player)
             .isCancelled()) {
       return false;
     }
@@ -260,10 +263,24 @@ final class JobServiceImpl implements JobService {
     if (state == null) {
       return false;
     }
-    if (reactivation) {
-      events.publishSwap(new JobSwapEvent(null, job, state, true), player);
+    if (slotChange) {
+      events.publishSwap(new JobSwapEvent(null, job, state, reactivation), player);
     }
     return true;
+  }
+
+  /** Whether the player has a job of {@code job}'s slot group on hold. */
+  private boolean holdsJobInGroup(@NotNull String playerId, @NotNull Job job) {
+    SlotGroup group = joinGate.slotGroup(job);
+    if (group == null) {
+      return false;
+    }
+    List<PlayerJobState> held =
+        playerJobStateService.loadAllArchivedForPlayer(playerId, 100).stream()
+            .map(this::toState)
+            .filter(Objects::nonNull)
+            .toList();
+    return joinGate.used(group, held) > 0;
   }
 
   @Override

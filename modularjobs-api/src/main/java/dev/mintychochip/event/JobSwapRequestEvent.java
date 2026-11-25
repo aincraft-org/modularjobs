@@ -9,7 +9,8 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * Fired before a slot change that is not a free first join: a swap of one active job for another,
- * or the re-activation of an on-hold (archived) job into a free slot.
+ * the re-activation of an on-hold (archived) job, or a join into a slot group where the player has
+ * a job on hold (leave then join is a swap).
  *
  * <p>Nothing has changed when this fires. Cancelling it refuses the change; the canceller tells the
  * player why. Listeners use it to charge a swap price or hold a cooldown and confirm the charge on
