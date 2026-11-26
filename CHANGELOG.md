@@ -26,11 +26,11 @@
 - Job slot groups (`progression-limits.slot-groups`, for example `primary: 2`,
   `secondary: 1`): each group caps how many of its jobs a player holds active.
   A left job is on hold (archived, level and experience kept).
-  `/jobs swap <from> <to>` (`jobs.command.swap`, `JobService.swapJob`) changes a
-  member of a full group. `JobSwapRequestEvent` (cancellable) fires before a
-  swap, before a held job comes back, and before a join into a group where the
-  player has a job on hold (leave + join counts as a swap); `JobSwapEvent`
-  fires after. Both have Bukkit wrappers.
+  To change a member of a full group, leave one job and join another (in
+  `/jobs browse` or with `/jobs join`); there is no swap command.
+  `JobSwapRequestEvent` (cancellable) fires before a held job comes back and
+  before a join into a group where the player has a job on hold (leave + join
+  counts as a swap); `JobSwapEvent` fires after. Both have Bukkit wrappers.
 
 ### Changed
 

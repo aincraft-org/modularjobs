@@ -95,20 +95,6 @@ public interface JobService {
    */
   boolean leaveJob(@NotNull String playerId, @NotNull String jobKey);
 
-  /**
-   * Puts the active job {@code fromJobKey} on hold and makes {@code toJobKey} active in one step,
-   * so a full slot group can change members. Fires a cancellable {@code JobSwapRequestEvent} before
-   * any change and a {@code JobSwapEvent} after it. If {@code to} cannot be activated, {@code from}
-   * is restored.
-   *
-   * @param playerId the player identifier
-   * @param fromJobKey an active job of the player
-   * @param toJobKey a job the player does not hold active
-   * @return {@code true} if the swap completed, {@code false} otherwise
-   * @throws IllegalArgumentException if either job key is unknown
-   */
-  boolean swapJob(@NotNull String playerId, @NotNull String fromJobKey, @NotNull String toJobKey);
-
   /** Returns the player's state in the requested job tree, or {@code null} if absent or unknown. */
   @Nullable
   PlayerJobState getPlayerJobState(@NotNull String playerId, @NotNull String jobKey);

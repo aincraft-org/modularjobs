@@ -12,8 +12,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Enforces join eligibility for {@code /jobs join}, {@code /jobs swap} and every browse renderer's
- * join action.
+ * Enforces join eligibility for {@code /jobs join} and every browse renderer's join action.
  *
  * <p>Rules, first violation wins: with slot groups configured, the job must belong to a group
  * ({@link JoinResult#NO_SLOT}) that still has a free slot ({@link JoinResult#SLOTS_FULL}); the
@@ -90,21 +89,5 @@ public final class JoinGate {
       return JoinResult.WORLD_DENIED;
     }
     return JoinResult.ALLOWED;
-  }
-
-  /**
-   * Checks whether {@code player} may put {@code from} on hold and make {@code to} active: the join
-   * rules for {@code to} with {@code from}'s slot already free.
-   *
-   * @param current the player's current (non-archived) job states, {@code from} included
-   */
-  public @NotNull JoinResult canSwap(
-      @NotNull Player player,
-      @NotNull Job from,
-      @NotNull Job to,
-      @NotNull List<PlayerJobState> current) {
-    List<PlayerJobState> remaining =
-        current.stream().filter(state -> !state.jobKey().equals(from.jobKey())).toList();
-    return canJoin(player, to, remaining);
   }
 }

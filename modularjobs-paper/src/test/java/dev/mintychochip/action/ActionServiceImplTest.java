@@ -416,12 +416,6 @@ class ActionServiceImplTest {
     }
 
     @Override
-    public boolean swapJob(
-        @NotNull String playerId, @NotNull String fromJobKey, @NotNull String toJobKey) {
-      return false;
-    }
-
-    @Override
     public @NotNull PlayerJobState getPlayerJobState(
         @NotNull String playerId, @NotNull String jobKey) {
       throw new UnsupportedOperationException("not used");

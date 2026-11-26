@@ -78,28 +78,6 @@ class JoinGateTest {
   }
 
   @Test
-  void swapFreesTheGivenUpSlot() {
-    JoinGate gate = gate(PRIMARY_SECONDARY, true, NO_DISABLED_WORLDS);
-    List<PlayerJobState> full = List.of(state("miner"), state("logger"), state("fisher"));
-    assertEquals(
-        JoinResult.ALLOWED,
-        gate.canSwap(permittedPlayer(true, "world"), job("logger"), job("harvester"), full));
-    assertEquals(
-        JoinResult.ALLOWED,
-        gate.canSwap(permittedPlayer(true, "world"), job("fisher"), job("cook"), full));
-  }
-
-  @Test
-  void swapIntoAnotherFullGroupIsRefused() {
-    JoinGate gate = gate(PRIMARY_SECONDARY, true, NO_DISABLED_WORLDS);
-    List<PlayerJobState> full = List.of(state("miner"), state("logger"), state("fisher"));
-    // Giving up the secondary does not free a primary slot.
-    assertEquals(
-        JoinResult.SLOTS_FULL,
-        gate.canSwap(permittedPlayer(true, "world"), job("fisher"), job("harvester"), full));
-  }
-
-  @Test
   void deniesWhenPerJobPermissionMissing() {
     JoinGate gate = gate(PRIMARY_SECONDARY, true, NO_DISABLED_WORLDS);
     assertEquals(

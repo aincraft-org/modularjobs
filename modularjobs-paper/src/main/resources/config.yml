@@ -78,8 +78,8 @@ level-up-commands: []
 #   primary:   { slots: 2, jobs: [miner, logger, harvester] }
 #   secondary: { slots: 1, jobs: [fisher] }
 #   Jobs are root key values. With no groups, joins are unlimited; with groups, a job
-#   outside every group cannot be joined. /jobs swap <from> <to> changes a member of a
-#   full group; the old job goes on hold (archived) with its level and experience kept.
+#   outside every group cannot be joined. To change a member of a full group, leave
+#   one (it goes on hold, level and experience kept), then join the other.
 # auto-join-jobs: joined on login if not already in them.
 # world-join-restriction: reject joining while in a payout disabled-world.
 progression-limits:

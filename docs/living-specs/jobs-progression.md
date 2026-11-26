@@ -69,7 +69,7 @@ reliable multi-payable accumulation under concurrency.
 - [x] PlaceholderAPI soft-depend expansion
 - [x] PlaceholderAPI expansion: full `modular` placeholder set (level/experience/jobs/totallevels/maxjobs/name/description/isin/canjoin/…)
 - [x] Join limits: slot groups (`progression-limits.slot-groups`), per-job `jobs.join.<job>` permission, world join restriction, auto-join on login
-- [x] On-hold jobs and `/jobs swap`, with `JobSwapRequestEvent` (cancellable) / `JobSwapEvent` for listeners that price or pace swaps
+- [x] On-hold jobs (leave, then join another; no swap command), with `JobSwapRequestEvent` (cancellable) / `JobSwapEvent` for listeners that price or pace swaps
 - [x] Config-driven level-up commands (`level-up-commands` in config.yml)
 - [x] Recipe experience depreciation for registered craft recipes (profession level vs required level)
 - [x] Startup cross-validation: craft job tasks ↔ `recipes.yml` (separate canonical files)

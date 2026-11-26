@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import dev.mintychochip.BridgeFixture;
-import dev.mintychochip.PlayerJobState;
 import dev.mintychochip.config.ProgressionLimitsConfig;
 import dev.mintychochip.config.ProgressionLimitsConfig.SlotGroup;
 import dev.mintychochip.domain.model.JobRecord;
@@ -18,7 +17,6 @@ import dev.mintychochip.event.JobSwapRequestEvent;
 import dev.mintychochip.registry.SimpleRegistryImpl;
 import dev.mintychochip.service.JoinGate;
 import dev.mintychochip.test.MockBukkitSupport;
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -107,56 +105,6 @@ class JobSlotSwapTest {
     assertTrue(jobs.joinJob(id, "modularjobs:fisher"), "the secondary slot is separate");
     assertFalse(jobs.joinJob(id, "modularjobs:harvester"), "both primary slots are full");
     assertTrue(requests.isEmpty(), "first joins are free and fire no swap request");
-  }
-
-  @Test
-  void swapPutsTheOldJobOnHoldAndBringsItBackWithItsExperience() {
-    jobs.joinJob(id, "modularjobs:miner");
-    jobs.joinJob(id, "modularjobs:logger");
-    PlayerJobState logger = jobs.getPlayerJobState(id, "modularjobs:logger");
-    assertNotNull(logger);
-    BigDecimal earned = new BigDecimal("950");
-    states.save(new PlayerJobStateRecord(id, "modularjobs:logger", "modularjobs:logger", earned));
-
-    assertTrue(jobs.swapJob(id, "modularjobs:logger", "modularjobs:harvester"));
-    assertNull(jobs.getPlayerJobState(id, "modularjobs:logger"));
-    assertNotNull(states.loadArchived(id, "modularjobs:logger"), "logger is on hold");
-    assertNotNull(jobs.getPlayerJobState(id, "modularjobs:harvester"));
-    assertEquals(1, requests.size());
-    assertEquals("logger", requests.get(0).getFrom().key().value());
-    assertFalse(requests.get(0).isReactivation(), "harvester is new");
-    assertEquals(1, swaps.size());
-
-    assertTrue(jobs.swapJob(id, "modularjobs:harvester", "modularjobs:logger"));
-    assertTrue(requests.get(1).isReactivation());
-    assertTrue(swaps.get(1).isReactivation());
-    assertEquals(
-        0, earned.compareTo(jobs.getPlayerJobState(id, "modularjobs:logger").experience()));
-    assertNotNull(states.loadArchived(id, "modularjobs:harvester"), "harvester is on hold");
-  }
-
-  @Test
-  void refusedSwapChangesNothing() {
-    jobs.joinJob(id, "modularjobs:miner");
-    jobs.joinJob(id, "modularjobs:logger");
-    refuse.set(true);
-
-    assertFalse(jobs.swapJob(id, "modularjobs:logger", "modularjobs:harvester"));
-    assertNotNull(jobs.getPlayerJobState(id, "modularjobs:logger"));
-    assertNull(jobs.getPlayerJobState(id, "modularjobs:harvester"));
-    assertNull(states.loadArchived(id, "modularjobs:logger"));
-    assertTrue(swaps.isEmpty());
-  }
-
-  @Test
-  void swapIntoFullOtherGroupIsRefusedBeforeAnyEvent() {
-    jobs.joinJob(id, "modularjobs:miner");
-    jobs.joinJob(id, "modularjobs:logger");
-    jobs.joinJob(id, "modularjobs:fisher");
-
-    assertFalse(jobs.swapJob(id, "modularjobs:fisher", "modularjobs:harvester"));
-    assertNotNull(jobs.getPlayerJobState(id, "modularjobs:fisher"));
-    assertTrue(requests.isEmpty());
   }
 
   @Test

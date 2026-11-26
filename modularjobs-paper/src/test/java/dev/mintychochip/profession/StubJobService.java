@@ -84,12 +84,6 @@ final class StubJobService implements JobService {
   }
 
   @Override
-  public boolean swapJob(
-      @NotNull String playerId, @NotNull String fromJobKey, @NotNull String toJobKey) {
-    return false;
-  }
-
-  @Override
   public @Nullable PlayerJobState getPlayerJobState(
       @NotNull String playerId, @NotNull String jobKey) {
     lastProgressionKey = jobKey;

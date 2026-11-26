@@ -39,9 +39,6 @@ permissions:
   jobs.command.leaveall:
     description: Leave all jobs at once
     default: true
-  jobs.command.swap:
-    description: Swap an active job for another (/jobs swap <from> <to>); the old one goes on hold
-    default: true
   jobs.command.admin.boost:
     description: Manage timed and item boosts (alias of modularjobs.admin)
     default: op

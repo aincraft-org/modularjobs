@@ -305,56 +305,6 @@ final class JobServiceImpl implements JobService {
     return playerJobStateService.archive(playerId, rootRecord.jobKey());
   }
 
-  @Override
-  public boolean swapJob(
-      @NotNull String playerId, @NotNull String fromJobKey, @NotNull String toJobKey) {
-    JobRecord fromRoot = jobRepository.rootFor(fromJobKey);
-    JobRecord toRoot = jobRepository.rootFor(toJobKey);
-    if (fromRoot == null || toRoot == null) {
-      throw new IllegalArgumentException("failed to swap jobs, a job does not exist");
-    }
-    Job from = toJob(fromRoot);
-    Job to = toJob(toRoot);
-    String fromTree = from.jobKey().asString();
-    String toTree = to.jobKey().asString();
-    if (fromTree.equals(toTree) || playerJobStateService.load(playerId, toTree) != null) {
-      return false;
-    }
-    PlayerJobStateRecord fromRecord = playerJobStateService.load(playerId, fromTree);
-    PlayerJobState fromState = fromRecord == null ? null : toState(fromRecord);
-    if (fromState == null) {
-      return false;
-    }
-
-    UUID uuid = UUID.fromString(playerId);
-    Player player = Bukkit.getPlayer(uuid);
-    if (player != null
-        && joinGate.canSwap(player, from, to, activeStates(playerId))
-            != JoinGate.JoinResult.ALLOWED) {
-      return false;
-    }
-
-    PaperEventBridge events = new PaperEventBridge(Bridge.bridge().eventBus());
-    boolean reactivation = playerJobStateService.loadArchived(playerId, toTree) != null;
-    if (events
-        .publishSwapRequest(new JobSwapRequestEvent(uuid, from, to, reactivation), player)
-        .isCancelled()) {
-      return false;
-    }
-    events.publishLeave(new JobLeaveEvent(from, fromState), player);
-    if (!playerJobStateService.archive(playerId, fromTree)) {
-      return false;
-    }
-    PlayerJobState toState = activate(uuid, to, reactivation, player, events);
-    if (toState == null) {
-      // A failed activation must not cost the player the job they gave up.
-      activate(uuid, from, true, player, events);
-      return false;
-    }
-    events.publishSwap(new JobSwapEvent(from, to, toState, reactivation), player);
-    return true;
-  }
-
   private @NotNull List<PlayerJobState> activeStates(@NotNull String playerId) {
     return playerJobStateService.loadAllForPlayer(playerId, 100).stream()
         .map(this::toState)

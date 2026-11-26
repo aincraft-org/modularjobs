@@ -5,7 +5,6 @@ import dev.mintychochip.PlayerJobState;
 import dev.mintychochip.config.ProgressionLimitsConfig.SlotGroup;
 import dev.mintychochip.service.JoinGate.JoinResult;
 import java.util.List;
-import java.util.Locale;
 import org.jetbrains.annotations.NotNull;
 
 /** Player-facing text for a refused {@link JoinGate} result, shared by commands and the GUI. */
@@ -48,11 +47,9 @@ public final class JoinRefusals {
                 + "/"
                 + group.slots()
                 + ").";
-    // "\\<job>" is an escaped MiniMessage bracket: the player sees the literal <job>.
     return "<error>"
         + detail
-        + "</error> <neutral>Use</neutral> <accent>/jobs swap \\<job> "
-        + job.key().value().toLowerCase(Locale.ROOT)
-        + "</accent> <neutral>to put one on hold.</neutral>";
+        + "</error> <neutral>Leave one of them</neutral> <accent>/jobs leave \\<job></accent>"
+        + " <neutral>to put it on hold, then join.</neutral>";
   }
 }
