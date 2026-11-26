@@ -67,7 +67,7 @@
 | top / gtop | 🟡 per-job `top` (chat + scoreboard); ❌ no global `gtop` |
 | exp/level add/take/set | ✅ `ExperienceCommand` / `LevelCommand` |
 | boost / itemboost / source | ✅ `BoostCommand` / `ItemBoostCommand` / `SourceCommand` |
-| upgrade | ✅ `UpgradesCommand` |
+| upgrade | ❌ no command; the upgrade service has no player UI (servers bring their own) |
 | list | ✅ `ListCommand` |
 | points | ❌ |
 | quests / resetquest / skipquest | ❌ (no quest system) |
@@ -79,7 +79,7 @@
 | reload | 🟡 only boost-source reload; no full reload |
 | area / entitylist / glog | ❌ |
 | Signs (command + leaderboard) | ❌ no sign support |
-| GUI | ✅ native Paper inventories (browse, info, stats, upgrade tree) |
+| GUI | ✅ native Paper inventories (browse, info, stats) |
 
 ## 4. Progression, leveling & limits
 

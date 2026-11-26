@@ -137,7 +137,6 @@ The payment pipeline never retries through the other provider after an unknown o
 | `jobs.command.archive` | true | Own archive |
 | `jobs.command.admin.archive` | op | Others' archive |
 | `jobs.command.leaveall` | true | Leave all jobs |
-| `jobs.command.admin.treeeditor` | op | Upgrade tree editor |
 
 Admin commands (`/jobs boost`, `/jobs editor`, `/jobs applyedits`) require `modularjobs.admin`.
 
@@ -173,8 +172,8 @@ receive no payment.
 ### Integrations and UI
 
 Mint2, Vault, mcMMO, Bolt, LWC, Choco, and PlaceholderAPI are optional integrations.
-ModularJobs uses native Paper inventory screens for browse, info, statistics,
-upgrades, and tree editing. Browse also supports interactive Adventure chat and
+ModularJobs uses native Paper inventory screens for browse, info and statistics.
+It has no upgrade-tree command: servers bring their own tree UI. Browse also supports interactive Adventure chat and
 the native Paper Dialog API through `/jobs browse chat` and `/jobs browse dialog`.
 Native scoreboard sidebars and experience boss bars need no external UI library.
 The external Preferences plugin is not required; when present, it provides a

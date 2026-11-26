@@ -42,9 +42,6 @@ permissions:
   jobs.command.swap:
     description: Swap an active job for another (/jobs swap <from> <to>); the old one goes on hold
     default: true
-  jobs.command.admin.treeeditor:
-    description: Open the upgrade tree editor
-    default: op
   jobs.command.admin.boost:
     description: Manage timed and item boosts (alias of modularjobs.admin)
     default: op

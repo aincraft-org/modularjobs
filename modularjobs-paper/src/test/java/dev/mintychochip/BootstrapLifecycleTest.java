@@ -94,20 +94,15 @@ class BootstrapLifecycleTest {
     assertTrue(
         compact.contains("new JobBrowseGui(paperUiHost")
             && compact.contains("new JobInfoGui(paperUiHost")
-            && compact.contains("new StatsGui(paperUiHost")
-            && compact.contains("new UpgradeTreeGui(paperUiHost"),
-        "browse, info, stats, and upgrade presenters must share the native host");
+            && compact.contains("new StatsGui(paperUiHost"),
+        "browse, info, and stats presenters must share the native host");
     assertTrue(
         compact.contains(
                 "new BrowseCommand(jobBrowseGui, jobBrowseChatRenderer, jobBrowseDialogRenderer)")
             && compact.contains(
                 "new InfoCommand( domain.jobService, domain.jobResolver, preferencesService,"
                     + " payables.renderer, jobInfoGui)")
-            && compact.contains("new StatsCommand(domain.jobService, statsGui, statsChatRenderer)")
-            && compact.contains(
-                "new UpgradesCommand(upgradeService, domain.jobResolver, upgradeTreeGui)")
-            && compact.contains(
-                "new TreeEditorCommand( upgradeService, domain.jobResolver, treeEditorGui"),
+            && compact.contains("new StatsCommand(domain.jobService, statsGui, statsChatRenderer)"),
         "migrated commands must receive their native presenters");
     String top = Files.readString(locate("commands/TopCommand.java"), StandardCharsets.UTF_8);
     String topCompact = top.replaceAll("\\s+", " ");

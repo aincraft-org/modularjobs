@@ -23,8 +23,6 @@ import dev.mintychochip.commands.ListCommand;
 import dev.mintychochip.commands.StatsCommand;
 import dev.mintychochip.commands.SwapCommand;
 import dev.mintychochip.commands.TopCommand;
-import dev.mintychochip.commands.TreeEditorCommand;
-import dev.mintychochip.commands.UpgradesCommand;
 import dev.mintychochip.config.LevelUpCommandsConfig;
 import dev.mintychochip.config.ProgressionLimitsConfig;
 import dev.mintychochip.config.YamlConfiguration;
@@ -92,11 +90,6 @@ import dev.mintychochip.upgrade.UpgradeService;
 import dev.mintychochip.upgrade.UpgradeServiceImpl;
 import dev.mintychochip.upgrade.UpgradeTree;
 import dev.mintychochip.upgrade.config.UpgradeTreeLoader;
-import dev.mintychochip.upgrade.rendering.UpgradeTreeGui;
-import dev.mintychochip.upgrade.rendering.editor.TreeEditorExporter;
-import dev.mintychochip.upgrade.rendering.editor.TreeEditorGui;
-import dev.mintychochip.upgrade.rendering.editor.TreeEditorNodeGui;
-import dev.mintychochip.upgrade.rendering.editor.TreeEditorSettingsGui;
 import dev.mintychochip.util.KeyResolver;
 import dev.mintychochip.util.KeyResolvers;
 import java.sql.SQLException;
@@ -300,19 +293,6 @@ public final class PluginContext {
             domain.jobService,
             effectApplier);
 
-    final UpgradeTreeGui upgradeTreeGui = new UpgradeTreeGui(paperUiHost, upgradeService);
-    TreeEditorExporter treeEditorExporter = new TreeEditorExporter();
-    TreeEditorNodeGui treeEditorNodeGui = new TreeEditorNodeGui(plugin, paperUiHost);
-    TreeEditorSettingsGui treeEditorSettingsGui = new TreeEditorSettingsGui(plugin, paperUiHost);
-    final TreeEditorGui treeEditorGui =
-        new TreeEditorGui(
-            plugin,
-            paperUiHost,
-            treeEditorExporter,
-            upgradeTreeLoader,
-            treeEditorNodeGui,
-            treeEditorSettingsGui);
-
     Registry<BoostSource> boostSourceRegistry = new SimpleRegistryImpl<>();
     BoostSourceLoader boostSourceLoader =
         new BoostSourceLoader(plugin, gson, conditionFactory, boostFactory, boostSourceRegistry);
@@ -391,10 +371,6 @@ public final class PluginContext {
             boostSourceLoader,
             upgradeBoostDataService,
             domain.jobService));
-    commands.add(new UpgradesCommand(upgradeService, domain.jobResolver, upgradeTreeGui));
-    commands.add(
-        new TreeEditorCommand(
-            upgradeService, domain.jobResolver, treeEditorGui, upgradeTreeLoader));
     commands.add(new LevelCommand(domain.jobService, domain.playerJobStateService));
     commands.add(new ExperienceCommand(domain.jobService, domain.playerJobStateService));
 
@@ -409,7 +385,6 @@ public final class PluginContext {
     listenerList.add(new AutoJoinListener(domain.jobService, progressionLimits));
     // Native PaperUiHost owns info/stats navigation and close callbacks.
     listenerList.add(new UpgradeLevelUpListener(upgradeService, skillTreeRegistry));
-    // UpgradeTreeGui clicks are dispatched by the native PaperUiHost.
     listenerList.add(
         new UpgradePermissionRestoreListener(
             upgradeService, effectApplier, permissionManager, skillTreeRegistry));
